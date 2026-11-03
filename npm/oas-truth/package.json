@@ -1,6 +1,6 @@
 {
   "name": "oas-truth",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "description": "oas-truth is a parser from OpenAPI and TypeSpec to a typed OpenAPI document",
   "keywords": [
     "openapi",
@@ -50,7 +50,7 @@
     "@typespec/rest": "0.87.0",
     "@typespec/versioning": "0.87.0",
     "arktype": "^2.2.9",
-    "effect": "4.0.6",
+    "effect": "4.1.2",
     "typebox": "^1.4.3",
     "typescript": "^7.0.2",
     "valibot": "^1.5.0",

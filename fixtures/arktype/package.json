@@ -10,7 +10,7 @@
   },
   "dependencies": {
     "arktype": "^2.2.9",
-    "effect": "^4.1.1",
+    "effect": "^4.1.2",
     "schema-truth": "workspace:^"
   },
   "devDependencies": {

@@ -1,6 +1,6 @@
 {
   "name": "schema-truth",
-  "version": "0.8.3",
+  "version": "0.8.4",
   "description": "Generate Zod/Valibot/Effect/TypeBox/ArkType/Ajv/Yup schemas from JSON or YAML files",
   "keywords": [
     "ajv",
@@ -106,8 +106,8 @@
   },
   "dependencies": {
     "@apidevtools/json-schema-ref-parser": "^16.0.5",
-    "@effect/platform-node": "4.1.1",
-    "effect": "4.1.1",
+    "@effect/platform-node": "4.1.2",
+    "effect": "4.1.2",
     "oxfmt": "^0.75.0"
   },
   "devDependencies": {

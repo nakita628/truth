@@ -9,7 +9,7 @@
     "test": "vitest run"
   },
   "dependencies": {
-    "effect": "^4.1.1",
+    "effect": "^4.1.2",
     "schema-truth": "workspace:^",
     "typebox": "^1.4.3"
   },
