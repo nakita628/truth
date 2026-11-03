@@ -6,7 +6,7 @@
     "openapi",
     "typespec"
   ],
-  "homepage": "https://github.com/nakita628/truth/tree/main/packages/oas-truth#readme",
+  "homepage": "https://github.com/nakita628/truth/tree/main/npm/oas-truth#readme",
   "bugs": {
     "url": "https://github.com/nakita628/truth/issues"
   },
@@ -14,7 +14,7 @@
   "repository": {
     "type": "git",
     "url": "git+https://github.com/nakita628/truth.git",
-    "directory": "packages/oas-truth"
+    "directory": "npm/oas-truth"
   },
   "files": [
     "dist"

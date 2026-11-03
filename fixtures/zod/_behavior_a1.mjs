@@ -1,5 +1,5 @@
-import { zod } from '../../packages/schema-truth/src/generator/zod/zod.js'
-import { valibot } from '../../packages/schema-truth/src/generator/valibot/valibot.js'
+import { zod } from '../../npm/schema-truth/src/generator/zod/zod.js'
+import { valibot } from '../../npm/schema-truth/src/generator/valibot/valibot.js'
 import { writeFileSync, mkdtempSync } from 'fs'
 import { tmpdir } from 'os'
 import { join } from 'path'

@@ -27,8 +27,8 @@ npm.npm_translate_lock(
     data = [
         "//:package.json",
         "//:pnpm-workspace.yaml",
-        "//packages/schema-truth:package.json",
-        "//packages/oas-truth:package.json",
+        "//npm/schema-truth:package.json",
+        "//npm/oas-truth:package.json",
         "//fixtures/ajv:package.json",
         "//fixtures/arktype:package.json",
         "//fixtures/effect:package.json",
@@ -43,7 +43,7 @@ npm.npm_translate_lock(
     # the ones that stay off), so Bazel runs no lifecycle hooks either.
     lifecycle_hooks = {"*": []},
     # A workspace package (`workspace:^`) resolves to the npm_package target named after its
-    # directory: //packages/schema-truth:schema-truth.
+    # directory: //npm/schema-truth:schema-truth.
     npm_package_target_name = "{dirname}",
     pnpm_lock = "//:pnpm-lock.yaml",
     verify_node_modules_ignored = "//:.bazelignore",

@@ -61,7 +61,7 @@ jobs:
       # Type-aware oxlint and the type check of every package (`vp check`). It runs here
       # rather than under Bazel because oxfmt skips symlinked files, and a Bazel runfiles tree
       # is nothing but symlinks.
-      - run: vp run --filter './packages/*' check
+      - run: vp run --filter './npm/*' check
 
   test:
     name: Build, type-check and test

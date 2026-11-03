@@ -18,7 +18,7 @@ Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pn
    written: names through `toIdentifierPascalCase`, values through `valueToCode`, inline schemas
    through `makeSchemaReplacements` and the adapter.
 4. Export it from `src/index.ts` and add it to `src/index.test.ts`.
-5. Document it in `packages/oas-truth/README.md`.
+5. Document it in `npm/oas-truth/README.md`.
 
 ## Support another validator library
 
@@ -45,7 +45,7 @@ Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pn
 
 ## Bump schema-truth
 
-1. Update the range in `packages/oas-truth/package.json`, then `pnpm install`.
+1. Update the range in `npm/oas-truth/package.json`, then `pnpm install`.
 2. `pnpm test`. Every changed expectation is a change in what consumers generate: read each
    difference, update it only when it is the upstream's intended output, and check that the
    adapter's import line and type alias still match the library version it now targets.
@@ -53,7 +53,7 @@ Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pn
 
 ## Bump TypeSpec
 
-1. Move every `@typespec/*` package in `packages/oas-truth/package.json` together, to the exact
+1. Move every `@typespec/*` package in `npm/oas-truth/package.json` together, to the exact
    versions of one TypeSpec release (Renovate groups them), then `pnpm install`.
 2. `pnpm test` runs the TypeSpec cases in `src/openapi/index.test.ts`; a compile failure there is
    usually a new diagnostic in the test sources, not a bug in `parseOpenAPI`.
@@ -75,13 +75,13 @@ Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pn
 ## Add a linter rule
 
 1. Check its category; correctness / suspicious / perf are already on.
-2. Add it to `lint.rules` in `packages/oas-truth/vite.config.ts` in its section, with the reason.
+2. Add it to `lint.rules` in `npm/oas-truth/vite.config.ts` in its section, with the reason.
 3. Run `pnpm check` and fix every finding in the code.
 
 ## Release (only when asked)
 
 1. Confirm `main` is green.
-2. Bump `version` in `packages/oas-truth/package.json` only (SemVer: a breaking change to the API
+2. Bump `version` in `npm/oas-truth/package.json` only (SemVer: a breaking change to the API
    or to the emitted code is a minor bump while the version is `0.x`).
 3. Commit with the version as the subject, open the pull request, and merge it to `main` once
    Test and Lint pass.

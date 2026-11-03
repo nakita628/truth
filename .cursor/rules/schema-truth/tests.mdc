@@ -28,7 +28,7 @@ describe('string', () => {
 })
 ```
 
-`@packages/schema-truth/src/generator/zod/string.test.ts` is the model. A new keyword
+`@npm/schema-truth/src/generator/zod/string.test.ts` is the model. A new keyword
 or `x-*` extension gets a row per target library it affects.
 
 - Assert on **exact strings**. Substring matching hides a malformed expression that still
@@ -42,8 +42,8 @@ or `x-*` extension gets a row per target library it affects.
 ## Running
 
 ```bash
-vp run schema-truth#test      # unit suite: packages/schema-truth/src/**/*.test.ts
+vp run schema-truth#test      # unit suite: npm/schema-truth/src/**/*.test.ts
 vp test                            # fixture suites: fixtures/*/src/*.test.ts, from the root config
 ```
 
-New code in `packages/schema-truth/src` needs a test that fails without the change.
+New code in `npm/schema-truth/src` needs a test that fails without the change.

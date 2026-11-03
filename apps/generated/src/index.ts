@@ -8,7 +8,7 @@ const execFileAsync = promisify(execFile)
 const here = dirname(fileURLToPath(import.meta.url))
 const appRoot = join(here, '..')
 const monorepoRoot = join(appRoot, '..', '..')
-const cliDir = join(monorepoRoot, 'packages', 'schema-truth', 'dist', 'cli')
+const cliDir = join(monorepoRoot, 'npm', 'schema-truth', 'dist', 'cli')
 
 type Generator = {
   readonly name: 'zod' | 'valibot' | 'effect' | 'typebox' | 'arktype'

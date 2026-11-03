@@ -7,7 +7,7 @@ export default defineConfig({
   // The fixture packages have no config of their own: each one generates its `output.ts`
   // files from the built schema-truth library and asserts on them, so they are run from here
   // (`bazel test //fixtures/...` runs the same files, one target per fixture).
-  // `packages/schema-truth` and `packages/oas-truth` declare their own `test` blocks.
+  // `npm/schema-truth` and `npm/oas-truth` declare their own `test` blocks.
   test: {
     include: ['fixtures/*/src/*.test.ts'],
     testTimeout: 10_000,
@@ -18,7 +18,7 @@ export default defineConfig({
   //
   // Keep `fmt.ignorePatterns` here specific enough that it matches nothing inside a
   // workspace: it is inherited too, and a broad root-relative pattern such as
-  // `packages/**` makes the workspace's own `vp check` exclude every file. `fixtures/**`
+  // `npm/**` makes the workspace's own `vp check` exclude every file. `fixtures/**`
   // is generator output committed for review; its bytes come from the generators' own
   // oxfmt pass.
   fmt: {

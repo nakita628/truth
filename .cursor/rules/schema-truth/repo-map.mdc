@@ -15,13 +15,13 @@ generated files against the real library.
 
 | Path | What it is |
 | --- | --- |
-| `packages/schema-truth` | the published npm package: parser, generators, seven CLIs |
-| `packages/schema-truth/src/generator/<lib>` | one directory per target library |
+| `npm/schema-truth` | the published npm package: parser, generators, seven CLIs |
+| `npm/schema-truth/src/generator/<lib>` | one directory per target library |
 | `fixtures/<lib>/<case>/{input.json,output.ts}` | golden files — `output.ts` is generated and committed |
 | `fixtures/validation`, `fixtures/elysia` | runtime tests: the emitted schemas must actually accept/reject data |
 | `apps/generated` | end-to-end smoke: runs the built CLIs over `apps/generated/schema/*` and type-checks the result |
 
-`README.md` at the repository root is a symlink to `@packages/schema-truth/README.md`;
+`README.md` at the repository root is a symlink to `@npm/schema-truth/README.md`;
 there is one README, and it is what npm shows. It is deliberately minimal — what the tool
 is, how to install it, the commands, one worked example — and it stays that way.
 
@@ -54,6 +54,6 @@ vp run lint                        # Markdown, terminology, spelling, secrets, l
 - **Document behaviour where it lives, not in the README.** A new `x-*` extension is
   documented by the doc comment on its type in `src/parser/x-ext/` and by the fixture that
   exercises it. Only installation, the commands and the one example belong in the README.
-- **No new runtime dependencies** in `packages/schema-truth` without being asked.
+- **No new runtime dependencies** in `npm/schema-truth` without being asked.
 - **Work on a branch and land it through a pull request** — a version bump on `main`
   publishes to npm. See `@.cursor/rules/pull-requests.mdc`.

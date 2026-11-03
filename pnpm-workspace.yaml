@@ -1,5 +1,5 @@
 packages:
-  - packages/*
+  - npm/*
   - fixtures/*
   - apps/*
 # pnpm runs no dependency build scripts unless they are listed here. Both are optional native

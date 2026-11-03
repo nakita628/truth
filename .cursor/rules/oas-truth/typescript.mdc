@@ -6,7 +6,7 @@ alwaysApply: false
 
 # TypeScript conventions
 
-The source of truth is `lint` in `packages/oas-truth/vite.config.ts`. What follows is what cannot
+The source of truth is `lint` in `npm/oas-truth/vite.config.ts`. What follows is what cannot
 be worked around. `*.test.ts` relaxes some of it — see the testing rule.
 
 ## Functions and declarations

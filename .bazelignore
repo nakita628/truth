@@ -1,8 +1,8 @@
 # pnpm's node_modules trees are never Bazel inputs: rules_js links its own under bazel-bin.
 # Every pnpm workspace is listed because .bazelignore does not expand globs.
 node_modules
-packages/schema-truth/node_modules
-packages/oas-truth/node_modules
+npm/schema-truth/node_modules
+npm/oas-truth/node_modules
 fixtures/ajv/node_modules
 fixtures/arktype/node_modules
 fixtures/effect/node_modules

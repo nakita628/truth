@@ -1,7 +1,7 @@
 name: release
 
 # Publishes every workspace package whose package.json#version is not on npm yet, after Test
-# has passed on main. Bumping a version in packages/<name>/package.json and merging it is the
+# has passed on main. Bumping a version in npm/<name>/package.json and merging it is the
 # whole release procedure; there are no changesets, release notes or GitHub releases.
 #
 # `workflow_run` is the trigger zizmor warns about because it hands a token to code from a
@@ -54,7 +54,7 @@ jobs:
       - run: vp install --frozen-lockfile
 
       # The same build Test ran, from the Bazel cache when nothing changed.
-      - run: bazel build //packages/schema-truth:build //packages/oas-truth:build
+      - run: bazel build //npm/schema-truth:build //npm/oas-truth:build
 
       # pnpm publishes from the source tree, so each package's dist is copied out of bazel-bin
       # (Bazel outputs are read-only; `cp -L` resolves the output symlinks).
@@ -62,9 +62,9 @@ jobs:
         run: |
           set -euo pipefail
           for pkg in schema-truth oas-truth; do
-            rm -rf "packages/$pkg/dist"
-            cp -rL "bazel-bin/packages/$pkg/dist" "packages/$pkg/dist"
-            chmod -R u+w "packages/$pkg/dist"
+            rm -rf "npm/$pkg/dist"
+            cp -rL "bazel-bin/npm/$pkg/dist" "npm/$pkg/dist"
+            chmod -R u+w "npm/$pkg/dist"
           done
 
       # `pnpm -r publish` skips every private package and every version that is already on the

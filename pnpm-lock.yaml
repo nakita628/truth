@@ -256,7 +256,7 @@ importers:
         version: 4.1.1
       schema-truth:
         specifier: workspace:^
-        version: link:../../packages/schema-truth
+        version: link:../../npm/schema-truth
     devDependencies:
       tsx:
         specifier: 4.23.15
@@ -275,7 +275,7 @@ importers:
         version: 4.1.1
       schema-truth:
         specifier: workspace:^
-        version: link:../../packages/schema-truth
+        version: link:../../npm/schema-truth
     devDependencies:
       tsx:
         specifier: 4.23.15
@@ -291,7 +291,7 @@ importers:
         version: 4.1.1
       schema-truth:
         specifier: workspace:^
-        version: link:../../packages/schema-truth
+        version: link:../../npm/schema-truth
     devDependencies:
       tsx:
         specifier: 4.23.15
@@ -320,7 +320,7 @@ importers:
         version: 4.1.1
       schema-truth:
         specifier: workspace:^
-        version: link:../../packages/schema-truth
+        version: link:../../npm/schema-truth
       typebox:
         specifier: ^1.4.3
         version: 1.4.3
@@ -345,7 +345,7 @@ importers:
         version: 4.1.1
       schema-truth:
         specifier: workspace:^
-        version: link:../../packages/schema-truth
+        version: link:../../npm/schema-truth
       valibot:
         specifier: ^1.5.0
         version: 1.5.0(typescript@7.0.2)
@@ -389,7 +389,7 @@ importers:
         version: 4.1.1
       schema-truth:
         specifier: workspace:^
-        version: link:../../packages/schema-truth
+        version: link:../../npm/schema-truth
       yup:
         specifier: ^1.7.1
         version: 1.7.1
@@ -408,7 +408,7 @@ importers:
         version: 4.1.1
       schema-truth:
         specifier: workspace:^
-        version: link:../../packages/schema-truth
+        version: link:../../npm/schema-truth
       zod:
         specifier: ^4.6.7
         version: 4.6.7
@@ -420,7 +420,7 @@ importers:
         specifier: 7.0.2
         version: 7.0.2
 
-  packages/oas-truth:
+  npm/oas-truth:
     dependencies:
       schema-truth:
         specifier: workspace:^
@@ -469,7 +469,7 @@ importers:
         specifier: ^4.6.7
         version: 4.6.7
 
-  packages/schema-truth:
+  npm/schema-truth:
     dependencies:
       '@apidevtools/json-schema-ref-parser':
         specifier: ^16.0.5

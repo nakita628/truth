@@ -1,12 +1,12 @@
 ---
-globs: packages/schema-truth/src/generator/**/*.ts,packages/schema-truth/src/helper/**/*.ts,packages/schema-truth/src/utils/**/*.ts
+globs: npm/schema-truth/src/generator/**/*.ts,npm/schema-truth/src/helper/**/*.ts,npm/schema-truth/src/utils/**/*.ts
 alwaysApply: false
 ---
 
 # Writing a generator
 
 Seven generators, one directory each, all with the same module shape. Read the Zod one
-first — `@packages/schema-truth/src/generator/zod` is the reference implementation
+first — `@npm/schema-truth/src/generator/zod` is the reference implementation
 and the others mirror it. Ajv is a first slice (object / string / number / integer)
 that emits a reconstructed schema object plus `ajv.compile`, not a chain API. Yup is
 a first slice of the same shape and falls back to `yup.mixed()` for unsupported nodes.
@@ -20,19 +20,19 @@ a first slice of the same shape and falls back to `yup.mixed()` for unsupported 
 
 Shared code sits outside the generator directories:
 
-- `@packages/schema-truth/src/options` — `GenerateOptions` and `EmitOptions`, the
+- `@npm/schema-truth/src/options` — `GenerateOptions` and `EmitOptions`, the
   options every `schemaTo<Lib>` accepts and threads through its emitters. They are public
   API, so they live in their own module and are imported from there, never reexported
   through `helper`.
 
-- `@packages/schema-truth/src/helper` — `cyclic`, `ref` (what a `$ref` names),
+- `@npm/schema-truth/src/helper` — `cyclic`, `ref` (what a `$ref` names),
   `not` (the predicate a `not` schema refuses with), `type` (the TypeScript type beside a
   recursive schema), `wire` (what every target shares about a string-wire parameter),
   `format` (the regexes the targets check string formats with), `parameter` (a
   parameter's `style` / `explode` / `content` readers), `regex`, `meta`, `value`,
   `code-extensions`, and one `<lib>-wrap.ts` per target for the wrapping rules that
   library needs.
-- `@packages/schema-truth/src/utils` — naming (`toPascalCase`,
+- `@npm/schema-truth/src/utils` — naming (`toPascalCase`,
   `toIdentifierPascalCase`, `makeSafeKey`), `normalizeTypes`, `coerceDefault`, the
   per-library error helpers (`zodError`, `valibotError`, `effectError`) and OpenAPI `$ref`
   resolution.

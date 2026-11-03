@@ -22,7 +22,7 @@ messages, workflow comments. textlint and cspell assume it. Test data may be in 
 ## Layout
 
 ```text
-packages/oas-truth/           the published package (the only npm artifact)
+npm/oas-truth/           the published package (the only npm artifact)
   src/                        implementation; see the architecture rule for the layering
   src/index.ts                the public API: everything users can import is re-exported here
   vite.config.ts              pack (build), test and lint for the package — the lint comments
@@ -60,7 +60,7 @@ all be green** — the Test workflow's steps, in its order. One failure means no
 ran part of it, say which part.
 
 - A behavior change ships with a test that fails before it and passes after.
-- A change to the public API or to what it returns updates `packages/oas-truth/README.md` in the
+- A change to the public API or to what it returns updates `npm/oas-truth/README.md` in the
   same change (the root `README.md` is a symlink to it; see the docs rule).
 - Report results as they are. Never call a task complete while hiding a failing command, and
   never make a check pass by weakening it.
@@ -82,7 +82,7 @@ ran part of it, say which part.
   network, no global state.
 - **Never hand-edit generated files:** `pnpm-lock.yaml` (let `pnpm install` write it), `dist/`,
   and the TypeSpec tests' `tmp-spec.tsp` / `tmp/` work files.
-- **Never bump `version` in `packages/oas-truth/package.json`** unless the task is a release that
+- **Never bump `version` in `npm/oas-truth/package.json`** unless the task is a release that
   was asked for: a new version reaching `main` is what publishes it. Never `npm publish` or push a
   `v*` tag by hand — `.github/workflows/release.yml` tags, publishes and releases, from one
   commit.
@@ -90,7 +90,7 @@ ran part of it, say which part.
 ## Working order
 
 1. Read the rules in force for the files you are about to touch (`lint.rules` and
-   `lint.overrides` in `packages/oas-truth/vite.config.ts`, and the matching
+   `lint.overrides` in `npm/oas-truth/vite.config.ts`, and the matching
    `.cursor/rules/*.mdc`).
 2. Implement it the way the surrounding code is written. Do not introduce a second idiom.
 3. `pnpm fix`, then the definition of done.

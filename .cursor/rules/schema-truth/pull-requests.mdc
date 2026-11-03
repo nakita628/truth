@@ -80,7 +80,7 @@ is pasted, not hidden, and a pull request is not opened over a red gate.
 ## A version bump is a release
 
 `release.yml` tags `v<version>`, publishes to npm and creates the GitHub release as soon
-as `main` carries a version of `packages/schema-truth/package.json` that is not on
+as `main` carries a version of `npm/schema-truth/package.json` that is not on
 the registry. Bumping that version **is** the release — never include a bump in a pull
 request that was not asked to publish one.
 

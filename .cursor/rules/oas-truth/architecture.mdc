@@ -1,13 +1,13 @@
 ---
 description: src layering, dependency direction, per-directory responsibilities and the public API
-globs: packages/oas-truth/src/**/*.ts
+globs: npm/oas-truth/src/**/*.ts
 alwaysApply: false
 ---
 
 # Layering
 
 Dependencies run **one way**. The order is enforced by the `no-restricted-imports` overrides in
-`packages/oas-truth/vite.config.ts`, each carrying a message that says what the directory may
+`npm/oas-truth/vite.config.ts`, each carrying a message that says what the directory may
 import. The comment above `overrides` is the map:
 
 ```text
@@ -48,7 +48,7 @@ and to the code second. A new `src/` directory gets its override and a line in t
 ## Public API
 
 What users can import is exactly what `src/index.ts` re-exports, built to `dist/index.js` /
-`dist/index.d.ts` (the single `.` subpath of `exports` in `packages/oas-truth/package.json`).
+`dist/index.d.ts` (the single `.` subpath of `exports` in `npm/oas-truth/package.json`).
 
 - Adding an export is adding it to `src/index.ts`, with a case in `src/index.test.ts` that
   imports it through the barrel.

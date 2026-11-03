@@ -46,7 +46,7 @@ reads them.
 ## Working with the filesystem
 
 - The TypeSpec cases in `src/openapi/index.test.ts` write `tmp-spec.tsp` and `tmp/` under
-  `packages/oas-truth`, so the compiler resolves `@typespec/*` from the package's
+  `npm/oas-truth`, so the compiler resolves `@typespec/*` from the package's
   `node_modules`. They clear them in `beforeEach` / `afterEach`; `.gitignore` covers both.
 - A case that compiles TypeSpec passes an explicit `{ timeout: 30_000 }`; the config's
   `testTimeout` is 30 s for the same reason.

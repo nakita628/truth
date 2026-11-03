@@ -37,7 +37,7 @@ alwaysApply: false
 
 ## Editing the lint configuration
 
-`lint` in `packages/oas-truth/vite.config.ts` is the standard this repository holds itself to;
+`lint` in `npm/oas-truth/vite.config.ts` is the standard this repository holds itself to;
 its comments explain every choice.
 
 - Adding a rule: place it in the section it belongs to and, if the reason is not obvious from its
@@ -93,7 +93,7 @@ its comments explain every choice.
 ## The published package
 
 - `files: ["dist"]`, plus the `README.md` npm always includes — the real file in
-  `packages/oas-truth`, since the root one is a symlink and npm leaves symlinks out. `dist` is
+  `npm/oas-truth`, since the root one is a symlink and npm leaves symlinks out. `dist` is
   never committed.
 - There are no lifecycle scripts: `npm publish` does not build, so the release workflow's publish
   job runs `vp run oas-truth#build` right before it.
@@ -103,7 +103,7 @@ its comments explain every choice.
 
 ## Releasing
 
-Releases are CI's job, and the `version` field of `packages/oas-truth/package.json` drives them.
+Releases are CI's job, and the `version` field of `npm/oas-truth/package.json` drives them.
 `release.yml` runs after Test passes on a push to `main` and, from the exact commit Test ran
 on:
 

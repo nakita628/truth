@@ -1,16 +1,16 @@
 ---
-globs: packages/schema-truth/**/*.ts
+globs: npm/schema-truth/**/*.ts
 alwaysApply: false
 ---
 
 # TypeScript conventions
 
-`@packages/schema-truth/vite.config.ts` is the enforced spec — oxlint runs type-aware
+`@npm/schema-truth/vite.config.ts` is the enforced spec — oxlint runs type-aware
 with `denyWarnings`, so anything below is a build failure, not a preference. Run
 `vp check --fix` before handing work back. What follows is only what a linter message
 alone will not tell you.
 
-## Repo-specific rules (custom oxlint plugin, `packages/schema-truth/lint/custom.js`)
+## Repo-specific rules (custom oxlint plugin, `npm/schema-truth/lint/custom.js`)
 
 - **`function name(...) {...}` declarations**, not `const name = () => {...}`. An arrow
   bound to a `const` is allowed only when the `const` carries a contextual type

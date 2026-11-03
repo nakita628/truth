@@ -15,7 +15,7 @@ js_library(
     ),
 )
 
-# Type-check the app and the schemas it generated from packages/schema-truth's CLIs
+# Type-check the app and the schemas it generated from npm/schema-truth's CLIs
 # (`vp run @apps/generated#dev` regenerates them; the output is committed for review).
 typescript.tsc_test(
     name = "typecheck",
