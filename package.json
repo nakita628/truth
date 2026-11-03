@@ -5,9 +5,9 @@
   "type": "module",
   "scripts": {
     "build": "bazel build //...",
-    "check": "vp fmt --check && vp run --filter './npm/*' check && pnpm lint",
+    "check": "vp fmt --check && vp run schema-truth#build && vp run --filter './npm/*' check && pnpm lint",
     "deps": "rm -rf node_modules pnpm-lock.yaml && pnpm install",
-    "fix": "vp fmt && vp run --filter './npm/*' check --fix && markdownlint-cli2 --fix && textlint --fix \"**/*.md\" \"**/*.mdc\"",
+    "fix": "vp fmt && vp run schema-truth#build && vp run --filter './npm/*' check --fix && markdownlint-cli2 --fix && textlint --fix \"**/*.md\" \"**/*.mdc\"",
     "lint": "pnpm lint:md && pnpm lint:text && pnpm lint:spell && pnpm lint:secret && pnpm lint:actions && pnpm lint:links",
     "lint:actions": "node lint/actionlint.mjs",
     "lint:links": "textlint --config .textlintrc.links.json \"**/*.md\" \"**/*.mdc\"",

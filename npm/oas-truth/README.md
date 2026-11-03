@@ -71,4 +71,4 @@ const source = `${declarations[0]?.importLine}\n\n${declarations[0]?.code}`
 
 ## License
 
-[MIT](https://github.com/nakita628/oas-truth/blob/main/LICENSE)
+[MIT](https://github.com/nakita628/truth/blob/main/LICENSE)

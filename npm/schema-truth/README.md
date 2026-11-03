@@ -141,4 +141,4 @@ export const User = yup.object({
 
 ## License
 
-Distributed under the MIT License. See [LICENSE](https://github.com/nakita628/schema-truth?tab=MIT-1-ov-file) for more information.
+Distributed under the MIT License. See [LICENSE](https://github.com/nakita628/truth/blob/main/LICENSE) for more information.

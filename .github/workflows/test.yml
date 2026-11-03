@@ -58,6 +58,10 @@ jobs:
       # scanning, workflow syntax (actionlint) and link rot. Nothing here needs a build.
       - run: vp run lint
 
+      # oas-truth imports schema-truth through its published entry points (dist/), so the
+      # type-aware lint below needs the sibling built first.
+      - run: vp run schema-truth#build
+
       # Type-aware oxlint and the type check of every package (`vp check`). It runs here
       # rather than under Bazel because oxfmt skips symlinked files, and a Bazel runfiles tree
       # is nothing but symlinks.
