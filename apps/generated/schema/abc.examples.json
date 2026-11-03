@@ -1,0 +1,4 @@
+{
+  "valid": [{}, { "b": { "c": "hello" } }, { "b": {} }],
+  "invalid": [{ "b": "not-an-object" }, { "b": { "c": 42 } }]
+}

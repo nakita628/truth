@@ -1,0 +1,7 @@
+{
+  // GitHub issue / PR templates are fragments rendered inside GitHub's own form, so
+  // they start at the section level rather than with a top-level heading.
+  "config": {
+    "MD041": false,
+  },
+}

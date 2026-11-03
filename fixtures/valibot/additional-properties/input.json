@@ -1,0 +1,5 @@
+{
+  "title": "Config",
+  "type": "object",
+  "additionalProperties": { "type": "string" }
+}

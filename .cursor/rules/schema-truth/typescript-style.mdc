@@ -1,0 +1,44 @@
+---
+globs: packages/schema-truth/**/*.ts
+alwaysApply: false
+---
+
+# TypeScript conventions
+
+`@packages/schema-truth/vite.config.ts` is the enforced spec — oxlint runs type-aware
+with `denyWarnings`, so anything below is a build failure, not a preference. Run
+`vp check --fix` before handing work back. What follows is only what a linter message
+alone will not tell you.
+
+## Repo-specific rules (custom oxlint plugin, `packages/schema-truth/lint/custom.js`)
+
+- **`function name(...) {...}` declarations**, not `const name = () => {...}`. An arrow
+  bound to a `const` is allowed only when the `const` carries a contextual type
+  annotation.
+- **Predicates are named `is…` / `has…` / `can…`** — a function returning `boolean` reads
+  as the question it asks.
+- **Types are PascalCase, and declared with `type`, never `interface`.**
+- **Effect is returned, not run.** No `Effect.run*` outside the bin entries and test
+  helpers that are exempted by path. No `Effect.fn` and no `Effect.flatMap`: write
+  `Effect.gen(function* () { ... })` with `yield*` steps and early-return guards.
+
+## Everything else worth knowing before you write
+
+- **Effect is imported by module** — `import * as Effect from 'effect/Effect'`, never the
+  `'effect'` barrel: the CLI pays for every module it loads at start-up, and the barrel
+  loads all of them. The same goes for `@effect/platform-node/NodeServices` and friends.
+- **Relative imports keep the `.js` extension** (`./string.js`) — NodeNext resolution
+  needs it at runtime and `tsc` will not tell you.
+- **No default exports**, and no `require`. ESM only, `node:` protocol for built-in modules.
+- **No escape hatches**: no `any`, no non-null assertion, and `assertionStyle: 'never'` —
+  `x as Y` does not compile here. Narrow with a type guard instead.
+- **Failures land in the error channel.** `fmt`, `parseJson` and `parseSchemaFile` are
+  Effects. There is no `{ ok }` Result type. When something must throw, throw an
+  `Error` with a message; name the catch binding `error`.
+- **No `console`** in the package (the CLI reports through its own path); `fixtures/` and
+  `apps/` are separate workspaces and not bound by this config.
+- **Suppressions live at the call site** as `oxlint-disable-next-line <rule>` with a
+  reason comment — never as `'off'` in the config, and never as a bare disable. Unused
+  disable directives are errors, so delete one the moment it stops applying.
+- The config's comments explain *why* a rule is on or deliberately absent. If a rule
+  fights you, read that comment before proposing a change to it.

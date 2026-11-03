@@ -1,0 +1,27 @@
+{
+  "title": "Connections",
+  "type": "array",
+  "items": { "$ref": "#/$defs/Connection" },
+  "$defs": {
+    "Connection": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "type": { "type": "string", "enum": ["Sample", "Kafka"] }
+      },
+      "discriminator": {
+        "propertyName": "type",
+        "mapping": { "Sample": "#/$defs/SampleConnection", "Kafka": "#/$defs/KafkaConnection" }
+      },
+      "oneOf": [{ "$ref": "#/$defs/SampleConnection" }, { "$ref": "#/$defs/KafkaConnection" }]
+    },
+    "SampleConnection": { "type": "object", "allOf": [{ "$ref": "#/$defs/Connection" }] },
+    "KafkaConnection": {
+      "type": "object",
+      "allOf": [
+        { "$ref": "#/$defs/Connection" },
+        { "type": "object", "properties": { "bootstrapServers": { "type": "string" } } }
+      ]
+    }
+  }
+}

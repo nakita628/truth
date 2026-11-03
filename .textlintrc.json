@@ -1,0 +1,32 @@
+{
+  "plugins": {
+    "@textlint/markdown": {
+      "extensions": [".mdc"]
+    }
+  },
+  "filters": {
+    "comments": true
+  },
+  "rules": {
+    "terminology": {
+      "defaultTerms": true,
+      "terms": [
+        "Ajv",
+        "ArkType",
+        "TypeBox",
+        "Valibot",
+        "Zod",
+        "Yup",
+        "Effect Schema",
+        "JSON Schema",
+        ["Open ?API", "OpenAPI"],
+        "TypeSpec",
+        "Bazel",
+        "Renovate",
+        "Cursor"
+      ],
+      "exclude": ["readme(s)?", "regexp?(s)?", "re[- ]export(s|ing|ed)?"]
+    },
+    "no-todo": true
+  }
+}

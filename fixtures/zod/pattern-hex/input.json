@@ -1,0 +1,5 @@
+{
+  "title": "Metadata",
+  "type": "string",
+  "pattern": "^[\\x00-\\x{FFFF}]*$"
+}

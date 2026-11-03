@@ -1,0 +1,18 @@
+{
+  "title": "User",
+  "type": "object",
+  "description": "A user account",
+  "example": { "id": 1, "email": "a@b.com" },
+  "externalDocs": { "url": "https://example.com/users" },
+  "properties": {
+    "id": { "type": "integer", "description": "unique id", "readOnly": true },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "description": "email address",
+      "examples": ["a@b.com", "c@d.com"]
+    },
+    "role": { "type": "string", "deprecated": true, "description": "legacy role" }
+  },
+  "required": ["id", "email"]
+}

@@ -1,0 +1,13 @@
+{
+  "title": "Toggle",
+  "type": "object",
+  "properties": {
+    "kind": { "type": "string" },
+    "feature": { "type": "string" }
+  },
+  "required": ["kind"],
+  "dependentRequired": {
+    "kind": ["feature"]
+  },
+  "x-dependentRequired-message": "feature is required when kind is set"
+}

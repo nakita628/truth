@@ -1,0 +1,17 @@
+# Bazel settings shared by every developer and CI. Per-machine overrides go in
+# user.bazelrc, which is git-ignored and imported last.
+
+# Fail on a test that prints nothing useful: only failing tests get their log echoed.
+test --test_output=errors
+
+# The npm packages are fetched by Bazel from the lockfile; nothing here needs the host's
+# environment beyond PATH, and a fixed PATH keeps the actions cacheable across machines.
+build --incompatible_strict_action_env
+
+# Keep the Bazel-managed node_modules trees out of the source tree's way.
+build --nolegacy_external_runfiles
+
+# Faster incremental analysis and a smaller lockfile.
+common --lockfile_mode=update
+
+try-import %workspace%/user.bazelrc

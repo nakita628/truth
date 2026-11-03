@@ -1,0 +1,94 @@
+---
+description: How a change lands — from an issue to a merged pull request: branch, title, the Why/What/Where/Who/When/How body, labels, and what has to be green first
+alwaysApply: true
+---
+
+# Pull requests
+
+This repository is operated by an agent, not by hand. The issue, the diff and the pull
+request body are the whole record of a change, so each one is written for a reader who was
+not in the conversation.
+
+## From an issue
+
+1. Read the issue as **Why / What / Where / Who / When / How**. When a section is missing and the answer
+   would change the work, ask in the issue first; otherwise state the assumption in the pull
+   request body.
+2. Reproduce before fixing: a failing unit-test row or fixture case that shows the bug or
+   the missing behaviour.
+3. Branch from `main`, named `type/topic` (`fix/valibot-enum`, `feat/x-brand`). Never commit
+   to `main` — a version bump there publishes to npm.
+4. One topic per pull request. A generator fix and a docs rewrite are two pull requests.
+
+## The title is the changelog
+
+`.github/workflows/release.yml` cuts each GitHub Release with
+`gh release create --generate-notes`, and those notes are the **titles of the pull
+requests merged since the previous release**. Write the title for someone reading the
+releases page, not for the diff:
+
+```text
+type(scope): summary in the imperative, no trailing period
+
+type   feat | fix | perf | refactor | docs | test | build | ci | chore
+scope  zod | valibot | effect | typebox | arktype | ajv | yup | cli | parser | fixtures | docs | ci
+```
+
+```text
+fix(valibot): emit valid schemas for null and object enum members
+feat(zod): support x-stringbool on boolean properties
+docs: point Effect Schema links at the v4 documentation
+```
+
+## Body
+
+Fill in `.github/pull_request_template.md`. Keep all six headings, replace each comment
+with the answer, and write `None.` under a heading that does not apply rather than
+deleting it. One to three sentences per heading.
+
+| Heading | Answer                                                                       |
+| ------- | ---------------------------------------------------------------------------- |
+| Why     | the bug, gap or request; `Closes #123`                                       |
+| What    | the change as a user of the package sees it                                  |
+| Where   | generators, parser, CLI, fixtures or docs touched — and what was left out    |
+| Who     | who notices: every user, one target's users, contributors; breaking for whom |
+| When    | release impact: none, next release, or the version bumped in this change     |
+| How     | the approach, then the evidence: the gate below, and the fixture diff        |
+
+The evidence that matters most here is the **fixture diff**: this repository's review
+artifact is `fixtures/*/*/output.ts`, so paste the interesting part of it or say plainly
+that generated output is unchanged.
+
+## Labels
+
+Apply exactly one: `bug`, `enhancement`, `documentation`, `breaking` or `dependencies`.
+`.github/release.yml` groups the generated notes by that label, and anything unlabelled
+falls into "Other changes".
+
+## Green before you open it
+
+```bash
+vp run -r check       # format, lint, types
+vp run lint           # Markdown, terminology, spelling, secrets, links
+vp run schema-truth#build && vp run -r typecheck   # generated code against the real libraries
+vp test && vp run schema-truth#test
+```
+
+Tick a box in the template only for a command that ran and passed. A command that failed
+is pasted, not hidden, and a pull request is not opened over a red gate.
+
+## A version bump is a release
+
+`release.yml` tags `v<version>`, publishes to npm and creates the GitHub release as soon
+as `main` carries a version of `packages/schema-truth/package.json` that is not on
+the registry. Bumping that version **is** the release — never include a bump in a pull
+request that was not asked to publish one.
+
+## Opening it
+
+```bash
+gh pr create --base main --title 'fix(zod): …' --label bug --body-file <file>
+```
+
+Where `gh` is not available, open the pull request through the platform's own step with
+the same title, label and body.

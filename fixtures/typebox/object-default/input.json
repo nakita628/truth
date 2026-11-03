@@ -1,0 +1,16 @@
+{
+  "title": "Filters",
+  "type": "object",
+  "properties": {
+    "active": {
+      "type": "boolean"
+    },
+    "fetch_connection_secrets": {
+      "type": "boolean"
+    }
+  },
+  "default": {
+    "fetch_user_data": false,
+    "fetch_connection_secrets": false
+  }
+}

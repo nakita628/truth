@@ -1,0 +1,32 @@
+{
+  "title": "Order",
+  "type": "object",
+  "properties": {
+    "id": { "type": "integer" },
+    "customer": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "email": { "type": "string", "format": "email" }
+      },
+      "required": ["name", "email"]
+    },
+    "items": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" },
+          "price": { "type": "number", "minimum": 0 },
+          "quantity": { "type": "integer", "minimum": 1 }
+        },
+        "required": ["name", "price", "quantity"]
+      }
+    },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "confirmed", "shipped", "delivered"]
+    }
+  },
+  "required": ["id", "customer", "items", "status"]
+}

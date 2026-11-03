@@ -1,0 +1,12 @@
+{
+  "title": "Conditional",
+  "type": "object",
+  "properties": {
+    "kind": { "type": "string" },
+    "value": { "type": "string" }
+  },
+  "required": ["kind"],
+  "if": { "properties": { "kind": { "const": "named" } } },
+  "then": { "required": ["value"] },
+  "else": { "not": { "required": ["value"] } }
+}

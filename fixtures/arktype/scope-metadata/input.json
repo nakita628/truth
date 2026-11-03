@@ -1,0 +1,42 @@
+{
+  "title": "Organization",
+  "type": "object",
+  "definitions": {
+    "Member": {
+      "type": "object",
+      "description": "A person who is a member of the organization.",
+      "properties": {
+        "userId": { "type": "string", "format": "uuid", "description": "The user's id." },
+        "invitedBy": {
+          "$ref": "#/definitions/Member",
+          "description": "The member who invited this user."
+        }
+      },
+      "required": ["userId"]
+    },
+    "Organization": {
+      "type": "object",
+      "description": "An organization and its members.",
+      "properties": {
+        "name": { "type": "string", "minLength": 1, "description": "The organization name." },
+        "members": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/Member" },
+          "minItems": 1,
+          "description": "The members of the organization."
+        },
+        "parent": {
+          "$ref": "#/definitions/Organization",
+          "description": "An optional parent organization."
+        },
+        "audited": {
+          "allOf": [
+            { "$ref": "#/definitions/Member" },
+            { "type": "object", "properties": { "note": { "type": "string" } } }
+          ]
+        }
+      },
+      "required": ["name"]
+    }
+  }
+}

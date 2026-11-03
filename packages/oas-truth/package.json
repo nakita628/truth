@@ -1,0 +1,64 @@
+{
+  "name": "oas-truth",
+  "version": "0.5.1",
+  "description": "oas-truth is a parser from OpenAPI and TypeSpec to a typed OpenAPI document",
+  "keywords": [
+    "openapi",
+    "typespec"
+  ],
+  "homepage": "https://github.com/nakita628/truth/tree/main/packages/oas-truth#readme",
+  "bugs": {
+    "url": "https://github.com/nakita628/truth/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nakita628/truth.git",
+    "directory": "packages/oas-truth"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "sideEffects": false,
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check": "vp check",
+    "fix": "vp check --fix",
+    "test": "vp test"
+  },
+  "dependencies": {
+    "schema-truth": "workspace:^"
+  },
+  "devDependencies": {
+    "@apidevtools/swagger-parser": "^13.1.0",
+    "@types/node": "^26.6.5",
+    "@typespec/compiler": "1.17.0",
+    "@typespec/http": "1.17.0",
+    "@typespec/openapi": "1.17.0",
+    "@typespec/openapi3": "1.17.0",
+    "@typespec/rest": "0.87.0",
+    "@typespec/versioning": "0.87.0",
+    "arktype": "^2.2.9",
+    "effect": "4.0.6",
+    "typebox": "^1.4.3",
+    "typescript": "^7.0.2",
+    "valibot": "^1.5.0",
+    "zod": "^4.6.7"
+  },
+  "peerDependencies": {
+    "@apidevtools/swagger-parser": ">=12.0.0 <14.0.0",
+    "@typespec/compiler": ">=1.11.0 <2.0.0",
+    "@typespec/openapi3": ">=1.11.0 <2.0.0"
+  }
+}

@@ -1,0 +1,19 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+# The root devDependencies (vite-plus and the prose linters), linked as //:node_modules/<pkg>.
+# Packages depend on //:node_modules/vite-plus alone; the linters run through pnpm, not Bazel.
+npm_link_all_packages(name = "node_modules")
+
+# The workspace-level files every package's `vp` invocation reads: Vite+ merges the root
+# vite.config.ts into each package config, and finds the workspace root through
+# pnpm-workspace.yaml.
+js_library(
+    name = "workspace_config",
+    srcs = [
+        "package.json",
+        "pnpm-workspace.yaml",
+        "vite.config.ts",
+    ],
+    visibility = ["//visibility:public"],
+)

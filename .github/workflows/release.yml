@@ -1,0 +1,79 @@
+name: release
+
+# Publishes every workspace package whose package.json#version is not on npm yet, after Test
+# has passed on main. Bumping a version in packages/<name>/package.json and merging it is the
+# whole release procedure; there are no changesets, release notes or GitHub releases.
+#
+# `workflow_run` is the trigger zizmor warns about because it hands a token to code from a
+# pull request when misused; here the only job checks out the commit Test ran on (`head_sha`),
+# only for a `push` to main, and holds a read-only token plus the OIDC token npm trusted
+# publishing signs provenance with.
+on:
+  workflow_run: # zizmor: ignore[dangerous-triggers]
+    workflows: [Test]
+    types: [completed]
+    branches: [main]
+
+# Nothing is granted by default; each job asks for exactly what it needs.
+permissions: {}
+
+# One release at a time, and never cancel one that has started publishing.
+concurrency:
+  group: ${{ github.workflow }}
+  cancel-in-progress: false
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    # Only a commit that was pushed to main and whose Test run passed is releasable.
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    environment: release
+    permissions:
+      contents: read # the checkout, nothing else
+      id-token: write # the OIDC token npm trusted publishing signs provenance with
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
+        with:
+          path: ~/.cache/bazel
+          key: ${{ runner.os }}-bazel-${{ hashFiles('MODULE.bazel.lock', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-bazel-
+
+      - uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          node-version: '24'
+          cache: true
+
+      - run: vp install --frozen-lockfile
+
+      # The same build Test ran, from the Bazel cache when nothing changed.
+      - run: bazel build //packages/schema-truth:build //packages/oas-truth:build
+
+      # pnpm publishes from the source tree, so each package's dist is copied out of bazel-bin
+      # (Bazel outputs are read-only; `cp -L` resolves the output symlinks).
+      - name: Stage the built packages
+        run: |
+          set -euo pipefail
+          for pkg in schema-truth oas-truth; do
+            rm -rf "packages/$pkg/dist"
+            cp -rL "bazel-bin/packages/$pkg/dist" "packages/$pkg/dist"
+            chmod -R u+w "packages/$pkg/dist"
+          done
+
+      # `pnpm -r publish` skips every private package and every version that is already on the
+      # registry, rewrites `workspace:^` to the sibling's real version, and publishes the rest
+      # with provenance (package.json#publishConfig). npm 11.5+ (bundled with Node 24) is what
+      # exchanges the OIDC token, so no npm token is configured anywhere.
+      - name: Publish
+        run: |
+          set -euo pipefail
+          corepack enable
+          pnpm --version
+          pnpm -r publish --access public --no-git-checks

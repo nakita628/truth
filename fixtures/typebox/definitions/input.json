@@ -1,0 +1,16 @@
+{
+  "title": "A",
+  "type": "object",
+  "properties": {
+    "b": { "$ref": "#/definitions/B" }
+  },
+  "definitions": {
+    "B": {
+      "type": "object",
+      "properties": {
+        "c": { "$ref": "#/definitions/C" }
+      }
+    },
+    "C": { "type": "string" }
+  }
+}

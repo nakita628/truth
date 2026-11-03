@@ -1,0 +1,19 @@
+{
+  "title": "Address",
+  "type": "object",
+  "properties": {
+    "country": { "type": "string" },
+    "postalCode": { "type": "string" }
+  },
+  "required": ["country"],
+  "if": {
+    "type": "object",
+    "properties": { "country": { "const": "JP" } },
+    "required": ["country"]
+  },
+  "then": {
+    "type": "object",
+    "properties": { "postalCode": { "type": "string" } },
+    "required": ["postalCode"]
+  }
+}

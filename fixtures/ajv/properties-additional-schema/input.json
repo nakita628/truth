@@ -1,0 +1,8 @@
+{
+  "title": "Tagged",
+  "type": "object",
+  "properties": { "name": { "type": "string" } },
+  "required": ["name"],
+  "patternProperties": { "^x-": { "type": "string" } },
+  "additionalProperties": { "type": "integer" }
+}

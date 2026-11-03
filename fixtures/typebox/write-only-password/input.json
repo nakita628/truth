@@ -1,0 +1,9 @@
+{
+  "title": "Credentials",
+  "type": "object",
+  "properties": {
+    "username": { "type": "string" },
+    "password": { "type": "string", "writeOnly": true, "minLength": 8 }
+  },
+  "required": ["username", "password"]
+}

@@ -1,0 +1,5 @@
+{
+  "title": "NotString",
+  "not": { "type": "string" },
+  "x-not-message": "Must not be a string"
+}

@@ -1,0 +1,18 @@
+{
+  "title": "Query",
+  "type": "object",
+  "properties": {
+    "page": { "type": "integer", "minimum": 1, "default": 1 },
+    "ids": { "type": "array", "items": { "type": "integer" } },
+    "sort": { "type": "integer", "enum": [1, -1] },
+    "active": { "type": "boolean", "enum": [true] },
+    "limit": { "type": ["integer", "null"] },
+    "cursor": { "type": "integer", "format": "uint64" },
+    "offset": { "minimum": 0 },
+    "skip": { "type": "integer", "not": { "const": 0 } },
+    "flag": { "oneOf": [{ "type": "integer" }, { "type": "boolean" }] },
+    "constructor": { "type": "integer" },
+    "email": { "type": "string", "format": "email", "x-trim": true }
+  },
+  "required": ["page"]
+}

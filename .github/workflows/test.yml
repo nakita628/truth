@@ -1,0 +1,90 @@
+name: Test
+
+# Every check a change must pass, on every push to main and every pull request. release.yml
+# runs after this workflow has passed on main.
+#
+# Action versions are tracked by Renovate, which pins each one to its digest
+# (helpers:pinGitHubActionDigests) and keeps the @vX.Y.Z tag as a comment.
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+# Nothing is granted by default; each job asks for exactly what it needs.
+permissions: {}
+
+# Only the tip of a branch or pull request is worth testing, so a push that supersedes an
+# earlier one cancels its run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint:
+    name: Lint the repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    permissions:
+      contents: read # the checkout, nothing else
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Security audit of the workflows themselves: unpinned actions, credential persistence,
+      # over-broad permissions. `advanced-security: false` keeps the findings in the job log
+      # and its annotations, so the job needs no extra permissions. Suppressions live in
+      # .github/zizmor.yml.
+      - uses: zizmorcore/zizmor-action@53290badfa369cb0bf7ad16342cb62c2fa47ac7b # v0.8.0
+        with:
+          advanced-security: false
+          annotations: true
+          persona: pedantic
+
+      - uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          node-version: '24'
+          cache: true
+
+      - run: vp install --frozen-lockfile
+
+      # Formatting is the one repo-wide code check that stays outside Bazel: oxfmt runs over
+      # every file at once from the root config.
+      - run: vp fmt --check
+
+      # Every text check in one task: Markdown structure, terminology, spelling, secret
+      # scanning, workflow syntax (actionlint) and link rot. Nothing here needs a build.
+      - run: vp run lint
+
+      # Type-aware oxlint and the type check of every package (`vp check`). It runs here
+      # rather than under Bazel because oxfmt skips symlinked files, and a Bazel runfiles tree
+      # is nothing but symlinks.
+      - run: vp run --filter './packages/*' check
+
+  test:
+    name: Build, type-check and test
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    permissions:
+      contents: read # the checkout, nothing else
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      # Bazelisk ships on the hosted runner as `bazel` and reads .bazelversion. The cache
+      # holds the fetched rules, the Node toolchain and the npm packages, keyed on the two
+      # lockfiles that decide them; the action cache inside it is what makes an unchanged
+      # package a cache hit instead of a rerun.
+      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
+        with:
+          path: ~/.cache/bazel
+          key: ${{ runner.os }}-bazel-${{ hashFiles('MODULE.bazel.lock', 'pnpm-lock.yaml') }}
+          restore-keys: |
+            ${{ runner.os }}-bazel-
+
+      # Every package: `vp pack`, `vp check` (type-aware lint and type check), `vp test`, and
+      # the fixtures' type check of the generated output against the real target libraries.
+      - run: bazel test //...

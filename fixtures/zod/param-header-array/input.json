@@ -1,0 +1,14 @@
+{
+  "title": "Headers",
+  "type": "object",
+  "properties": {
+    "x-ids": {
+      "type": "array",
+      "items": {
+        "type": "integer"
+      },
+      "x-style": "simple",
+      "x-explode": false
+    }
+  }
+}

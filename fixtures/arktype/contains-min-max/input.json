@@ -1,0 +1,7 @@
+{
+  "title": "IntList",
+  "type": "array",
+  "contains": { "type": "integer" },
+  "minContains": 2,
+  "maxContains": 3
+}

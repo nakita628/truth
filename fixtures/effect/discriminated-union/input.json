@@ -1,0 +1,23 @@
+{
+  "title": "Event",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "click" },
+        "x": { "type": "integer" },
+        "y": { "type": "integer" }
+      },
+      "required": ["type", "x", "y"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "type": { "const": "keypress" },
+        "key": { "type": "string" }
+      },
+      "required": ["type", "key"]
+    }
+  ],
+  "discriminator": { "propertyName": "type" }
+}

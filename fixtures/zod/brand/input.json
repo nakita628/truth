@@ -1,0 +1,39 @@
+{
+  "title": "BrandedTypes",
+  "type": "object",
+  "properties": {
+    "userId": {
+      "type": "string",
+      "format": "uuid",
+      "x-brand": "UserId"
+    },
+    "email": {
+      "type": "string",
+      "format": "email",
+      "x-brand": "Email"
+    },
+    "price": {
+      "type": "number",
+      "minimum": 0,
+      "x-brand": "Price"
+    },
+    "quantity": {
+      "type": "integer",
+      "minimum": 0,
+      "x-brand": "Quantity"
+    },
+    "tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "minItems": 1,
+      "maxItems": 10,
+      "x-brand": "Tags"
+    },
+    "name": {
+      "type": "string"
+    }
+  },
+  "required": ["userId", "email", "price", "quantity", "tags", "name"]
+}

@@ -1,0 +1,51 @@
+"""truth: the schema-truth / oas-truth monorepo.
+
+Bazel orchestrates the packages (build, test, type check) on top of the pnpm workspace:
+pnpm-lock.yaml is the single source of truth for dependencies, and rules_js turns it into
+Bazel-managed node_modules trees. The per-package tooling stays what it was (vite-plus:
+`vp pack`, `vp test`, `vp check`); Bazel runs it hermetically and caches the results.
+"""
+
+module(name = "truth")
+
+bazel_dep(name = "aspect_rules_js", version = "3.5.2")
+bazel_dep(name = "aspect_bazel_lib", version = "2.22.5")
+bazel_dep(name = "rules_nodejs", version = "6.7.7")
+
+# The Node version CI installs as well (see .github/workflows); vite-plus 1.x needs ^24.11.
+node = use_extension("@rules_nodejs//nodejs:extensions.bzl", "node", dev_dependency = True)
+node.toolchain(node_version = "24.22.1")
+
+# The same pnpm that package.json#packageManager names, for `bazel run @pnpm -- install`.
+pnpm = use_extension("@aspect_rules_js//npm:extensions.bzl", "pnpm", dev_dependency = True)
+pnpm.pnpm(name = "pnpm", pnpm_version = "12.15.0")
+use_repo(pnpm, "pnpm")
+
+npm = use_extension("@aspect_rules_js//npm:extensions.bzl", "npm", dev_dependency = True)
+npm.npm_translate_lock(
+    name = "npm",
+    data = [
+        "//:package.json",
+        "//:pnpm-workspace.yaml",
+        "//packages/schema-truth:package.json",
+        "//packages/oas-truth:package.json",
+        "//fixtures/ajv:package.json",
+        "//fixtures/arktype:package.json",
+        "//fixtures/effect:package.json",
+        "//fixtures/elysia:package.json",
+        "//fixtures/typebox:package.json",
+        "//fixtures/valibot:package.json",
+        "//fixtures/validation:package.json",
+        "//fixtures/yup:package.json",
+        "//fixtures/zod:package.json",
+        "//apps/generated:package.json",    ],
+    # pnpm runs no dependency build scripts here (pnpm-workspace.yaml#allowBuilds only lists
+    # the ones that stay off), so Bazel runs no lifecycle hooks either.
+    lifecycle_hooks = {"*": []},
+    # A workspace package (`workspace:^`) resolves to the npm_package target named after its
+    # directory: //packages/schema-truth:schema-truth.
+    npm_package_target_name = "{dirname}",
+    pnpm_lock = "//:pnpm-lock.yaml",
+    verify_node_modules_ignored = "//:.bazelignore",
+)
+use_repo(npm, "npm")

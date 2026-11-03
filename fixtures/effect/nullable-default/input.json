@@ -1,0 +1,13 @@
+{
+  "title": "Profile",
+  "type": "object",
+  "properties": {
+    "nickname": {
+      "type": ["string", "null"]
+    },
+    "age": {
+      "type": ["integer", "null"],
+      "default": null
+    }
+  }
+}

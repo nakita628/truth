@@ -1,0 +1,17 @@
+{
+  "title": "Card",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string" }
+  },
+  "required": ["name"],
+  "dependentSchemas": {
+    "creditCard": {
+      "type": "object",
+      "properties": {
+        "billingAddress": { "type": "string" }
+      },
+      "required": ["billingAddress"]
+    }
+  }
+}

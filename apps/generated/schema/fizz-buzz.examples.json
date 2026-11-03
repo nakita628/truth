@@ -1,0 +1,4 @@
+{
+  "valid": [{ "value": "Fizz" }, { "value": "FizzBuzz" }, { "value": "1" }],
+  "invalid": [{ "value": "0" }, { "value": "Fizzy" }, { "value": 1 }, {}]
+}

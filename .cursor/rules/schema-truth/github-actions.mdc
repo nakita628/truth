@@ -1,0 +1,74 @@
+---
+globs: .github/workflows/**
+alwaysApply: false
+---
+
+# GitHub Actions
+
+Two linters run over these files in CI, and neither is part of `vp run lint`: they are a
+Go and a Rust binary, and no maintained npm build of either exists (the `actionlint` and
+`node-actionlint` packages on npm were last published in 2022 and are unofficial).
+
+| Tool | Catches | Where |
+| --- | --- | --- |
+| [actionlint](https://github.com/rhysd/actionlint) | invalid keys, broken `${{ }}` expressions, bad `needs` / `steps` references, and — through shellcheck, which the runners have — mistakes inside `run:` blocks | `Lint workflows` step in `test.yml`, pinned release + checksum |
+| [zizmor](https://docs.zizmor.sh/) | unpinned actions, credential persistence, over-broad permissions, dangerous triggers | `zizmorcore/zizmor-action` step in `test.yml` |
+
+Run them locally before pushing a workflow change:
+
+```bash
+curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
+  | tar xz actionlint && ./actionlint
+uvx zizmor .   # or pipx run zizmor .
+```
+
+## What the linters expect here
+
+zizmor runs with `persona: pedantic`, its strictest setting, and the repository is clean
+at that level. Keep it that way:
+
+- **Every `uses:` is pinned to a full commit SHA** with the tag as a trailing comment
+  (`actions/checkout@fbc6f39… # v5`). Renovate's `config:best-practices` keeps the pins
+  and the comments current, so never downgrade one back to a tag.
+- **`permissions: {}` at the top of every workflow**, and the narrowest set each job
+  actually needs on the job itself. An elevated permission carries a **trailing comment
+  on its own line** saying what uses it — `contents: write # gh release create writes…`.
+  A comment on the line above does not count.
+- **Every job has a `name:`, a `timeout-minutes:` and a workflow-level `concurrency:`
+  group.** Test cancels superseded runs; the publish chain never cancels a run in
+  progress.
+- **`persist-credentials: false` on every checkout.** Nothing here pushes with the
+  checkout credentials: `release` tags and releases over the API with an explicit
+  `GH_TOKEN`, and the two jobs that only talk to that API check nothing out at all.
+- **Quote shell variables** — `>> "$GITHUB_OUTPUT"`, not `>> $GITHUB_OUTPUT`. shellcheck
+  runs inside actionlint on the runner even though it is absent locally.
+- **`${{ vars.* }}` is rejected outright.** `@.github/actionlint.yml` declares
+  `config-variables: []`, so a configuration variable has to be added to that list before
+  it can be used — which is what turns a typo into an error instead of an empty string.
+- Bumping actionlint means changing **both** `ACTIONLINT_VERSION` and `ACTIONLINT_SHA256`
+  in `test.yml`, from the release page. `@.github/actionlint-matcher.json` is the official
+  problem matcher and only needs replacing when actionlint changes its output format.
+
+## The release chain
+
+`Test` → `release`, wired with `workflow_run` so a release can only come from a commit
+whose tests already passed. zizmor flags `workflow_run` as a dangerous trigger by design;
+`release.yml` is listed in `@.github/zizmor.yml` with the reason it is safe here (empty
+top-level permissions, an `if` on `conclusion == 'success'`, and every checkout pinned to
+`workflow_run.head_sha`). Suppress a finding there, with a reason, never by widening a
+rule away.
+
+`release.yml` holds the whole chain as four jobs, so the tag, the tarball and the GitHub
+release can never drift apart:
+
+| Job | Does | Skipped when |
+| --- | --- | --- |
+| `check` | reads the version and asks npm whether it is published | the Test run failed, or was not a push |
+| `tag` | creates `v<version>` on the released commit, or verifies the existing one points there | never — it fails loudly on a mismatch |
+| `publish` | builds and `pnpm publish`, with provenance from the `release` environment | the version is already on npm |
+| `release` | `gh release create v<version> --verify-tag` | the release already exists |
+
+Two rules hold that together. A registry or API query that *fails* stops the run rather
+than being read as "not published yet", and a tag that already points at another commit
+is an error unless that version was fully released from there. Everything else is
+idempotent, so re-running the workflow on the same commit is always safe.

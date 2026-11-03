@@ -1,0 +1,11 @@
+packages:
+  - packages/*
+  - fixtures/*
+  - apps/*
+# pnpm runs no dependency build scripts unless they are listed here. Both are optional native
+# accelerators (esbuild through vite-plus, msgpackr-extract through effect); the JS fallbacks are
+# what the packages use, so their build scripts stay off. Bazel mirrors this in MODULE.bazel by
+# running no lifecycle hooks at all.
+allowBuilds:
+  esbuild: false
+  msgpackr-extract: false

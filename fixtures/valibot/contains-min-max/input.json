@@ -1,0 +1,10 @@
+{
+  "title": "IntList",
+  "type": "array",
+  "items": {},
+  "contains": { "type": "integer" },
+  "minContains": 2,
+  "maxContains": 3,
+  "x-minContains-message": "Need at least 2 integers",
+  "x-maxContains-message": "At most 3 integers allowed"
+}

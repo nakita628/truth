@@ -1,0 +1,8 @@
+{
+  "title": "Bag",
+  "type": "object",
+  "patternProperties": {
+    "^x_": { "type": "string" },
+    "^n_": { "type": "number" }
+  }
+}

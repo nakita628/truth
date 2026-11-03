@@ -1,0 +1,30 @@
+# Dependencies
+node_modules
+.pnpm-store
+
+# Build output. dist is produced by `vp pack` (through Bazel in CI) right before publishing,
+# so it is never committed.
+dist
+*.tsbuildinfo
+
+# Bazel output symlinks (bazel-bin, bazel-out, bazel-testlogs, bazel-truth).
+bazel-*
+
+# Logs
+*.log
+
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# OS / editor
+.DS_Store
+.vscode/*
+!.vscode/extensions.json
+!.vscode/settings.json
+.idea
+
+# Local agent settings (the shared .claude/settings.json stays committable)
+.claude/settings.local.json
+user.bazelrc

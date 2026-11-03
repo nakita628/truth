@@ -1,0 +1,5 @@
+{
+  "title": "Nickname",
+  "type": ["string", "null"],
+  "default": "anonymous"
+}

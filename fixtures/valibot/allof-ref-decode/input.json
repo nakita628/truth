@@ -1,0 +1,36 @@
+{
+  "title": "Item",
+  "type": "object",
+  "properties": {
+    "detail": {
+      "allOf": [
+        {
+          "$ref": "#/$defs/D"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "comment": {
+              "type": "string",
+              "default": "N/A"
+            },
+            "id": {
+              "type": "integer",
+              "format": "int64"
+            }
+          }
+        }
+      ]
+    }
+  },
+  "$defs": {
+    "D": {
+      "type": "object",
+      "properties": {
+        "text": {
+          "type": "string"
+        }
+      }
+    }
+  }
+}

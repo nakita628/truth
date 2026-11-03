@@ -1,0 +1,81 @@
+actionlint
+addl
+ajv
+allof
+apidevtools
+arities
+arktype
+artipacked
+automerged
+automerges
+bazelignore
+Bazelisk
+bazelversion
+cafue
+catus
+cidrv
+codegen
+combinators
+creditcard
+currencycode
+dirents
+downstreams
+elysia
+familiaris
+felis
+hekireki
+iage
+injective
+injectively
+inlines
+ksuid
+llms
+lockfiles
+metavar
+msgpackr
+nakita
+negotiables
+nonpositive
+# only ever written capitalised. Add a word here when it is a real name, API or
+openssf
+oxfmt
+oxlint
+picklist
+pipeable
+pipefail
+pipx
+prefault
+# Project and author names
+# Project vocabulary for cspell. One word per line, lowercase unless the word is
+runfiles
+shellcheck
+shiba
+sinclairzx
+sname
+srcs
+stringbool
+subschema
+subschemas
+takibi
+# Target libraries and their APIs
+tarou
+# term of art; fix the text instead when cspell is right.
+# Terms of art used in the docs and source
+# Test data
+textlint
+textlintrc
+# Toolchain and vendors
+tsdown
+typebox
+typeless
+unsandboxed
+uuidv
+valibot
+vite
+vitest
+voidzero
+yup
+zizmor
+zizmorcore
+русский
+схема

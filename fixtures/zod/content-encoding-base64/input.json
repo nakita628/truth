@@ -1,0 +1,11 @@
+{
+  "title": "ImageBag",
+  "type": "object",
+  "properties": {
+    "image": {
+      "type": "string",
+      "contentEncoding": "base64",
+      "contentMediaType": "image/png"
+    }
+  }
+}

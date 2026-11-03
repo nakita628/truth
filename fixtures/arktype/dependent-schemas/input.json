@@ -1,0 +1,11 @@
+{
+  "title": "DependentRequired",
+  "type": "object",
+  "properties": {
+    "kind": { "type": "string" },
+    "feature": { "type": "string" }
+  },
+  "dependentRequired": {
+    "kind": ["feature"]
+  }
+}

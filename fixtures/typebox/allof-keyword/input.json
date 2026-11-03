@@ -1,0 +1,4 @@
+{
+  "title": "Bounded",
+  "allOf": [{ "type": "integer" }, { "minimum": 5 }]
+}

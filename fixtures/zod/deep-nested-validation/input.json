@@ -1,0 +1,16 @@
+{
+  "title": "User",
+  "type": "object",
+  "properties": {
+    "name": { "type": "string", "minLength": 1 },
+    "email": { "type": "string", "format": "email" },
+    "address": {
+      "type": "object",
+      "properties": {
+        "city": { "type": "string" },
+        "zip": { "type": "string", "pattern": "^\\d{3}-\\d{4}$" }
+      }
+    }
+  },
+  "required": ["name", "email"]
+}

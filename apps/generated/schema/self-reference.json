@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/tree-node",
+  "$defs": {
+    "node": {
+      "$id": "#node",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#node" }
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    }
+  },
+  "$ref": "#node"
+}

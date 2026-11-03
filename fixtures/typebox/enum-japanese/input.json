@@ -1,0 +1,5 @@
+{
+  "title": "Color",
+  "type": "string",
+  "enum": ["赤", "青", "緑"]
+}

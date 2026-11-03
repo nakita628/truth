@@ -1,0 +1,42 @@
+{
+  "$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
+  "version": "0.2",
+  "language": "en,en-GB",
+  "dictionaryDefinitions": [
+    {
+      "name": "project",
+      "path": ".cspell/project-words.txt",
+      "addWords": true
+    }
+  ],
+  "dictionaries": [
+    "project",
+    "typescript",
+    "node",
+    "npm",
+    "softwareTerms",
+    "companies",
+    "filetypes",
+    "fullstack"
+  ],
+  "useGitignore": true,
+  "ignorePaths": [
+    "**/node_modules/**",
+    "**/dist/**",
+    "**/bazel-*/**",
+    ".git/**",
+    "pnpm-lock.yaml",
+    "MODULE.bazel.lock",
+    ".cspell/project-words.txt",
+    "fixtures/*/*/output.ts",
+    "apps/generated/generated/**"
+  ],
+  "ignoreRegExpList": [
+    "Urls",
+    "Base64",
+    "HexValues",
+    "UnicodeRef",
+    "/\\b[0-9a-f]{40}\\b/g",
+    "/(?=[A-Za-z0-9+/]*[A-Z])(?=[A-Za-z0-9+/]*[a-z])(?=[A-Za-z0-9+/]*[0-9])[A-Za-z0-9+/]{16,}={0,2}/g"
+  ]
+}

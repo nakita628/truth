@@ -1,0 +1,14 @@
+{
+  "title": "Code",
+  "type": "object",
+  "properties": {
+    "code": {
+      "type": "string",
+      "minLength": 6,
+      "maxLength": 6,
+      "x-minLength-message": "Code must be exactly 6 characters",
+      "x-maxLength-message": "Code must be exactly 6 characters"
+    }
+  },
+  "required": ["code"]
+}

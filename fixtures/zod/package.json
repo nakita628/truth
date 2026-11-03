@@ -1,0 +1,20 @@
+{
+  "name": "@fixtures/zod",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "generate": "tsx src/index.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "effect": "^4.1.1",
+    "schema-truth": "workspace:^",
+    "zod": "^4.6.7"
+  },
+  "devDependencies": {
+    "tsx": "4.23.15",
+    "typescript": "7.0.2"
+  }
+}

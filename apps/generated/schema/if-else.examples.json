@@ -1,0 +1,16 @@
+{
+  "valid": [
+    { "type": "truck", "cargoCapacity": 100 },
+    { "type": "truck", "cargoCapacity": 0 },
+    { "type": "car", "passengerCount": 4 },
+    { "type": "car", "passengerCount": 1 }
+  ],
+  "invalid": [
+    { "type": "truck", "passengerCount": 4 },
+    { "type": "car", "cargoCapacity": 100 },
+    { "type": "truck" },
+    { "type": "car" },
+    { "type": "truck", "cargoCapacity": -1 },
+    { "type": "car", "passengerCount": 0 }
+  ]
+}

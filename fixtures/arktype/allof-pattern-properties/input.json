@@ -1,0 +1,7 @@
+{
+  "title": "Extended",
+  "type": "object",
+  "allOf": [{ "type": "object", "properties": { "a": { "type": "string" } } }],
+  "patternProperties": { "^x-": { "type": "string" } },
+  "unevaluatedProperties": false
+}

@@ -1,0 +1,20 @@
+{
+  "title": "Merged",
+  "allOf": [
+    {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string", "minLength": 3 }
+      },
+      "required": ["name"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "age": { "type": "integer", "minimum": 0 }
+      },
+      "required": ["age"]
+    }
+  ],
+  "x-allOf-message": "merged validation failed"
+}

@@ -1,0 +1,33 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@npm//apps/generated:typescript/package_json.bzl", typescript = "bin")
+
+npm_link_all_packages(name = "node_modules")
+
+js_library(
+    name = "srcs",
+    srcs = glob(
+        ["**"],
+        exclude = [
+            "BUILD.bazel",
+            "node_modules/**",
+        ],
+    ),
+)
+
+# Type-check the app and the schemas it generated from packages/schema-truth's CLIs
+# (`vp run @apps/generated#dev` regenerates them; the output is committed for review).
+typescript.tsc_test(
+    name = "typecheck",
+    size = "medium",
+    args = [
+        "--noEmit",
+        "-p",
+        "tsconfig.json",
+    ],
+    chdir = package_name(),
+    data = [
+        ":srcs",
+        ":node_modules",
+    ],
+)

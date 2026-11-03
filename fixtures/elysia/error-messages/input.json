@@ -1,0 +1,25 @@
+{
+  "title": "User",
+  "type": "object",
+  "properties": {
+    "name": {
+      "type": "string",
+      "minLength": 3,
+      "maxLength": 20,
+      "pattern": "^[a-zA-Z]+$",
+      "x-error-message": "Invalid name",
+      "x-pattern-message": "Only alphabetic characters",
+      "x-minLength-message": "Name too short",
+      "x-maxLength-message": "Name too long"
+    },
+    "age": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 120,
+      "x-error-message": "Invalid age",
+      "x-minimum-message": "Age must be positive",
+      "x-maximum-message": "Age too large"
+    }
+  },
+  "required": ["name", "age"]
+}

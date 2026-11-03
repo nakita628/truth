@@ -1,0 +1,8 @@
+{
+  "title": "Bag",
+  "type": "array",
+  "items": { "type": "integer" },
+  "contains": { "type": "integer", "minimum": 10 },
+  "minContains": 1,
+  "maxContains": 3
+}

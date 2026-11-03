@@ -1,0 +1,6 @@
+{
+  "title": "Ids",
+  "type": "array",
+  "items": { "type": "integer" },
+  "minItems": 1
+}

@@ -1,0 +1,19 @@
+{
+  "valid": [
+    { "id": 1, "name": "Widget", "price": 9.99 },
+    {
+      "id": 42,
+      "name": "Gizmo",
+      "price": 100,
+      "tags": ["a", "b"],
+      "dimensions": { "length": 1, "width": 2, "height": 3 },
+      "warehouseLocation": "Tokyo"
+    }
+  ],
+  "invalid": [
+    { "id": 1, "name": "X", "price": 0 },
+    { "id": 1, "name": "X", "price": -1 },
+    { "id": "not-int", "name": "X", "price": 1 },
+    { "name": "missing-id", "price": 1 }
+  ]
+}

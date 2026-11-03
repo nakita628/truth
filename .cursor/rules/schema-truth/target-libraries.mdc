@@ -1,0 +1,72 @@
+---
+description: Target library versions, documentation links and llms.txt sources for Zod, Valibot, Effect Schema, TypeBox, ArkType, Ajv and Yup — read before emitting, changing or reviewing generated schema code
+alwaysApply: false
+---
+
+# Target libraries
+
+Every generator emits source for a specific **pinned major** of its target library. These
+libraries move fast and rename APIs between majors, so *do not emit an API from memory* —
+check it against the version pinned here. `vp run -r typecheck` is the backstop, not the
+plan.
+
+| Target | Pinned in fixtures | Emitted import | Docs | Machine-readable docs |
+| --- | --- | --- | --- | --- |
+| Zod | `zod@^4.6.7` | `import * as z from 'zod'` | [zod.dev](https://zod.dev/), [API](https://zod.dev/api) | [llms.txt](https://zod.dev/llms.txt), [llms-full.txt](https://zod.dev/llms-full.txt) |
+| Valibot | `valibot@^1.5.0` | `import * as v from 'valibot'` | [valibot.dev](https://valibot.dev/) | [llms.txt](https://valibot.dev/llms.txt), [llms-full.txt](https://valibot.dev/llms-full.txt), [llms-api.txt](https://valibot.dev/llms-api.txt) |
+| Effect Schema | `effect@^4.0.5` | `import { Schema } from 'effect'` | [v4 Schema docs](https://effect.website/docs/v4/schema/introduction) | none published — read the v4 docs, not v3 answers |
+| TypeBox | `typebox@^1.4.3` | `import { Type, type Static } from 'typebox'` | [TypeBox on GitHub](https://github.com/sinclairzx81/typebox) | none published — its GitHub README is the reference |
+| ArkType | `arktype@^2.2.9` | `import { type } from 'arktype'` | [arktype.io](https://arktype.io/) | [llms.txt](https://arktype.io/llms.txt) |
+| Ajv | `ajv@^8.20.0` (+ `ajv-formats@^3.0.1`) | `import Ajv from 'ajv'` | [ajv.js.org](https://ajv.js.org/) | none published — Getting started, TypeScript and [ajv-formats](https://ajv.js.org/packages/ajv-formats.html) are the reference |
+| Yup | `yup@^1.7.1` | `import * as yup from 'yup'` | [Yup on GitHub](https://github.com/jquense/yup) | none published — its GitHub README is the reference |
+
+The pins live in `@fixtures/zod/package.json` and its siblings — those are what
+`vp run -r typecheck` compiles against, so they are the source of truth over this table.
+
+## Fetching documentation
+
+- Prefer the `llms.txt` / `llms-full.txt` URLs above over a web search: they are the
+  current docs in one file, and they match the pinned major.
+- Valibot also serves every docs page as Markdown (`.md` on the same URL) and an MCP
+  server at `https://valibot.dev/mcp`; see its
+  [coding agents guide](https://valibot.dev/guides/coding-agents.md). Add the MCP server
+  in `.cursor/mcp.json` if you work on the Valibot generator often.
+- Effect and TypeBox publish no `llms.txt`. Effect v4's Schema API differs from v3 (`Schema.check(...)`, `Schema.isMinLength(...)`, `Schema.suspend`),
+  and most material on the web is v3 — verify against
+  `@fixtures/effect` output and the v4 docs before believing a v3 answer.
+
+## Version-specific traps that have bitten this repository
+
+- **Zod 4** exposes formats at the top level — `z.email()`, `z.uuid()`, `z.iso.datetime()`
+  — not `z.string().email()`. Optional properties are emitted as `.exactOptional()`.
+- **Valibot** composes with `v.pipe(base, ...actions)`; a base validator never chains.
+- **Effect v4** attaches constraints with `.check(...)` and messages with
+  `.annotate({ message })`; brands go through `.pipe(Schema.brand('X'))`.
+- **TypeBox** has no lazy combinator: a cycle becomes one `Type.Cyclic` map.
+- **ArkType** is string-syntax first (`'string.email'`, `'number.integer >= 0'`), and a
+  cycle becomes a `scope`.
+- **Ajv** consumes JSON Schema: emit a reconstructed draft-07 object literal plus
+  `ajv.compile`. Use the default `import Ajv from 'ajv'` class, not `ajv/dist/2020`.
+  Call `addFormats(ajv)` only when a `format` is emitted.
+- **Yup 1.x** object fields are optional unless `.required()` is chained. Formats stay
+  on the string builder — `yup.string().email()`, not a top-level helper. Unknown nodes
+  fall back to `yup.mixed()`.
+
+## Callback parameter naming
+
+Predicate callbacks are named the way each library's own documentation names them —
+`val` (Zod), `input` (Valibot, Effect), `value` (TypeBox), `data` (ArkType) — so
+generated code reads like hand-written code. Zod's `{ error: (issue) => … }` and
+`.check((ctx) => …)` keep `issue` and `ctx`, Valibot's
+`v.rawCheck(({ dataset, addIssue }) => …)` keeps its destructured form, and callbacks
+nested inside a predicate are named for what they hold: `key`, `value`, `item`. The
+committed fixtures are the worked examples.
+
+## Upstream vocabulary
+
+The input side is JSON Schema, Draft 2020-12 through Draft-04, plus OpenAPI documents:
+
+- [JSON Schema 2020-12 core](https://json-schema.org/draft/2020-12/json-schema-core)
+- [OpenAPI Specification](https://www.openapis.org/)
+- External `$ref` resolution is delegated to
+  [json-schema-ref-parser](https://github.com/APIDevTools/json-schema-ref-parser).

@@ -1,0 +1,88 @@
+"""The schema-truth fixtures: one pnpm workspace per target library under fixtures/<lib>.
+
+Each fixture package holds `<case>/input.json` + the committed `<case>/output.ts`, type-checked
+against the real target library and asserted on byte for byte. The targets are defined here
+rather than in each fixture's own package because the tests take every directory of the
+fixture as a case, and a Bazel test target creates a `<name>_/` launcher directory next to it.
+"""
+
+load("@npm//:vite-plus/package_json.bzl", vite_plus = "bin")
+load("@npm//fixtures/ajv:typescript/package_json.bzl", ajv_typescript = "bin")
+load("@npm//fixtures/arktype:typescript/package_json.bzl", arktype_typescript = "bin")
+load("@npm//fixtures/effect:typescript/package_json.bzl", effect_typescript = "bin")
+load("@npm//fixtures/elysia:typescript/package_json.bzl", elysia_typescript = "bin")
+load("@npm//fixtures/typebox:typescript/package_json.bzl", typebox_typescript = "bin")
+load("@npm//fixtures/valibot:typescript/package_json.bzl", valibot_typescript = "bin")
+load("@npm//fixtures/validation:typescript/package_json.bzl", validation_typescript = "bin")
+load("@npm//fixtures/yup:typescript/package_json.bzl", yup_typescript = "bin")
+load("@npm//fixtures/zod:typescript/package_json.bzl", zod_typescript = "bin")
+
+FIXTURES = {
+    "ajv": ajv_typescript,
+    "arktype": arktype_typescript,
+    "effect": effect_typescript,
+    "elysia": elysia_typescript,
+    "typebox": typebox_typescript,
+    "valibot": valibot_typescript,
+    "validation": validation_typescript,
+    "yup": yup_typescript,
+    "zod": zod_typescript,
+}
+
+# The fixture suites that assert on the generated output (fixtures/<lib>/src/*.test.ts).
+# elysia and validation only type-check.
+WITH_TESTS = [
+    "ajv",
+    "arktype",
+    "effect",
+    "elysia",
+    "typebox",
+    "valibot",
+    "validation",
+    "yup",
+    "zod",
+]
+
+# Type-check every committed output.ts against the real target library, so a generator emitting
+# an API the library does not have fails the build.
+[
+    typescript.tsc_test(
+        name = name + "_typecheck",
+        size = "medium",
+        args = [
+            "--noEmit",
+            "-p",
+            "tsconfig.json",
+        ],
+        chdir = "fixtures/" + name,
+        data = [
+            "//fixtures/" + name + ":srcs",
+            "//fixtures/" + name + ":node_modules",
+            # The fixtures with a test suite type-check it too, and `vite-plus/test` resolves
+            # from the root node_modules.
+            "//:node_modules/vite-plus",
+        ],
+    )
+    for name, typescript in FIXTURES.items()
+]
+
+# The fixture suites run from the workspace root: the root vite.config.ts is the one that
+# includes fixtures/*/src/*.test.ts (see the comment there); the path argument narrows the
+# run to one fixture.
+[
+    vite_plus.vp_test(
+        name = name + "_test",
+        size = "medium",
+        args = [
+            "test",
+            "fixtures/" + name + "/src",
+        ],
+        data = [
+            "//fixtures/" + name + ":srcs",
+            "//fixtures/" + name + ":node_modules",
+            "//:node_modules/vite-plus",
+            "//:workspace_config",
+        ],
+    )
+    for name in WITH_TESTS
+]

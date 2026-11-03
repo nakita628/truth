@@ -1,0 +1,60 @@
+{
+  "title": "Doc",
+  "type": "object",
+  "properties": {
+    "a": {
+      "type": "string"
+    },
+    "list": {
+      "type": "array",
+      "items": {
+        "type": "object"
+      },
+      "contains": {
+        "$ref": "#/$defs/Base"
+      },
+      "minContains": 1
+    },
+    "kind": {
+      "type": "string"
+    }
+  },
+  "unevaluatedProperties": {
+    "$ref": "#/$defs/Base"
+  },
+  "patternProperties": {
+    "^p-": {
+      "$ref": "#/$defs/Base"
+    }
+  },
+  "dependentSchemas": {
+    "a": {
+      "$ref": "#/$defs/NeedsKind"
+    }
+  },
+  "x-properties-message": "bad doc",
+  "$defs": {
+    "Base": {
+      "type": "object",
+      "properties": {
+        "meta": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "meta"
+      ]
+    },
+    "NeedsKind": {
+      "type": "object",
+      "properties": {
+        "kind": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "kind"
+      ]
+    }
+  }
+}

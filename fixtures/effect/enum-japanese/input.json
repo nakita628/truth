@@ -1,0 +1,5 @@
+{
+  "title": "Season",
+  "type": "string",
+  "enum": ["春", "夏", "秋", "冬"]
+}

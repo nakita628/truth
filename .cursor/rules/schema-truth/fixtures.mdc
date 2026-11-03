@@ -1,0 +1,62 @@
+---
+globs: fixtures/**,apps/generated/**
+alwaysApply: false
+---
+
+# Fixtures
+
+`fixtures/<lib>/<case>/` holds `input.json` (hand-written) and `output.ts` (**generated,
+committed, never hand-edited**). The committed output is what makes a generator change
+reviewable: the diff shows exactly how emitted code moved.
+
+Three layers, each catching something different:
+
+1. **Golden** — `fixtures/<lib>/src/index.test.ts` regenerates from `input.json` and
+   asserts byte equality with `output.ts`.
+2. **Type** — `vp run -r typecheck` compiles every `output.ts` against the real target
+   library, so an emitted API that does not exist fails the build.
+3. **Runtime** — `fixtures/<lib>/src/runtime.test.ts` imports the generated schemas and
+   asserts what they accept and reject; `fixtures/validation` compares the five libraries
+   on the same shapes, `fixtures/elysia` checks the emitted TypeBox schemas inside a real
+   Elysia app.
+
+## Adding a case
+
+1. `mkdir fixtures/<lib>/<case>` and write `input.json` — one narrow behaviour per case,
+   named after the keyword or extension it exercises (`contains-min-max`,
+   `dependent-schemas`, `pattern-properties`).
+2. Add the same case under **every** target you support it for, so the five outputs can be
+   read side by side.
+3. `vp run schema-truth#build && vp run @fixtures/<lib>#generate` to produce
+   `output.ts`. Never write that file by hand.
+4. If the case needs non-default generation, add its directory name to the matching list
+   in **both** `src/index.ts` (the generator) and `src/index.test.ts` (the assertion) —
+   `SPLIT_FIXTURES` for multi-file documents that must go through `parseSchemaFile`,
+   `READONLY_FIXTURES` for `{ readonly: true }`, `REF_FIXTURES` (TypeBox) for
+   `{ ref: name }`. The two lists drifting apart is a silent failure: the file is
+   generated one way and asserted another.
+5. Add runtime assertions to `src/runtime.test.ts` when the case is about *behaviour*
+   (a message, a refinement, a coercion) rather than shape.
+
+## Regenerating
+
+`output.ts` is stale the moment a generator changes. Rebuild first — the fixture
+workspaces import the built `dist`, not `src`:
+
+```bash
+vp run schema-truth#build
+vp run @fixtures/zod#generate      # and valibot / effect / typebox / arktype / ajv / yup
+```
+
+`fmt.ignorePatterns` excludes `fixtures/**` from repository formatting on purpose: those bytes
+come from the generators' own oxfmt pass, and formatting them here would make the golden
+tests fail.
+
+## apps/generated
+
+The end-to-end check: `@apps/generated/src/index.ts` runs the **built CLI binaries** over
+`apps/generated/schema/*` and writes `apps/generated/generated/<lib>/*.ts`, which are then
+type-checked. It is the only place the CLI argument handling, file writing and directory
+creation are exercised together. Those outputs are generated too — regenerate, never edit.
+
+Regenerate it with `vp run schema-truth#build && vp run @apps/generated#dev`.

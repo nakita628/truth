@@ -1,0 +1,8 @@
+{
+  "title": "StringOrNumber",
+  "anyOf": [
+    { "type": "string" },
+    { "type": "number" }
+  ],
+  "x-anyOf-message": "Must be string or number"
+}

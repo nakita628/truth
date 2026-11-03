@@ -1,0 +1,21 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+
+# This fixture's dependencies (the target library, typescript, schema-truth where it is used).
+npm_link_all_packages(name = "node_modules")
+
+# Generator input and the committed output under test, one directory per case, plus the
+# generator / test sources under src/. The targets that run them live in //fixtures/BUILD.bazel:
+# the tests list every directory here as a case, and a target defined in this package would
+# add its launcher directory to that list.
+js_library(
+    name = "srcs",
+    srcs = glob(
+        ["**"],
+        exclude = [
+            "BUILD.bazel",
+            "node_modules/**",
+        ],
+    ),
+    visibility = ["//fixtures:__pkg__"],
+)

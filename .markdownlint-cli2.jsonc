@@ -1,0 +1,16 @@
+{
+  // markdownlint owns the *structure* of the Markdown (headings, lists, tables, fences); textlint
+  // owns the prose and cspell the spelling, so the three never overlap.
+  //
+  // `vp fmt` (oxfmt) owns Markdown whitespace — it re-pads tables, which is what keeps MD060
+  // satisfied — but it never re-wraps prose. Wrapping therefore stays a human judgement and MD013
+  // is off; structure is this linter's job.
+  "globs": ["**/*.md", "**/*.mdc"],
+  "ignores": ["**/node_modules/**", "**/dist/**", "**/bazel-*/**"],
+  "config": {
+    "default": true,
+    "MD013": false,
+    // The same heading may repeat under different parents; only siblings are a real duplicate.
+    "MD024": { "siblings_only": true },
+  },
+}

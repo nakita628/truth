@@ -1,0 +1,56 @@
+---
+description: How x-* vendor extensions are declared, emitted and documented — read when adding or changing an x-*-message, behaviour or code extension
+alwaysApply: false
+---
+
+# `x-*` vendor extensions
+
+Extensions on the input JSON Schema steer the generated code. Three layers, three homes:
+
+| Layer | Declared in | Examples |
+| --- | --- | --- |
+| Messages | `@packages/schema-truth/src/parser/x-ext/messages.ts` | `x-minLength-message`, `x-oneOf-message`, `x-error-message` |
+| Behaviour | `@packages/schema-truth/src/parser/x-ext/transform.ts` | `x-trim`, `x-coerce`, `x-brand`, `x-uuidVersion` |
+| Code (unsafe) | `@packages/schema-truth/src/parser/x-ext/code.ts` | `x-refine`, `x-check`, `x-narrow`, `x-pipe` |
+
+All three are merged into the public `JSONSchema` type in
+`@packages/schema-truth/src/parser/index.ts`. `ParamIn` (`x-ext/param.ts`) is the
+related option that drives string-wire coercion for OpenAPI parameters.
+
+## Conventions
+
+- **One extension per JSON Schema keyword**, named `x-<jsonSchemaKeyword>-message` — the
+  keyword spelled exactly as JSON Schema spells it, camelCase and all
+  (`x-exclusiveMinimum-message`, not `x-exclusive-minimum-message`).
+- **Message precedence** is fixed: keyword-specific → `x-error-message` → the library's
+  own default. Do not invent a different order for a new slot.
+- **A target with no equivalent is a no-op**, never an error and never a thrown warning.
+  Say which targets honour it in the doc comment on the type instead.
+- Extension names are stable public API. Renaming one is a breaking change.
+
+## Code extensions are the exception
+
+`x-refine` and friends splice a caller-supplied fragment into emitted source. They are:
+
+- honoured **only** through the programmatic API with `{ unsafeCodeExtensions: true }`,
+  never from a CLI;
+- checked against the denylist in
+  `@packages/schema-truth/src/helper/code-extensions.ts` — a best-effort guard, not a
+  sandbox;
+- marked in the output with `UNSAFE_GENERATED_MARKER`
+  (`// @generated-with-unsafe-code-extensions`) so review can find the file.
+
+Keep all three properties intact. If you widen what a code extension accepts, add
+denylist tests for the new cases.
+
+## Checklist for a new extension
+
+1. Declare it in the matching `x-ext/*.ts` type, with a doc comment saying which targets
+   honour it.
+2. Emit it in each generator that has an equivalent; leave the others alone.
+3. Add unit-test rows per affected generator (`@.cursor/rules/tests.mdc`).
+4. Add a fixture case under every target it affects, and regenerate
+   (`@.cursor/rules/fixtures.mdc`).
+5. Document it where it lives: the doc comment on the `x-ext` type says what the
+   extension does and which targets honour it. The README stays minimal — do not add an
+   extension table to it.

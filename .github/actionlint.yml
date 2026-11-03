@@ -1,0 +1,8 @@
+# https://github.com/rhysd/actionlint/blob/main/docs/config.md
+self-hosted-runner:
+  # Every job here runs on a GitHub-hosted runner; no custom labels exist.
+  labels: []
+# No `${{ vars.* }}` is used in this repository. Declaring the list as empty — rather
+# than leaving it null, which allows anything — turns a typo'd or undeclared
+# configuration variable into an actionlint error instead of an empty string at runtime.
+config-variables: []

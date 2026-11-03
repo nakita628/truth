@@ -1,0 +1,16 @@
+{
+  "valid": [
+    { "name": "Rex", "species": "Canis familiaris" },
+    {
+      "name": "Mother",
+      "species": "Felis catus",
+      "offspring": [{ "name": "Kit1", "species": "Felis catus" }]
+    }
+  ],
+  "invalid": [
+    { "name": "missing-species" },
+    { "species": "missing-name" },
+    {},
+    { "name": "X", "species": "Y", "extraNotAllowed": true }
+  ]
+}

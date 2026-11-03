@@ -1,0 +1,71 @@
+load("@aspect_rules_js//js:defs.bzl", "js_library")
+load("@aspect_rules_js//npm:defs.bzl", "npm_package")
+load("@npm//:defs.bzl", "npm_link_all_packages")
+load("@npm//:vite-plus/package_json.bzl", vite_plus = "bin")
+
+npm_link_all_packages(name = "node_modules")
+
+# The package sources and its config, copied to bin once and shared by every target below.
+js_library(
+    name = "srcs",
+    srcs = [
+        "package.json",
+        "tsconfig.json",
+        "vite.config.ts",
+    ] + glob(
+        [
+            "src/**/*.ts",
+            "lint/**",
+        ],
+        exclude = ["src/**/*.test.ts"],
+    ),
+)
+
+js_library(
+    name = "tests",
+    srcs = glob(["src/**/*.test.ts"]),
+)
+
+# Everything `vp` needs to run inside this package: its sources, its own node_modules and the
+# workspace root (root config and vite-plus itself, a root devDependency).
+COMMON = [
+    ":srcs",
+    ":node_modules",
+    "//:node_modules/vite-plus",
+    "//:workspace_config",
+]
+
+# `vp pack` (tsdown) writes the published layout into dist/ (see vite.config.ts#pack).
+vite_plus.vp(
+    name = "build",
+    srcs = COMMON,
+    args = ["pack"],
+    chdir = package_name(),
+    out_dirs = ["dist"],
+    # tsgo (the TypeScript 7 compiler tsdown emits declarations with) resolves every source
+    # file to its real path. Inside the sandbox that path is outside `rootDir`, so no .d.ts
+    # is written; unsandboxed, the inputs are the real copies under bazel-out. The action
+    # still reads only what is declared above.
+    tags = ["no-sandbox"],
+)
+
+# The package exactly as `npm publish` ships it (package.json#files is just dist). Linked as
+# node_modules/schema-truth into every workspace package that depends on it.
+npm_package(
+    name = "schema-truth",
+    srcs = [
+        "README.md",
+        "package.json",
+        ":build",
+    ],
+    visibility = ["//visibility:public"],
+)
+
+vite_plus.vp_test(
+    name = "test",
+    size = "medium",
+    args = ["test"],
+    chdir = package_name(),
+    data = COMMON + [":tests", "README.md"],
+)
+

@@ -1,0 +1,8 @@
+{
+  "title": "KeyRules",
+  "type": "object",
+  "properties": { "a": { "type": "string" } },
+  "required": ["a", "kind"],
+  "patternProperties": { "^x-": { "type": "string" } },
+  "unevaluatedProperties": { "type": "integer" }
+}

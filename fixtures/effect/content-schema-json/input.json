@@ -1,0 +1,12 @@
+{
+  "title": "Payload",
+  "type": "string",
+  "contentMediaType": "application/json",
+  "contentSchema": {
+    "type": "object",
+    "properties": {
+      "id": { "type": "integer" }
+    },
+    "required": ["id"]
+  }
+}

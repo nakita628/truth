@@ -1,0 +1,12 @@
+{
+  "title": "Bucket",
+  "type": "object",
+  "allOf": [
+    { "$ref": "#/$defs/Base" },
+    { "type": "object", "properties": { "doc_count": { "type": "integer" } }, "required": ["doc_count"] }
+  ],
+  "unevaluatedProperties": { "$ref": "#/$defs/Base" },
+  "$defs": {
+    "Base": { "type": "object", "properties": { "meta": { "type": "string" } } }
+  }
+}

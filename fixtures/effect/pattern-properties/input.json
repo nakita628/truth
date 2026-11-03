@@ -1,0 +1,8 @@
+{
+  "title": "Mixed",
+  "type": "object",
+  "patternProperties": {
+    "^S:": { "type": "string" },
+    "^I:": { "type": "integer" }
+  }
+}

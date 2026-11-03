@@ -1,0 +1,9 @@
+{
+  "title": "Row",
+  "type": "array",
+  "prefixItems": [
+    { "type": "string" },
+    { "type": "boolean" }
+  ],
+  "unevaluatedItems": { "type": "integer" }
+}

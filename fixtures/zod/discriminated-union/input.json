@@ -1,0 +1,22 @@
+{
+  "title": "Animal",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "cat" },
+        "meow": { "type": "boolean" }
+      },
+      "required": ["kind", "meow"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "dog" },
+        "bark": { "type": "boolean" }
+      },
+      "required": ["kind", "bark"]
+    }
+  ],
+  "discriminator": { "propertyName": "kind" }
+}

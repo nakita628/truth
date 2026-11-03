@@ -1,0 +1,59 @@
+---
+alwaysApply: true
+---
+
+# schema-truth
+
+A code generator: a JSON Schema / OpenAPI document in, **TypeScript source text** for a
+validation library out. Seven targets — Zod, Valibot, Effect Schema, TypeBox, ArkType,
+Ajv, Yup —
+each written in that library's own idiom. Generators build strings; nothing is evaluated
+at generation time, so a mistake is only caught by the fixtures and by type-checking the
+generated files against the real library.
+
+## Layout
+
+| Path | What it is |
+| --- | --- |
+| `packages/schema-truth` | the published npm package: parser, generators, seven CLIs |
+| `packages/schema-truth/src/generator/<lib>` | one directory per target library |
+| `fixtures/<lib>/<case>/{input.json,output.ts}` | golden files — `output.ts` is generated and committed |
+| `fixtures/validation`, `fixtures/elysia` | runtime tests: the emitted schemas must actually accept/reject data |
+| `apps/generated` | end-to-end smoke: runs the built CLIs over `apps/generated/schema/*` and type-checks the result |
+
+`README.md` at the repository root is a symlink to `@packages/schema-truth/README.md`;
+there is one README, and it is what npm shows. It is deliberately minimal — what the tool
+is, how to install it, the commands, one worked example — and it stays that way.
+
+## Commands
+
+The toolchain is [Vite+](https://viteplus.dev/) (`vp`), not npm scripts. `-r` is recursive
+over the workspace, `pkg#task` targets one workspace.
+
+```bash
+vp run -r check                    # format + lint + typecheck, every workspace
+vp fmt                             # format only (vp fmt --check in CI)
+vp run schema-truth#build     # build dist/ — fixtures and apps/ import the built package
+vp run @fixtures/zod#generate      # regenerate one library's fixtures (needs a fresh build)
+vp test                            # fixture assertions, from the root config
+vp run schema-truth#test      # the library's own unit suite
+vp run -r typecheck                # generated fixtures vs. the real target libraries
+vp run lint                        # Markdown, terminology, spelling, secrets, links
+```
+
+## Non-negotiables
+
+- **Never hand-edit generated files** — `fixtures/*/*/output.ts` and
+  `apps/generated/generated/**`. Change the generator, rebuild, regenerate. A generated
+  file edited by hand is a lie that survives until the next `generate` run.
+- **The fixture diff is the review artifact.** After touching a generator, rebuild,
+  regenerate, and read the `output.ts` diff before claiming the change works.
+- **New emitted API must type-check against the real library** (`vp run -r typecheck`).
+  Guessing at an API that the pinned version does not have is the most common failure
+  here — see `@.cursor/rules/target-libraries.mdc`.
+- **Document behaviour where it lives, not in the README.** A new `x-*` extension is
+  documented by the doc comment on its type in `src/parser/x-ext/` and by the fixture that
+  exercises it. Only installation, the commands and the one example belong in the README.
+- **No new runtime dependencies** in `packages/schema-truth` without being asked.
+- **Work on a branch and land it through a pull request** — a version bump on `main`
+  publishes to npm. See `@.cursor/rules/pull-requests.mdc`.

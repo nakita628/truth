@@ -1,0 +1,19 @@
+{
+  "title": "Style",
+  "type": "object",
+  "properties": {
+    "style": {
+      "type": "string",
+      "contentEncoding": "base64",
+      "contentMediaType": "application/json",
+      "contentSchema": {
+        "type": "object",
+        "properties": {
+          "name": { "type": "string" }
+        },
+        "required": ["name"]
+      }
+    }
+  },
+  "required": ["style"]
+}

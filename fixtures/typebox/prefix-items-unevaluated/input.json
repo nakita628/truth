@@ -1,0 +1,8 @@
+{
+  "title": "Pair",
+  "type": "array",
+  "prefixItems": [
+    { "type": "string" },
+    { "type": "number" }
+  ]
+}

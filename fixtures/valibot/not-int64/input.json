@@ -1,0 +1,10 @@
+{
+  "title": "Amount",
+  "type": "integer",
+  "format": "int64",
+  "not": {
+    "enum": [
+      0
+    ]
+  }
+}

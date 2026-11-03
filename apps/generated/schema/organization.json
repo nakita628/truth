@@ -1,0 +1,61 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/organization.schema.json",
+  "title": "Organization",
+  "description": "A recursive schema representing an organization and its members.",
+  "type": "object",
+  "properties": {
+    "id": {
+      "type": "string",
+      "format": "uuid",
+      "description": "The UUID of the organization."
+    },
+    "name": {
+      "type": "string",
+      "minLength": 1,
+      "description": "The name of the organization."
+    },
+    "members": {
+      "type": "array",
+      "description": "A list of members belonging to the organization.",
+      "items": {
+        "$ref": "#/$defs/Member"
+      }
+    },
+    "parent": {
+      "$ref": "#",
+      "description": "An optional reference to a parent organization (recursive)."
+    }
+  },
+  "required": ["id", "name"],
+  "additionalProperties": false,
+  "$defs": {
+    "Member": {
+      "type": "object",
+      "description": "A person who is a member of the organization.",
+      "properties": {
+        "userId": {
+          "type": "string",
+          "format": "uuid",
+          "description": "The unique identifier of the user."
+        },
+        "role": {
+          "type": "string",
+          "enum": ["admin", "member", "guest"],
+          "description": "The role of the user in the organization."
+        },
+        "joinedAt": {
+          "type": "string",
+          "format": "date-time",
+          "description": "The timestamp when the user joined the organization."
+        },
+        "invitedBy": {
+          "$ref": "#/$defs/Member",
+          "description": "The member who invited this user (recursive reference)."
+        }
+      },
+      "required": ["userId", "role", "joinedAt"],
+      "additionalProperties": false
+    }
+  }
+}

@@ -1,0 +1,49 @@
+---
+globs: **/*.test.ts
+alwaysApply: false
+---
+
+# Tests
+
+Vitest through Vite+: **import from `vite-plus/test`, never from `vitest`.**
+
+```ts
+import { describe, expect, it } from 'vite-plus/test'
+```
+
+## Shape
+
+Emitter tests are table-driven — one `it.concurrent.each` over `[input, expected]` pairs,
+the expected value written out as the literal string the generator must produce:
+
+```ts
+describe('string', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [{ type: 'string' }, 'z.string()'],
+    [{ type: 'string', minLength: 5, maxLength: 5 }, 'z.string().length(5)'],
+    [{ type: 'string', format: 'email' }, 'z.email()'],
+  ])('string(%o) -> %s', (schema, expected) => {
+    expect(string(schema)).toBe(expected)
+  })
+})
+```
+
+`@packages/schema-truth/src/generator/zod/string.test.ts` is the model. A new keyword
+or `x-*` extension gets a row per target library it affects.
+
+- Assert on **exact strings**. Substring matching hides a malformed expression that still
+  contains the fragment you looked for.
+- `it`, not `test` (`vitest/consistent-test-it`). No `expect` outside a test case.
+- Snapshots are a last resort and stay small (`vitest/no-large-snapshots`); the golden
+  files in `fixtures/` are this repository's snapshot mechanism.
+- Test files may cast and use `any` — the type-safety linter rules are relaxed for
+  `**/*.test.ts` only. Production code has no such exemption.
+
+## Running
+
+```bash
+vp run schema-truth#test      # unit suite: packages/schema-truth/src/**/*.test.ts
+vp test                            # fixture suites: fixtures/*/src/*.test.ts, from the root config
+```
+
+New code in `packages/schema-truth/src` needs a test that fails without the change.

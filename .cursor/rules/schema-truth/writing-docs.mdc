@@ -1,0 +1,50 @@
+---
+description: Prose, Markdown and spelling rules — the docs linters, what each one owns, and how to answer them when they fire
+globs: **/*.md,**/*.mdc
+alwaysApply: false
+---
+
+# Writing documentation
+
+Five checks guard the text in this repository. One command runs them all, and it is part
+of CI:
+
+```bash
+vp run lint   # every text check: markdownlint-cli2, textlint, cspell, secretlint, links
+vp run fix    # vp fmt, oxlint --fix, and the autofixable half of markdownlint / textlint
+```
+
+The link check is last in the chain and needs the network, so a failure there is reported
+after everything else has already had its say. `https://www.npmjs.com/**` is on its
+ignore list: the registry answers `403` to anything that is not a browser, so from CI
+every npm link looks dead. Add a host there only for that reason — a blanket refusal to
+serve automated requests — never to silence a link that is genuinely broken.
+
+| Tool | Owns | Config |
+| --- | --- | --- |
+| [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) | Markdown structure: headings, lists, fenced-code languages, table alignment | `.markdownlint-cli2.jsonc` |
+| [textlint](https://github.com/textlint/textlint) + `terminology` | how product names and technical terms are written | `.textlintrc.json` |
+| [cspell](https://github.com/streetsidesoftware/cspell) | spelling, in prose **and** in source comments and identifiers | `cspell.json` |
+| [secretlint](https://github.com/secretlint/secretlint) | credentials committed by accident | `.secretlintrc.json` |
+| textlint + `no-dead-link` | links that are dead or redirect somewhere else | `.textlintrc.links.json` |
+
+## When a linter fires
+
+- **cspell flags a word** — add it to `.cspell/project-words.txt` only when it is a real
+  name, API or term of art (`prefault`, `stringbool`, `metavar`); lowercase, in the
+  section it belongs to. When it is an ordinary word, cspell is right: fix the text.
+  British and American spellings are both accepted (`"language": "en,en-GB"`).
+- **textlint flags a term** — write the product name the way its owners write it:
+  **Ajv**, **ArkType**, **TypeBox**, **Valibot**, **Zod**, **Effect Schema**, **Yup**,
+  **JSON Schema**, **OpenAPI**. `readme` and `regex` are deliberately exempt from the
+  default list.
+- **markdownlint flags a table** (`MD060`) — run `vp fmt`: oxfmt re-pads Markdown tables
+  and that is what MD060 checks. It never re-wraps prose, so line length (`MD013`) is off
+  and you wrap where it reads well.
+- **A link redirects** — fix the target rather than following the redirect. That check is
+  what caught the README pointing at Effect Schema's v3 docs while the generator emits the
+  v4 API, and `vp run lint` checks every link on every run.
+
+Suppress a rule only in the rare case where it is wrong, at the line it fires on
+(`<!-- textlint-disable -->`, `<!-- cspell:disable-next-line -->`), never by loosening the
+config for the whole repository.

@@ -1,0 +1,52 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/complex-references",
+  "$defs": {
+    "person": {
+      "$id": "#person",
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "age": { "type": "number" },
+        "spouse": { "$ref": "#person" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#person" }
+        },
+        "parent": { "$ref": "#/definitions/person" },
+        "siblings": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/person" }
+        },
+        "externalFriend": { "$ref": "external.json#/definitions/friend" },
+        "externalFamily": { "$ref": "family.json#/family" }
+      },
+      "required": ["name", "age"]
+    },
+    "friend": {
+      "type": "object",
+      "properties": {
+        "name": { "type": "string" },
+        "relationship": { "type": "string" }
+      },
+      "required": ["name"]
+    }
+  },
+  "definitions": {
+    "employee": {
+      "type": "object",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "manager": { "$ref": "#/definitions/employee" },
+        "subordinates": {
+          "type": "array",
+          "items": { "$ref": "#/definitions/employee" }
+        },
+        "person": { "$ref": "#person" }
+      },
+      "required": ["id", "name"]
+    }
+  },
+  "$ref": "#person"
+}

@@ -1,0 +1,116 @@
+{
+  "name": "schema-truth",
+  "version": "0.8.3",
+  "description": "Generate Zod/Valibot/Effect/TypeBox/ArkType/Ajv/Yup schemas from JSON or YAML files",
+  "keywords": [
+    "ajv",
+    "arktype",
+    "effect",
+    "typebox",
+    "valibot",
+    "yup",
+    "zod"
+  ],
+  "homepage": "https://github.com/nakita628/truth/tree/main/packages/schema-truth#readme",
+  "bugs": {
+    "url": "https://github.com/nakita628/truth/issues"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/nakita628/truth.git",
+    "directory": "packages/schema-truth"
+  },
+  "bin": {
+    "schema-truth-ajv": "dist/cli/ajv.js",
+    "schema-truth-arktype": "dist/cli/arktype.js",
+    "schema-truth-effect": "dist/cli/effect.js",
+    "schema-truth-typebox": "dist/cli/typebox.js",
+    "schema-truth-valibot": "dist/cli/valibot.js",
+    "schema-truth-yup": "dist/cli/yup.js",
+    "schema-truth-zod": "dist/cli/zod.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "type": "module",
+  "main": "dist/index.js",
+  "typesVersions": {
+    "*": {
+      "ajv": [
+        "./dist/ajv.d.ts"
+      ],
+      "zod": [
+        "./dist/zod.d.ts"
+      ],
+      "valibot": [
+        "./dist/valibot.d.ts"
+      ],
+      "effect": [
+        "./dist/effect.d.ts"
+      ],
+      "typebox": [
+        "./dist/typebox.d.ts"
+      ],
+      "arktype": [
+        "./dist/arktype.d.ts"
+      ],
+      "yup": [
+        "./dist/yup.d.ts"
+      ]
+    }
+  },
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    },
+    "./ajv": {
+      "types": "./dist/ajv.d.ts",
+      "import": "./dist/ajv.js"
+    },
+    "./zod": {
+      "types": "./dist/zod.d.ts",
+      "import": "./dist/zod.js"
+    },
+    "./valibot": {
+      "types": "./dist/valibot.d.ts",
+      "import": "./dist/valibot.js"
+    },
+    "./effect": {
+      "types": "./dist/effect.d.ts",
+      "import": "./dist/effect.js"
+    },
+    "./typebox": {
+      "types": "./dist/typebox.d.ts",
+      "import": "./dist/typebox.js"
+    },
+    "./arktype": {
+      "types": "./dist/arktype.d.ts",
+      "import": "./dist/arktype.js"
+    },
+    "./yup": {
+      "types": "./dist/yup.d.ts",
+      "import": "./dist/yup.js"
+    }
+  },
+  "publishConfig": {
+    "access": "public",
+    "provenance": true
+  },
+  "scripts": {
+    "build": "vp pack",
+    "check": "vp check",
+    "fix": "vp check --fix",
+    "test": "vp test"
+  },
+  "dependencies": {
+    "@apidevtools/json-schema-ref-parser": "^16.0.5",
+    "@effect/platform-node": "4.1.1",
+    "effect": "4.1.1",
+    "oxfmt": "^0.75.0"
+  },
+  "devDependencies": {
+    "@types/node": "26.6.6"
+  }
+}

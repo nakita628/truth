@@ -1,0 +1,13 @@
+{
+  "title": "Order",
+  "type": "object",
+  "properties": {
+    "id": { "type": "integer" },
+    "customer": { "$ref": "./customer.json" },
+    "status": {
+      "type": "string",
+      "enum": ["pending", "shipped", "delivered"]
+    }
+  },
+  "required": ["id", "customer", "status"]
+}

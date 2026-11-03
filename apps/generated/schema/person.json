@@ -1,0 +1,80 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://example.com/schemas/entities",
+  "title": "Self-Referencing Entities",
+  "description": "Examples of animal, person, folder, and comment structures with self-references.",
+  "type": "object",
+  "properties": {
+    "animal": { "$ref": "#/$defs/animal" },
+    "person": { "$ref": "#/$defs/person" },
+    "folder": { "$ref": "#/$defs/folder" },
+    "comment": { "$ref": "#/$defs/comment" }
+  },
+  "required": [],
+  "additionalProperties": false,
+
+  "$defs": {
+    "animal": {
+      "$id": "#animal",
+      "type": "object",
+      "title": "Animal",
+      "properties": {
+        "name": { "type": "string" },
+        "species": { "type": "string" },
+        "offspring": {
+          "type": "array",
+          "items": { "$ref": "#animal" }
+        }
+      },
+      "required": ["name", "species"],
+      "additionalProperties": false
+    },
+
+    "person": {
+      "$id": "#person",
+      "type": "object",
+      "title": "Person",
+      "properties": {
+        "name": { "type": "string" },
+        "position": { "type": "string" },
+        "subordinates": {
+          "type": "array",
+          "items": { "$ref": "#person" }
+        }
+      },
+      "required": ["name", "position"],
+      "additionalProperties": false
+    },
+
+    "folder": {
+      "$id": "#folder",
+      "type": "object",
+      "title": "Folder",
+      "properties": {
+        "name": { "type": "string" },
+        "children": {
+          "type": "array",
+          "items": { "$ref": "#folder" }
+        }
+      },
+      "required": ["name"],
+      "additionalProperties": false
+    },
+
+    "comment": {
+      "$id": "#comment",
+      "type": "object",
+      "title": "Comment",
+      "properties": {
+        "author": { "type": "string" },
+        "text": { "type": "string" },
+        "replies": {
+          "type": "array",
+          "items": { "$ref": "#comment" }
+        }
+      },
+      "required": ["author", "text"],
+      "additionalProperties": false
+    }
+  }
+}

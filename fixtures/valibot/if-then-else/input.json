@@ -1,0 +1,24 @@
+{
+  "title": "Address",
+  "type": "object",
+  "properties": {
+    "country": { "type": "string" },
+    "postalCode": { "type": "string" }
+  },
+  "required": ["country"],
+  "if": {
+    "properties": {
+      "country": { "const": "JP" }
+    },
+    "required": ["country"]
+  },
+  "then": {
+    "required": ["postalCode"],
+    "properties": {
+      "postalCode": {
+        "type": "string",
+        "pattern": "^\\d{3}-\\d{4}$"
+      }
+    }
+  }
+}

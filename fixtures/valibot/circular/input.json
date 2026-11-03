@@ -1,0 +1,18 @@
+{
+  "title": "A",
+  "type": "object",
+  "definitions": {
+    "A": {
+      "type": "object",
+      "properties": {
+        "b": { "$ref": "#/definitions/B" }
+      }
+    },
+    "B": {
+      "type": "object",
+      "properties": {
+        "a": { "$ref": "#/definitions/A" }
+      }
+    }
+  }
+}

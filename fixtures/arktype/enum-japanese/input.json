@@ -1,0 +1,6 @@
+{
+  "title": "Color",
+  "type": "string",
+  "enum": ["赤", "緑", "青"],
+  "x-enum-message": "色は赤・緑・青のいずれかで指定してください"
+}

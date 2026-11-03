@@ -1,0 +1,23 @@
+{
+  "title": "Pet",
+  "oneOf": [
+    {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "cat" },
+        "indoor": { "type": "boolean" }
+      },
+      "required": ["kind", "indoor"]
+    },
+    {
+      "type": "object",
+      "properties": {
+        "kind": { "const": "dog" },
+        "breed": { "type": "string" }
+      },
+      "required": ["kind", "breed"]
+    }
+  ],
+  "discriminator": { "propertyName": "kind" },
+  "x-oneOf-message": "Must be a known pet kind"
+}

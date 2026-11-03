@@ -1,0 +1,10 @@
+# https://docs.zizmor.sh/configuration/
+rules:
+  dangerous-triggers:
+    # The release chain is deliberately built on `workflow_run`: Test → release, so that a
+    # publish can only ever come from a commit whose test run already passed. The workflow is
+    # guarded — `permissions: {}` at the top, an `if` that requires `conclusion == 'success'`
+    # and `event == 'push'`, and the checkout pinned to `workflow_run.head_sha` — which is what
+    # makes the trigger safe here.
+    ignore:
+      - release.yml
