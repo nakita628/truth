@@ -94,7 +94,7 @@ describe('makeCyclicType', () => {
     ).toBe('type NodeType={"children"?:(NodeType)[]|undefined}')
   })
 
-  it('marks arrays readonly and optionals undefined for Effect', () => {
+  it('marks arrays readonly and leaves optionals exact for Effect', () => {
     expect(
       makeCyclicType(
         'Node',
@@ -105,8 +105,8 @@ describe('makeCyclicType', () => {
         } as never,
         infer,
         false,
-        { optionalUndefined: true, readonlyArrays: true },
+        { readonlyArrays: true },
       ),
-    ).toBe('type NodeType={"children"?:readonly (NodeType)[]|undefined}')
+    ).toBe('type NodeType={"children"?:readonly (NodeType)[]}')
   })
 })

@@ -78,7 +78,7 @@ jobs:
       # holds the fetched rules, the Node toolchain and the npm packages, keyed on the two
       # lockfiles that decide them; the action cache inside it is what makes an unchanged
       # package a cache hit instead of a rerun.
-      - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v5
+      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: ~/.cache/bazel
           key: ${{ runner.os }}-bazel-${{ hashFiles('MODULE.bazel.lock', 'pnpm-lock.yaml') }}

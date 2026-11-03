@@ -36,7 +36,7 @@ dependency order. `makeSchemaDeclarations` returns the same declarations one by 
 
 Recursive `$ref` cycles keep a helper type so the const can be annotated (`z.ZodType<NodeType>`,
 `v.GenericSchema<NodeType>`, `Schema.Codec<NodeType>`). That helper matches what the library
-infers — `| undefined` on Valibot and Effect optionals, `readonly` arrays on Effect — so it
+infers — `| undefined` on Valibot optionals, `readonly` arrays on Effect — so it
 type-checks under `exactOptionalPropertyTypes`. ArkType cycles become
 `scope({...}).export().Member`; that declaration's `importLine` is then
 `import { type, scope } from 'arktype'`. `schemaImportLine` is the same function

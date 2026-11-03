@@ -138,7 +138,7 @@ describe('makeSchemaDeclarations', () => {
     [
       'effect',
       'export const PetSchema=Schema.Struct({name:Schema.String,tag:Schema.optionalKey(TagSchema)}).annotate({description:"A pet"})',
-      'type NodeType={"children"?:readonly (NodeType)[]|undefined}\n\nexport const NodeSchema:Schema.Codec<NodeType>=Schema.Struct({children:Schema.optionalKey(Schema.Array(Schema.suspend(() => NodeSchema)))})',
+      'type NodeType={"children"?:readonly (NodeType)[]}\n\nexport const NodeSchema:Schema.Codec<NodeType>=Schema.Struct({children:Schema.optionalKey(Schema.Array(Schema.suspend(() => NodeSchema)))})',
     ],
   ] as const)('%s: declares a dependency and a self-cycle', (lib, pet, node) => {
     const schemas = {
@@ -215,8 +215,8 @@ describe('makeSchemaDeclarations', () => {
       'effect',
       [
         'export const TagSchema=Schema.String',
-        'type AType={"b"?:Schema.Schema.Type<typeof BSchema>|undefined}\n\nexport const ASchema:Schema.Codec<AType>=Schema.Struct({b:Schema.optionalKey(Schema.suspend(() => BSchema))})',
-        'type BType={"a"?:Schema.Schema.Type<typeof ASchema>|undefined;"tag"?:Schema.Schema.Type<typeof TagSchema>|undefined}\n\nexport const BSchema:Schema.Codec<BType>=Schema.Struct({a:Schema.optionalKey(Schema.suspend(() => ASchema)),tag:Schema.optionalKey(TagSchema)})',
+        'type AType={"b"?:Schema.Schema.Type<typeof BSchema>}\n\nexport const ASchema:Schema.Codec<AType>=Schema.Struct({b:Schema.optionalKey(Schema.suspend(() => BSchema))})',
+        'type BType={"a"?:Schema.Schema.Type<typeof ASchema>;"tag"?:Schema.Schema.Type<typeof TagSchema>}\n\nexport const BSchema:Schema.Codec<BType>=Schema.Struct({a:Schema.optionalKey(Schema.suspend(() => ASchema)),tag:Schema.optionalKey(TagSchema)})',
       ],
     ],
   ] as const)('%s: a mutual cycle shares one container per member', (lib, expected) => {

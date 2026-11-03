@@ -153,10 +153,7 @@ describe('cycle helpers', () => {
     ).toBe('Schema.Array(UserSchema)')
     expect(adapter.wrapLazy?.('NodeSchema')).toBe('Schema.suspend(() => NodeSchema)')
     expect(adapter.cyclicAnnotation?.('NodeType')).toBe('Schema.Codec<NodeType>')
-    expect(adapter.cyclicTypeStyle).toStrictEqual({
-      optionalUndefined: true,
-      readonlyArrays: true,
-    })
+    expect(adapter.cyclicTypeStyle).toStrictEqual({ readonlyArrays: true })
   })
 
   it('arktype extracts a scope container and aliases externals', () => {
@@ -217,7 +214,7 @@ describe('cycle helpers', () => {
 })
 
 describe('toExpression coerces path/query params', () => {
-  it('adds z.coerce for an integer query param', () => {
+  it('reads an integer query param as a canonical integer string', () => {
     expect(makeAdapter('zod').toExpression({ type: 'integer' }, 'query')).toBe(
       'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())',
     )

@@ -348,7 +348,7 @@ function makeEffectAdapter(): ComponentAdapter {
     cyclicAnnotation(typeName) {
       return `Schema.Codec<${typeName}>`
     },
-    cyclicTypeStyle: { optionalUndefined: true, readonlyArrays: true },
+    cyclicTypeStyle: { readonlyArrays: true },
     reservedTypeNames: ['Schema', 'Effect'],
     withRef(expr, ref) {
       return isBareIdent(expr) ? expr : `${expr}.annotate({identifier:${JSON.stringify(ref)}})`
