@@ -108,7 +108,7 @@
     "@apidevtools/json-schema-ref-parser": "^16.0.5",
     "@effect/platform-node": "4.1.2",
     "effect": "4.1.2",
-    "oxfmt": "^0.75.0"
+    "oxfmt": "^0.77.0"
   },
   "devDependencies": {
     "@types/node": "26.6.6"
