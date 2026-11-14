@@ -29,7 +29,7 @@
     "textlint-rule-no-dead-link": "6.2.3",
     "textlint-rule-no-todo": "2.0.1",
     "textlint-rule-terminology": "5.2.16",
-    "vite-plus": "1.4.0"
+    "vite-plus": "1.5.0"
   },
   "packageManager": "pnpm@12.15.0"
 }
