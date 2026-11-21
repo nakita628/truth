@@ -51,7 +51,13 @@ To regenerate the fixtures after changing a generator, build `schema-truth` and 
 
 ## Releasing
 
-There are no changesets, release notes or GitHub releases. Bump `version` in `npm/<name>/package.json` in the pull request that needs it (or in one of its own) and merge. When the Test workflow passes on `main`, [release.yml](./.github/workflows/release.yml) runs `pnpm -r publish`, which publishes every package whose version is not on npm yet, with provenance through npm trusted publishing. A merge that bumps nothing publishes nothing.
+Releases go through [Changesets](https://github.com/changesets/changesets), the way [honojs/middleware](https://github.com/honojs/middleware) runs them:
+
+1. A pull request that changes what a published package ships adds a changeset: `pnpm changeset`, pick the packages and the bump, write the line for the changelog. It is a Markdown file under [`.changeset/`](./.changeset/README.md), reviewed with the change. Tests, fixtures, docs and CI need none.
+2. When Test passes on `main`, [release.yml](./.github/workflows/release.yml) opens or updates the **Version Packages** pull request, which applies every pending changeset: the versions in `npm/<name>/package.json`, each package's `CHANGELOG.md`, and the changeset files deleted.
+3. Merging that pull request is the release. After Test passes on that commit, `release.yml` publishes every package whose version is not on npm yet (`pnpm -r publish`, with provenance through npm trusted publishing from the `release` environment), then tags `<name>@<version>` and creates the GitHub release with that version's changelog section.
+
+The jobs hold separate permissions: the Version Packages job can write a branch and a pull request but never sees the npm OIDC token, and the publish job can publish but not write to the repository. Do not edit a version by hand or publish from a laptop; to fix a bad release, add a changeset and release again.
 
 ## Contributing
 

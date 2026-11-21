@@ -103,20 +103,21 @@ its comments explain every choice.
 
 ## Releasing
 
-Releases are CI's job, and the `version` field of `npm/oas-truth/package.json` drives them.
-`release.yml` runs after Test passes on a push to `main` and, from the exact commit Test ran
-on:
+Releases are CI's job, driven by changesets (`.changeset/*.md`). `release.yml` runs after Test
+passes on a push to `main`:
 
-1. **check** — reads the version and asks npm whether it is published;
-2. **tag** — creates `v<version>` on that commit, or verifies it is already there; a mismatch
-   stops with an error that says what to do;
-3. **publish** — only when npm does not have the version: build, then `pnpm publish` with npm
-   trusted publishing (OIDC, `id-token: write`, environment `release`), so no npm token is stored;
-4. **release** — creates the GitHub release for the tag with generated notes.
+1. **version** — while changesets are pending, opens or updates the Version Packages pull
+   request (versions, `CHANGELOG.md`, changesets deleted);
+2. **publish** — for the public packages whose version npm does not have, builds and
+   `pnpm -r publish`es with npm trusted publishing (OIDC, `id-token: write`, environment
+   `release`), so no npm token is stored;
+3. **github-release** — tags `<name>@<version>` on the published commit and creates the GitHub
+   release with that version's changelog section.
 
-- **To release, bump `version` in its own commit, with the definition of done green, and merge it
-  to `main`.** Nothing else publishes.
-- **Never `npm publish` by hand, and never create or move a `v*` tag by hand.**
-- Never reuse or roll back a published version; to fix a release, bump again.
-- If publish fails (an npm outage, a missing trusted publisher), fix the cause and re-run the
-  failed jobs; the tag already points at the right commit.
+- **To release, merge the Version Packages pull request** with the definition of done green.
+  Nothing else publishes.
+- **Never `npm publish` by hand, and never create or move a tag by hand.**
+- Never reuse or roll back a published version; to fix a release, add a changeset and release
+  again.
+- If a job fails (an npm outage, a missing trusted publisher), fix the cause and re-run the
+  failed jobs; both publish and release skip what is already done.

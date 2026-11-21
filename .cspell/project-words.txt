@@ -24,6 +24,7 @@ elysia
 familiaris
 felis
 hekireki
+honojs
 iage
 injective
 injectively

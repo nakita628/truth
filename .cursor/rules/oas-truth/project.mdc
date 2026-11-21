@@ -32,7 +32,7 @@ vite.config.ts                shared formatting style (printWidth 100, single qu
 lint/actionlint.mjs           runs actionlint (the npm WebAssembly build) over .github/workflows
 .github/workflows/test.yaml   CI (Test): build, test, `vp run check`
 .github/workflows/lint.yaml   CI (Lint): the repository linters, zizmor included
-.github/workflows/release.yml after Test on main: tag, npm publish, GitHub release
+.github/workflows/release.yml after Test on main: Version Packages PR, npm publish, tag + release
 ```
 
 ## Commands
@@ -82,10 +82,10 @@ ran part of it, say which part.
   network, no global state.
 - **Never hand-edit generated files:** `pnpm-lock.yaml` (let `pnpm install` write it), `dist/`,
   and the TypeSpec tests' `tmp-spec.tsp` / `tmp/` work files.
-- **Never bump `version` in `npm/oas-truth/package.json`** unless the task is a release that
-  was asked for: a new version reaching `main` is what publishes it. Never `npm publish` or push a
-  `v*` tag by hand — `.github/workflows/release.yml` tags, publishes and releases, from one
-  commit.
+- **Never edit `version` in `npm/oas-truth/package.json` or its `CHANGELOG.md`**: add a
+  changeset (`pnpm changeset`) to a pull request that changes what the package ships, and the
+  Version Packages pull request writes both. Never `npm publish` or push a tag by hand —
+  `.github/workflows/release.yml` publishes, tags and releases.
 
 ## Working order
 
@@ -103,5 +103,5 @@ ran part of it, say which part.
   and never rewrite pushed history.
 - One logical change per commit. The subject is `type(scope): summary` in the imperative, no
   trailing period — `type` is one of `feat`, `fix`, `perf`, `refactor`, `docs`, `test`, `build`,
-  `ci`, `chore`. The body explains why. A version bump is its own commit.
+  `ci`, `chore`. The body explains why.
 - Do not commit generated output, secrets or local tooling files.

@@ -1,13 +1,18 @@
 name: release
 
-# Publishes every workspace package whose package.json#version is not on npm yet, after Test
-# has passed on main. Bumping a version in npm/<name>/package.json and merging it is the
-# whole release procedure; there are no changesets, release notes or GitHub releases.
+# Releases are driven by changesets (.changeset/*.md, see .changeset/README.md), and run after
+# Test has passed on main, as three jobs that each hold only what they need:
+#
+#   version         opens or updates the "Version Packages" pull request while changesets are
+#                   pending: it bumps the versions, writes each CHANGELOG.md, deletes the files.
+#   publish         publishes every workspace package whose version is not on npm yet, which
+#                   only a merged Version Packages pull request produces; otherwise a no-op.
+#   github-release  tags `<name>@<version>` and creates the GitHub release, with that version's
+#                   CHANGELOG.md section, for each package publish just released.
 #
 # `workflow_run` is the trigger zizmor warns about because it hands a token to code from a
-# pull request when misused; here the only job checks out the commit Test ran on (`head_sha`),
-# only for a `push` to main, and holds a read-only token plus the OIDC token npm trusted
-# publishing signs provenance with.
+# pull request when misused; here every job runs only for a `push` to main whose Test run
+# passed, and checks out code that is already on main (see .github/zizmor.yml).
 on:
   workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: [Test]
@@ -23,6 +28,39 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  version:
+    name: Version Packages pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    permissions:
+      contents: write # commit the version bump to the changeset-release/main branch
+      pull-requests: write # open or update the Version Packages pull request
+    steps:
+      # The default ref, the tip of main: changesets/action builds the branch on `GITHUB_SHA`,
+      # so the checkout must hold that commit. Nothing here publishes; the pull request it
+      # opens is reviewed and tested like any other before it lands.
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+        with:
+          node-version: '24'
+          cache: true
+
+      - run: vp install --frozen-lockfile
+
+      # Without pending changesets this does nothing. With them it runs `version-packages`
+      # (changeset version, then vp fmt over the written files) and commits the result through
+      # the GitHub API, so no git credentials are needed. No `publish-script`: publishing is the
+      # job below, which holds the OIDC token this one never sees.
+      - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+        with:
+          version-script: vp run version-packages
+          commit-message: 'chore: version packages'
+          pr-title: 'chore: version packages'
+
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
@@ -33,32 +71,62 @@ jobs:
     permissions:
       contents: read # the checkout, nothing else
       id-token: write # the OIDC token npm trusted publishing signs provenance with
+    outputs:
+      released: ${{ steps.unpublished.outputs.released }}
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           ref: ${{ github.event.workflow_run.head_sha }}
           persist-credentials: false
 
-      - uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
+      # Which public packages carry a version npm does not have. A registry query that fails
+      # stops the run rather than being read as "not published yet".
+      - name: Find the unpublished versions
+        id: unpublished
+        run: |
+          set -euo pipefail
+          released=()
+          for dir in npm/*/; do
+            if [ "$(jq -r '.private // false' "$dir/package.json")" = true ]; then continue; fi
+            name=$(jq -r .name "$dir/package.json")
+            version=$(jq -r .version "$dir/package.json")
+            if out=$(npm view "$name@$version" version 2>&1); then
+              if [ -n "$out" ]; then continue; fi
+            elif ! grep -q E404 <<<"$out"; then
+              echo "$out" >&2
+              exit 1
+            fi
+            released+=("$name@$version")
+          done
+          json=$(jq -cn '$ARGS.positional' --args "${released[@]}")
+          echo "released=$json" >> "$GITHUB_OUTPUT"
+          echo "To publish: $json"
+
+      - if: steps.unpublished.outputs.released != '[]'
+        uses: actions/cache@caa296126883cff596d87d8935842f9db880ef25 # v5.1.0
         with:
           path: ~/.cache/bazel
           key: ${{ runner.os }}-bazel-${{ hashFiles('MODULE.bazel.lock', 'pnpm-lock.yaml') }}
           restore-keys: |
             ${{ runner.os }}-bazel-
 
-      - uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
+      - if: steps.unpublished.outputs.released != '[]'
+        uses: voidzero-dev/setup-vp@cab1ab9eaff52d4857875f4f2c016e36af8f2c76 # v1.22.0
         with:
           node-version: '24'
           cache: true
 
-      - run: vp install --frozen-lockfile
+      - if: steps.unpublished.outputs.released != '[]'
+        run: vp install --frozen-lockfile
 
       # The same build Test ran, from the Bazel cache when nothing changed.
-      - run: bazel build //npm/schema-truth:build //npm/oas-truth:build
+      - if: steps.unpublished.outputs.released != '[]'
+        run: bazel build //npm/schema-truth:build //npm/oas-truth:build
 
       # pnpm publishes from the source tree, so each package's dist is copied out of bazel-bin
       # (Bazel outputs are read-only; `cp -L` resolves the output symlinks).
       - name: Stage the built packages
+        if: steps.unpublished.outputs.released != '[]'
         run: |
           set -euo pipefail
           for pkg in schema-truth oas-truth; do
@@ -72,8 +140,55 @@ jobs:
       # with provenance (package.json#publishConfig). npm 11.5+ (bundled with Node 24) is what
       # exchanges the OIDC token, so no npm token is configured anywhere.
       - name: Publish
+        if: steps.unpublished.outputs.released != '[]'
         run: |
           set -euo pipefail
           corepack enable
           pnpm --version
           pnpm -r publish --access public --no-git-checks
+
+  github-release:
+    name: Tag and GitHub release
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    needs: publish
+    if: needs.publish.outputs.released != '[]'
+    permissions:
+      contents: write # create the tag and the release
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.workflow_run.head_sha }}
+          persist-credentials: false
+
+      # One tag and release per published package, on the commit that was published, with
+      # that version's section of the package's CHANGELOG.md as the notes. An existing release
+      # is left alone, so re-running the job is safe.
+      - name: Create the releases
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASED: ${{ needs.publish.outputs.released }}
+          SHA: ${{ github.event.workflow_run.head_sha }}
+        run: |
+          set -euo pipefail
+          for tag in $(jq -r '.[]' <<<"$RELEASED"); do
+            name=${tag%@*}
+            version=${tag##*@}
+            if out=$(gh release view "$tag" --json tagName 2>&1); then
+              echo "$tag: already released"
+              continue
+            elif ! grep -q 'release not found' <<<"$out"; then
+              echo "$out" >&2
+              exit 1
+            fi
+            dir=$(grep -l "\"name\": \"$name\"" npm/*/package.json | xargs dirname)
+            awk -v v="$version" '
+              $0 == "## " v { found = 1; next }
+              found && /^## / { exit }
+              found { print }
+            ' "$dir/CHANGELOG.md" > notes.md 2>/dev/null || true
+            if [ ! -s notes.md ]; then
+              echo "Published to npm: https://www.npmjs.com/package/$name/v/$version" > notes.md
+            fi
+            gh release create "$tag" --target "$SHA" --title "$tag" --notes-file notes.md
+          done

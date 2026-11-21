@@ -30,5 +30,5 @@ pnpm check            # format check, per-package vp check, repository linters
 - `oas-truth` depends on `schema-truth` as `workspace:^`. Do not pin a published version there; `pnpm publish` rewrites the range at release time.
 - A new npm package goes under `npm/<name>` with a `BUILD.bazel` modelled on its siblings, a `package.json` entry in `MODULE.bazel`'s `data` list, and its `node_modules` line in `.bazelignore`. Anything that must not be published is `"private": true`.
 - Dependencies change through `pnpm` (then `vp install`), never by hand in the lockfile. Bazel reads `pnpm-lock.yaml`; there is no second list to keep in sync.
-- Releases are a version bump in `npm/<name>/package.json`; there are no changesets and no release notes. Do not add a `CHANGELOG.md`.
+- A pull request that changes what `schema-truth` or `oas-truth` ships adds a changeset (`pnpm changeset`, see [`.changeset/README.md`](./.changeset/README.md)). Never edit `version` or a `CHANGELOG.md` by hand: the Version Packages pull request that `release.yml` opens writes both, and merging it is the release.
 - Everything committed is written in English.

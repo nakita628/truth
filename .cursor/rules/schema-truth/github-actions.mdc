@@ -54,21 +54,18 @@ at that level. Keep it that way:
 `Test` → `release`, wired with `workflow_run` so a release can only come from a commit
 whose tests already passed. zizmor flags `workflow_run` as a dangerous trigger by design;
 `release.yml` is listed in `@.github/zizmor.yml` with the reason it is safe here (empty
-top-level permissions, an `if` on `conclusion == 'success'`, and every checkout pinned to
-`workflow_run.head_sha`). Suppress a finding there, with a reason, never by widening a
-rule away.
+top-level permissions, an `if` on `conclusion == 'success'` and `event == 'push'` on every
+job, and the publish and release checkouts pinned to `workflow_run.head_sha`). Suppress a
+finding there, with a reason, never by widening a rule away.
 
-`release.yml` holds the whole chain as four jobs, so the tag, the tarball and the GitHub
-release can never drift apart:
+`release.yml` is three jobs, each with only the permissions it needs:
 
-| Job | Does | Skipped when |
+| Job | Does | Permissions |
 | --- | --- | --- |
-| `check` | reads the version and asks npm whether it is published | the Test run failed, or was not a push |
-| `tag` | creates `v<version>` on the released commit, or verifies the existing one points there | never — it fails loudly on a mismatch |
-| `publish` | builds and `pnpm publish`, with provenance from the `release` environment | the version is already on npm |
-| `release` | `gh release create v<version> --verify-tag` | the release already exists |
+| `version` | `changesets/action`: opens or updates the Version Packages pull request while changesets are pending | `contents: write`, `pull-requests: write` |
+| `publish` | lists the public packages whose version npm lacks, builds them with Bazel and `pnpm -r publish`es them with provenance, from the `release` environment | `contents: read`, `id-token: write` |
+| `github-release` | for each package `publish` released, `gh release create <name>@<version>` on that commit with its CHANGELOG section | `contents: write` |
 
-Two rules hold that together. A registry or API query that *fails* stops the run rather
-than being read as "not published yet", and a tag that already points at another commit
-is an error unless that version was fully released from there. Everything else is
-idempotent, so re-running the workflow on the same commit is always safe.
+A registry or API query that *fails* stops the run rather than being read as "not published
+yet" or "no release yet". Everything else is idempotent: `publish` skips versions already on
+npm and `github-release` skips releases that exist, so re-running the workflow is safe.

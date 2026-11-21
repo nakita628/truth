@@ -55,5 +55,5 @@ vp run lint                        # Markdown, terminology, spelling, secrets, l
   documented by the doc comment on its type in `src/parser/x-ext/` and by the fixture that
   exercises it. Only installation, the commands and the one example belong in the README.
 - **No new runtime dependencies** in `npm/schema-truth` without being asked.
-- **Work on a branch and land it through a pull request** — a version bump on `main`
-  publishes to npm. See `@.cursor/rules/pull-requests.mdc`.
+- **Work on a branch and land it through a pull request**, with a changeset when it changes
+  what the package ships. See `@.cursor/rules/pull-requests.mdc`.

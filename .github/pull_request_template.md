@@ -26,7 +26,7 @@ shows, so write it for the person reading the history.
 
 ## When
 
-<!-- Release impact: `none` | `next release` | `version bumped to x.y.z — publishes to npm on merge`. -->
+<!-- Release impact: `none` (no changeset: tests, fixtures, docs, CI) | the changeset this adds, e.g. `schema-truth: patch`. Merging only queues it; the Version Packages pull request releases. -->
 
 ## How
 
