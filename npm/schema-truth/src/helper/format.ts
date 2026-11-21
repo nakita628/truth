@@ -24,7 +24,7 @@ function timeSource(precision: number | undefined, seconds: boolean): string {
 }
 
 /** The regex literal of an RFC 3339 `full-date` that is a real calendar date. */
-export function datePattern(): string {
+function datePattern(): string {
   return `/^${DATE_PATTERN_SOURCE}$/`
 }
 
@@ -42,7 +42,7 @@ export function timePattern(precision: number | undefined, offset: boolean): str
  * its own: a `Z` always, a numeric offset when `offset` is set, and an offset-less local
  * time when `local` is set.
  */
-export function datetimePattern(options: {
+function datetimePattern(options: {
   readonly precision: number | undefined
   readonly offset: boolean
   readonly local: boolean
@@ -59,7 +59,7 @@ export function datetimePattern(options: {
  * The regex literal of an RFC 9562 UUID of `version`, or of any version — the nil and
  * max UUIDs included — when none is given.
  */
-export function uuidPattern(version: number | undefined): string {
+function uuidPattern(version: number | undefined): string {
   if (version === undefined) {
     return '/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/'
   }

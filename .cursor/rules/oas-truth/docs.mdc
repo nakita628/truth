@@ -34,7 +34,6 @@ inside it are absolute `https://github.com/...` URLs, because a relative link br
   **TypeScript**, **npm**, **GitHub**, **JSON**, **OpenAPI** (never "OpenAPI"), **TypeSpec**.
   Code spans and fenced blocks are skipped.
 - `README` and `re-export` are excluded from the term list on purpose.
-- Quotes, brackets and parentheses must balance (`no-unmatched-pair`).
 - No `TODO` in the docs.
 - A deliberate exception is a `<!-- textlint-disable rule-name -->` comment next to the sentence
   that needs it, never a change to `.textlintrc.json`.

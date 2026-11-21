@@ -134,7 +134,7 @@ export type CliOptions<Name extends string> = {
  * Every binary is the same command with a different name and generator, so they are built
  * from one definition rather than one copy per target that can drift apart.
  */
-export function makeCli<Name extends string>(options: CliOptions<Name>) {
+function makeCli<Name extends string>(options: CliOptions<Name>) {
   return Command.make(options.name, commandLine, generate(options.generator)).pipe(
     Command.withDescription(options.description),
     Command.withExamples([
