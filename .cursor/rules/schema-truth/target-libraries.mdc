@@ -67,6 +67,6 @@ committed fixtures are the worked examples.
 The input side is JSON Schema, Draft 2020-12 through Draft-04, plus OpenAPI documents:
 
 - [JSON Schema 2020-12 core](https://json-schema.org/draft/2020-12/json-schema-core)
-- [OpenAPI Specification](https://www.openapis.org/)
+- [OpenAPI Specification](https://openapis.org/)
 - External `$ref` resolution is delegated to
   [json-schema-ref-parser](https://github.com/APIDevTools/json-schema-ref-parser).

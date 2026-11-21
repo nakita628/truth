@@ -1,6 +1,6 @@
 # Schema Truth
 
-**[schema-truth](https://www.npmjs.com/package/schema-truth)** generates type-safe validation schemas from a [JSON Schema](https://json-schema.org/) or [OpenAPI](https://www.openapis.org/) document — one CLI per target library, each written in that library's own idiom.
+**[schema-truth](https://www.npmjs.com/package/schema-truth)** generates type-safe validation schemas from a [JSON Schema](https://json-schema.org/) or [OpenAPI](https://openapis.org/) document — one CLI per target library, each written in that library's own idiom.
 
 ## Installation
 
