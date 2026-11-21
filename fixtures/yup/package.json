@@ -6,7 +6,7 @@
   "scripts": {
     "generate": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vp test"
   },
   "dependencies": {
     "effect": "^4.1.2",

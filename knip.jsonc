@@ -1,0 +1,60 @@
+{
+  "$schema": "https://unpkg.com/knip@6/schema-jsonc.json",
+  // Knip finds unused files, dependencies and exports (`pnpm knip`, also part of `pnpm lint`).
+  // Everything below is something the import graph cannot see: a file a compiler reads through
+  // a tsconfig `include`, a package that only source text written at runtime imports, a binary
+  // that is installed outside npm. An entry here needs its reason beside it; code that is simply
+  // unused is deleted instead.
+  "workspaces": {
+    ".": {
+      // Installed by Bazelisk (`.bazelversion`), not from npm: `pnpm build` / `pnpm test`.
+      "ignoreBinaries": ["bazel"],
+      "ignoreDependencies": [
+        // Named by `.secretlintrc.json`, which secretlint loads by name; Knip has no secretlint
+        // plugin to read it.
+        "@secretlint/secretlint-rule-preset-recommend",
+        // The plugin `.textlintrc*.json` configures as `@textlint/markdown` ships with textlint
+        // itself; it is configured here, not installed separately.
+        "@textlint/textlint-plugin-markdown",
+      ],
+    },
+    "npm/oas-truth": {
+      "ignoreDependencies": [
+        // The suite writes the generated schemas to disk, then type-checks and imports them:
+        // these libraries are imported by that generated code, whose specifiers are strings.
+        "effect",
+        "typebox",
+        "valibot",
+        "zod",
+        // Imported by the TypeSpec documents the suite writes to disk and compiles.
+        "@typespec/rest",
+      ],
+    },
+    "npm/schema-truth": {},
+    "fixtures/*": {
+      "entry": [
+        // `src/index.ts` is the `generate` script; the suites run from the root `vp test`
+        // (`test.include` in vite.config.ts), which Knip reads as the root workspace's.
+        "src/*.ts",
+        // Generated per case, then compiled by `tsc --noEmit` through the tsconfig's
+        // `include: ["**/output.ts"]`: the type check against the real library is the point.
+        "*/output.ts",
+      ],
+      "ignoreIssues": {
+        // Every generated file exports its inferred type, whether or not a test reads it.
+        "*/output.ts": ["types"],
+      },
+    },
+    "apps/generated": {
+      "entry": [
+        // The contract test imports these by a computed path, which Knip cannot follow.
+        "generated/zod/*.ts",
+      ],
+      "ignore": [
+        // The rest of the CLIs' committed output: written by `pnpm dev`, imported by nothing and
+        // outside the tsconfig `include`, so it has no dependencies of its own to check.
+        "generated/!(zod)/**",
+      ],
+    },
+  },
+}

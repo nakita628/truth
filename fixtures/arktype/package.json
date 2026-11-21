@@ -6,7 +6,7 @@
   "scripts": {
     "generate": "tsx src/index.ts",
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vp test"
   },
   "dependencies": {
     "arktype": "^2.2.9",

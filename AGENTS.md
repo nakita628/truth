@@ -25,6 +25,7 @@ pnpm check            # format check, per-package vp check, repository linters
 ## Invariants
 
 - Never relax a linter to get a change through. An exception lives next to the code as an `oxlint-disable-next-line` with a reason, never as `'off'` in a config.
+- Unused code is deleted, not ignored. `pnpm knip` fails on an unused file, dependency or export; an entry in `knip.jsonc` is only for what the import graph cannot see, with its reason beside it.
 - Never change what a generator emits without saying so in the pull request: every consumer's output changes with it, and `oas-truth` emits schemas through `schema-truth`, so its tests pin the sibling's output too. Regenerate and commit the fixtures in the same change.
 - `oas-truth` depends on `schema-truth` as `workspace:^`. Do not pin a published version there; `pnpm publish` rewrites the range at release time.
 - A new npm package goes under `npm/<name>` with a `BUILD.bazel` modelled on its siblings, a `package.json` entry in `MODULE.bazel`'s `data` list, and its `node_modules` line in `.bazelignore`. Anything that must not be published is `"private": true`.

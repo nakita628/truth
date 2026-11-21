@@ -53,7 +53,7 @@ export function numberChecks(
 }
 
 /** The range check of a fixed-width numeric `format` that has one and no filter of its own. */
-export function rangeCheck(format: string | undefined, suffix = ''): readonly string[] {
+function rangeCheck(format: string | undefined, suffix = ''): readonly string[] {
   const range = format === undefined ? undefined : NUMBER_RANGES[format]
   if (range === undefined) return []
   return [`Schema.isBetween${suffix}({minimum:${range.minimum},maximum:${range.maximum}})`]

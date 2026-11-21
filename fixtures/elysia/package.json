@@ -5,13 +5,12 @@
   "private": true,
   "scripts": {
     "typecheck": "tsc --noEmit",
-    "test": "vitest run"
+    "test": "vp test"
   },
   "dependencies": {
     "elysia": "^1.4.30"
   },
   "devDependencies": {
-    "tsx": "4.23.15",
     "typescript": "7.0.2"
   }
 }
