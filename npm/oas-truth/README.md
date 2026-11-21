@@ -13,7 +13,8 @@ npm install oas-truth
 ```ts
 import { parseOpenAPI } from 'oas-truth'
 
-const result = await parseOpenAPI('openapi.yaml') // supports .json / .yaml / .tsp
+// a .yaml / .yml / .json / .tsp file, or an http(s) URL
+const result = await parseOpenAPI('openapi.yaml')
 
 if (result.ok) {
   result.value // resolved, typed OpenAPI document
@@ -24,9 +25,25 @@ if (result.ok) {
 
 `parseOpenAPI` does the following:
 
-- OpenAPI files (`.json` / `.yaml`) are bundled with `@apidevtools/swagger-parser` to resolve `$ref`
-- TypeSpec files (`.tsp`) are compiled with `@typespec/compiler` and then bundled
-- Returns `{ ok: true, value } | { ok: false, error }` (never throws)
+- OpenAPI documents (`.json` / `.yaml` / `.yml` files and `http://` / `https://` URLs) are bundled
+  with `@apidevtools/swagger-parser` to resolve external `$ref`s
+- TypeSpec files (`.tsp`) are compiled with `@typespec/compiler` and then bundled; the compiler is
+  loaded only for a `.tsp` input
+- Returns a `Result<OpenAPI>`, `{ ok: true, value } | { ok: false, error }`, and never throws: an
+  unsupported input, a missing file, an unreachable URL and a TypeSpec diagnostic all come back as
+  `error`
+
+The input is typed as `OpenAPIInput`. `isOpenAPIInput` narrows a CLI argument or a config value
+to it:
+
+```ts
+import { isOpenAPIInput, parseOpenAPI } from 'oas-truth'
+
+const input = process.argv[2]
+if (isOpenAPIInput(input)) {
+  const result = await parseOpenAPI(input)
+}
+```
 
 ## Component schemas
 
@@ -35,12 +52,15 @@ dependency order. `makeSchemaDeclarations` returns the same declarations one by 
 `varName`, `fileName`, `importLine`, `code`) so a host can split a file per schema.
 
 Recursive `$ref` cycles keep a helper type so the const can be annotated (`z.ZodType<NodeType>`,
-`v.GenericSchema<NodeType>`, `Schema.Codec<NodeType>`). That helper matches what the library
+`v.GenericSchema<NodeType>`, `Schema.Schema<NodeType>`). That helper matches what the library
 infers — `| undefined` on Valibot optionals, `readonly` arrays on Effect — so it
 type-checks under `exactOptionalPropertyTypes`. ArkType cycles become
 `scope({...}).export().Member`; that declaration's `importLine` is then
-`import { type, scope } from 'arktype'`. `schemaImportLine` is the same function
-`makeSchemasCode` uses when the declarations stay in one file.
+`import { type, scope } from 'arktype'`. An Effect declaration's `importLine` names every
+`effect` module its code uses (`Effect` for a decoding default, `SchemaTransformation` for an
+int64 decode). A comment schema-truth puts above a declaration, such as TypeBox's marker for a
+`not` it cannot enforce, is written above `export const`. `schemaImportLine` is the same
+function `makeSchemasCode` uses when the declarations stay in one file.
 
 Every other component kind has the same split: `make<Kind>Declarations` returns `{ name,
 varName, fileName, code }` with no import line, and `make<Kind>Code` joins those bodies.

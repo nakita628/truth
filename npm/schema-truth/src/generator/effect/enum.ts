@@ -51,10 +51,17 @@ export function _enum(schema: JSONSchema) {
     errorMessage ? `${code}.annotate(${effectError(errorMessage)})` : code
   const tuple = (arr: readonly unknown[]): string =>
     `Schema.Tuple([${arr.map((i: unknown) => `Schema.Literal(${lit(i)})`).join(',')}])`
-  const literals = (values: readonly unknown[]): string =>
-    values.length > 1
-      ? `Schema.Literals([${values.map(lit).join(',')}])`
-      : `Schema.Literal(${lit(values[0])})`
+  const literals = (values: readonly unknown[]): string => {
+    // `Schema.Literals` takes only `LiteralValue`s (string, number, bigint, boolean): a
+    // `null` among the values is `Schema.Null`, joined to the rest by `Schema.NullOr`.
+    const nonNull = values.filter((v) => v !== null)
+    if (nonNull.length === 0) return 'Schema.Null'
+    const code =
+      nonNull.length > 1
+        ? `Schema.Literals([${nonNull.map(lit).join(',')}])`
+        : `Schema.Literal(${lit(nonNull[0])})`
+    return nonNull.length < values.length ? `Schema.NullOr(${code})` : code
+  }
   if (hasType(schema, 'number') || hasType(schema, 'integer') || hasType(schema, 'boolean')) {
     return annotate(literals(schema.enum))
   }

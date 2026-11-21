@@ -20,10 +20,10 @@ type _B = {
 type _C = { readonly type: 'C'; readonly entries: readonly _E[] }
 
 const E: Schema.Schema<_E> = Schema.Struct({
-  label: Schema.optional(Schema.String),
-  reference: Schema.optional(Schema.suspend(() => E)),
-  flags: Schema.optional(Schema.Array(Schema.String).check(Schema.isUnique())),
-  meta: Schema.optional(Schema.Record(Schema.String, Schema.String)),
+  label: Schema.optionalKey(Schema.String),
+  reference: Schema.optionalKey(Schema.suspend(() => E)),
+  flags: Schema.optionalKey(Schema.Array(Schema.String).check(Schema.isUnique())),
+  meta: Schema.optionalKey(Schema.Record(Schema.String, Schema.String)),
 })
 
 const D: Schema.Schema<_D> = Schema.Struct({
@@ -32,7 +32,7 @@ const D: Schema.Schema<_D> = Schema.Struct({
     Schema.isGreaterThanOrEqualTo(0),
     Schema.isLessThanOrEqualTo(100),
   ).pipe(Schema.withDecodingDefault(Effect.succeed(50))),
-  extra: Schema.optional(Schema.Union([Schema.NullOr(Schema.Null), Schema.suspend(() => E)])),
+  extra: Schema.optionalKey(Schema.Union([Schema.Null, Schema.suspend(() => E)])),
 })
 
 const B: Schema.Schema<_B> = Schema.Struct({

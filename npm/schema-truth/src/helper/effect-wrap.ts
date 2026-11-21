@@ -12,6 +12,11 @@ import { isNullMatchedFirst, wireNullText } from './wire.js'
 /** The options of {@link effectWrap} beyond the code extensions. */
 export type EffectWrapOptions = CodeExtensionOptions & {
   /**
+   * The expression is the `null` schema itself (a `type: 'null'` node): nullability adds
+   * nothing to it, so it is not wrapped a second time.
+   */
+  readonly nullSchema?: boolean
+  /**
    * The schema reads a string-wire parameter: its encoded side is text, so a default is
    * applied to the decoded side with `Schema.withDecodingDefaultType`.
    */
@@ -67,7 +72,9 @@ export function effectWrap(
   options?: EffectWrapOptions,
 ): string {
   const nullText = options?.nullText === true
-  const nullable = isNullable(schema) || (nullText && !isNullMatchedFirst(schema))
+  const nullable =
+    (isNullable(schema) && options?.nullSchema !== true) ||
+    (nullText && !isNullMatchedFirst(schema))
   // `Schema.NullOr` wraps a schema, so it goes inside the decoding default:
   // `withDecodingDefault` composes onto whatever schema it is piped from.
   const withNullable = nullable ? `Schema.NullOr(${effectStr})` : effectStr

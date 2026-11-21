@@ -6,14 +6,14 @@ export const Vehicle = Schema.StructWithRest(
 ).check(
   Schema.makeFilter(
     (input) =>
-      !Schema.is(Schema.Struct({ type: Schema.optional(Schema.Literal('truck')) }))(input) ||
+      !Schema.is(Schema.Struct({ type: Schema.optionalKey(Schema.Literal('truck')) }))(input) ||
       Schema.is(
         Schema.Struct({ cargoCapacity: Schema.Number.check(Schema.isGreaterThanOrEqualTo(0)) }),
       )(input),
   ),
   Schema.makeFilter(
     (input) =>
-      Schema.is(Schema.Struct({ type: Schema.optional(Schema.Literal('truck')) }))(input) ||
+      Schema.is(Schema.Struct({ type: Schema.optionalKey(Schema.Literal('truck')) }))(input) ||
       Schema.is(
         Schema.Struct({
           passengerCount: Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(1)),

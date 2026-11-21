@@ -34,6 +34,11 @@ export function callbackReturn(params: string, body: string): string {
  * and so resolve against the scope.
  */
 export type ArktypeWrapOptions = CodeExtensionOptions & {
+  /**
+   * The expression is the `null` schema itself (a `type: 'null'` node): nullability adds
+   * nothing to it, so it is not wrapped a second time.
+   */
+  readonly nullSchema?: boolean
   readonly scopeMode?: boolean
 }
 
@@ -77,13 +82,14 @@ export function arktypeWrap(
   const inScope = options?.scopeMode === true
   const isDefinition = isArktypeDefinition
   // A quoted definition takes the string-union shortcut instead of `.or`.
-  const withNullable = isNullable(schema)
-    ? isQuoted(arktypeStr)
-      ? `"${arktypeStr.slice(1, -1)} | null"`
-      : inScope && isDefinition(arktypeStr)
-        ? `[${arktypeStr},"|","null"]`
-        : `type(${arktypeStr}).or("null")`
-    : arktypeStr
+  const withNullable =
+    isNullable(schema) && options?.nullSchema !== true
+      ? isQuoted(arktypeStr)
+        ? `"${arktypeStr.slice(1, -1)} | null"`
+        : inScope && isDefinition(arktypeStr)
+          ? `[${arktypeStr},"|","null"]`
+          : `type(${arktypeStr}).or("null")`
+      : arktypeStr
   const withReadonly =
     schema['x-readonly'] === true
       ? isDefinition(withNullable)

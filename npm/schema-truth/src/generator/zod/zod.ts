@@ -9,6 +9,7 @@ import {
   isStringWireLocation,
 } from '../../guard/index.js'
 import {
+  enumWithoutWrappedNull,
   constraintMessage,
   constraintPredicate,
   deepEqualExpression,
@@ -77,7 +78,12 @@ function zodNotPredicate(inner: JSONSchema, parent: JSONSchema): string | undefi
   const shared = notPredicate(inner, 'val', 'val', bigint)
   if (shared !== undefined) return shared
   if (Array.isArray(inner.enum)) {
-    return `(val) => !${valueListLiteral(inner.enum, bigint)}.includes(val)`
+    const list = valueListLiteral(inner.enum, bigint)
+    // On a nullable parent `val` may be `null`, which a list without `null` does not take as
+    // an argument of `includes`; `null` is not among those values, so it passes the `not`.
+    return isNullable(parent) && !inner.enum.includes(null)
+      ? `(val) => val === null || !${list}.includes(val)`
+      : `(val) => !${list}.includes(val)`
   }
   if (inner.oneOf || inner.anyOf || inner.allOf) {
     return `(val) => !${zod(inner)}.safeParse(val).success`
@@ -193,8 +199,13 @@ function node(
   const isWireCoerced = isStringWireParam && schema['x-coerce'] !== false
   const codeExtOpts: CodeExtensionOptions =
     options?.unsafeCodeExtensions === true ? { unsafeCodeExtensions: true } : {}
-  const zodWrap = (zodStr: string, s: JSONSchema): string =>
+  const zodWrap = (
+    zodStr: string,
+    s: JSONSchema,
+    extra?: { readonly nullSchema?: boolean },
+  ): string =>
     _zodWrap(zodStr, s, {
+      ...extra,
       ...codeExtOpts,
       ...(options?.definitions !== undefined && { definitions: options.definitions }),
     })
@@ -341,7 +352,7 @@ function node(
   if (schema.enum) {
     const values = schema.enum.filter((value) => value !== null)
     const input = values.length > 0 ? literalInput(values) : undefined
-    if (input === undefined) return zodWrap(_enum(schema), schema)
+    if (input === undefined) return zodWrap(_enum(enumWithoutWrappedNull(schema)), schema)
     // `null` is matched ahead of the coercion, which would read it as `0` or `false`.
     const hasNull = values.length < schema.enum.length
     const piped = `${input}.pipe(${_enum({ ...schema, enum: values })})`
@@ -478,7 +489,7 @@ function node(
   if (types.length === 1 && types[0] === 'null') {
     const errorMessage = schema['x-error-message']
     const errorArg = errorMessage ? zodError(errorMessage) : ''
-    return zodWrap(`z.null(${errorArg})`, schema)
+    return zodWrap(`z.null(${errorArg})`, schema, { nullSchema: true })
   }
 
   // An `allOf` member that is only `additionalProperties` still constrains every value.

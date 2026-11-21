@@ -10,7 +10,7 @@ export const A = Type.Cyclic(
     }),
     D: Type.Object({
       score: Type.Optional(Type.Integer({ minimum: 0, maximum: 100, default: 50 })),
-      extra: Type.Optional(Type.Union([Type.Union([Type.Null(), Type.Null()]), Type.Ref('E')])),
+      extra: Type.Optional(Type.Union([Type.Null(), Type.Ref('E')])),
     }),
     B: Type.Object({
       type: Type.Literal('B'),

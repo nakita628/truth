@@ -64,8 +64,8 @@ export function hasIfThenElse(schema: unknown): boolean {
 
 /**
  * Whether a schema (at any depth) uses the JSON Schema `not` keyword. The TypeBox
- * generator falls back to `Type.Any()` because TypeBox v1 has no runtime `Type.Not(...)`
- * and `Value.Check` does not evaluate `not`.
+ * generator drops the keyword (a bare `not` falls back to `Type.Any()`) because TypeBox v1
+ * has no runtime `Type.Not(...)` and `Value.Check` does not evaluate `not`.
  */
 export function hasNotKeyword(schema: unknown): boolean {
   return hasKeyword(schema, ['not'])

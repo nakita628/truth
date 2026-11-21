@@ -43,7 +43,7 @@ export function makeHeadersCode(
     ),
     {
       trailingNewline: true,
-      importLine: adapter.renderImport(),
+      importLine: (code) => adapter.renderImport({ code }),
     },
   )
 }

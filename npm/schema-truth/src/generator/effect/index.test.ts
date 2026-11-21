@@ -489,7 +489,7 @@ export type Arr = typeof Arr.Type`
     })
     const expected = `import { Schema } from "effect"
 
-export const Fixed = Schema.Struct({pair:Schema.Array(Schema.Number).check(Schema.isLengthBetween(3,3))})
+export const Fixed = Schema.Struct({pair:Schema.Array(Schema.Number).check(Schema.isBetweenLength(3,3))})
 
 export type Fixed = typeof Fixed.Type`
     expect(result).toBe(expected)
@@ -548,7 +548,7 @@ export type D = typeof D.Type`
     })
     const expected = `import { Schema } from "effect"
 
-export const N = Schema.NullOr(Schema.Null)
+export const N = Schema.Null
 
 export type N = typeof N.Type`
     expect(result).toBe(expected)
@@ -793,7 +793,7 @@ type _Root = {readonly n?: _Nothing}
 
 type _Nothing = null
 
-const Nothing: Schema.Schema<_Nothing> = Schema.NullOr(Schema.Null)
+const Nothing: Schema.Schema<_Nothing> = Schema.Null
 
 export const Root: Schema.Schema<_Root> = Schema.Struct({n:Schema.optionalKey(Schema.suspend(() => Nothing))})
 

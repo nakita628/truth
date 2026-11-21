@@ -401,7 +401,7 @@ export type D = typeof D.infer`
     })
     const expected = `import { type } from "arktype"
 
-export const N = type("null | null")
+export const N = type("null")
 
 export type N = typeof N.infer`
     expect(result).toBe(expected)

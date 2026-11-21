@@ -146,7 +146,7 @@ describe('arktype', () => {
       ],
       [
         { not: { type: 'string' }, type: ['null'] },
-        `type("null | null").narrow((data: unknown) => typeof data !== 'string')`,
+        `type("null").narrow((data: unknown) => typeof data !== 'string')`,
       ],
       [{ not: { const: 42 } }, `type("unknown").narrow((data: unknown) => data !== 42)`],
       [
@@ -388,8 +388,8 @@ describe('arktype', () => {
 
   describe('null', () => {
     it.concurrent.each<[JSONSchema, string]>([
-      [{ type: 'null' }, '"null | null"'],
-      [{ type: 'null', nullable: true }, '"null | null"'],
+      [{ type: 'null' }, '"null"'],
+      [{ type: 'null', nullable: true }, '"null"'],
     ])('arktype(%o) → %s', (input, expected) => {
       expect(arktype(input)).toBe(expected)
     })
@@ -956,5 +956,52 @@ describe('allOf keyword members', () => {
     ],
   ])('arktype(%o, %o) → %s', (schema, options, expected) => {
     expect(arktype(schema, 'Schema', false, options)).toBe(expected)
+  })
+})
+
+describe('a null member and a null enum value are emitted once (#16, #20)', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [{ anyOf: [{ type: 'string' }, { type: 'null' }] }, '"string | null"'],
+    [{ type: ['string', 'null'], enum: ['a', 'b', null] }, `"'a' | 'b' | null"`],
+  ])('arktype(%o) → %s', (input, expected) => {
+    expect(arktype(input)).toBe(expected)
+  })
+})
+
+describe('a union too long for the string DSL (#21)', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'string', enum: Array.from({ length: 16 }, (_, i) => `v${i}`) },
+      `"'v0' | 'v1' | 'v2' | 'v3' | 'v4' | 'v5' | 'v6' | 'v7' | 'v8' | 'v9' | 'v10' | 'v11' | 'v12' | 'v13' | 'v14' | 'v15'"`,
+    ],
+    [
+      { type: 'string', enum: Array.from({ length: 17 }, (_, i) => `v${i}`) },
+      "type.enumerated('v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16')",
+    ],
+    [
+      {
+        type: 'string',
+        oneOf: Array.from({ length: 17 }, (_, i) => `v${i}`).map((value) => ({ const: value })),
+      },
+      "type.enumerated('v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16')",
+    ],
+    [
+      { type: ['string', 'null'], enum: Array.from({ length: 17 }, (_, i) => `v${i}`) },
+      `type(type.enumerated('v0','v1','v2','v3','v4','v5','v6','v7','v8','v9','v10','v11','v12','v13','v14','v15','v16')).or("null")`,
+    ],
+    [
+      {
+        anyOf: [
+          ...Array.from({ length: 17 }, (_, i) => `v${i}`).map((value): JSONSchema => ({
+            type: 'string',
+            const: value,
+          })),
+          { type: 'string', format: 'email' },
+        ],
+      },
+      `type("'v0' | 'v1' | 'v2' | 'v3' | 'v4' | 'v5' | 'v6' | 'v7' | 'v8' | 'v9' | 'v10' | 'v11' | 'v12' | 'v13' | 'v14' | 'v15'").or("'v16' | string.email")`,
+    ],
+  ])('arktype(%o) → %s', (input, expected) => {
+    expect(arktype(input)).toBe(expected)
   })
 })

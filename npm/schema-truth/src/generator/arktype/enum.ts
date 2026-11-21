@@ -12,7 +12,23 @@ function lit(v: unknown, isBigint: boolean): string {
 }
 
 /**
- * The ArkType definition of an enum: a `"a | b | c"` string union. The members of an
+ * The most members a string-DSL union (`"'a' | 'b' | ..."`) may have. ArkType parses the
+ * string at the type level, and a longer union exceeds TypeScript's instantiation depth
+ * (TS2589), so a longer one is written another way.
+ */
+export const ARKTYPE_STRING_UNION_LIMIT = 16
+
+/** A member of a string-DSL union that is one literal, and the same text as a JS literal. */
+const DSL_LITERAL_PATTERN = /^(?:'[^'\\]*'|-?\d+(?:\.\d+)?(?:e[+-]?\d+)?n?|true|false|null)$/u
+
+/** Whether every member of a string-DSL union is a single literal `type.enumerated` takes. */
+export function isDslLiteralUnion(members: readonly string[]): boolean {
+  return members.every((member) => DSL_LITERAL_PATTERN.test(member))
+}
+
+/**
+ * The ArkType definition of an enum: a `"a | b | c"` string union, or
+ * `type.enumerated(a, b, c)` past {@link ARKTYPE_STRING_UNION_LIMIT} members. The members of an
  * int64 / uint64 enum are bigint literals, as the value they match is.
  */
 export function _enum(schema: JSONSchema) {
@@ -46,7 +62,11 @@ export function _enum(schema: JSONSchema) {
     return expr
   }
 
-  const expr = `"${schema.enum.map((v) => lit(v, isBigint)).join(' | ')}"`
+  const members = schema.enum.map((v) => lit(v, isBigint))
+  if (members.length > ARKTYPE_STRING_UNION_LIMIT) {
+    return `type.enumerated(${members.join(',')})${describe}`
+  }
+  const expr = `"${members.join(' | ')}"`
   if (errorMessage) return `type(${expr})${describe}`
   return expr
 }

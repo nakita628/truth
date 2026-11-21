@@ -6,11 +6,11 @@ export const Product = Schema.Struct({
   }),
   name: Schema.String.annotate({ description: 'Name of the product' }),
   price: Schema.Number.check(Schema.isGreaterThan(0)),
-  tags: Schema.optional(Schema.Array(Schema.String)),
-  dimensions: Schema.optional(
+  tags: Schema.optionalKey(Schema.Array(Schema.String)),
+  dimensions: Schema.optionalKey(
     Schema.Struct({ length: Schema.Number, width: Schema.Number, height: Schema.Number }),
   ),
-  warehouseLocation: Schema.optional(
+  warehouseLocation: Schema.optionalKey(
     Schema.String.annotate({ description: 'Coordinates of the warehouse' }),
   ),
 })

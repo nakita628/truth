@@ -12,7 +12,7 @@ const Animal: Schema.Schema<_Animal> = Schema.StructWithRest(
   Schema.Struct({
     name: Schema.String.annotate({ description: 'The name of the animal' }),
     species: Schema.String.annotate({ description: 'The species of the animal' }),
-    offspring: Schema.optional(
+    offspring: Schema.optionalKey(
       Schema.Array(Schema.suspend(() => Animal)).annotate({ description: 'List of child animals' }),
     ),
   }),

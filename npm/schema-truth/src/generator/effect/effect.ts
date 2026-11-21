@@ -10,6 +10,7 @@ import {
   isStringWireLocation,
 } from '../../guard/index.js'
 import {
+  enumWithoutWrappedNull,
   constraintMessage,
   constraintPredicate,
   effectPreprocess,
@@ -198,8 +199,13 @@ function node(
     if (!isStringWireParam || s['x-coerce'] === false) return {}
     return { stringWire: true, ...(isNullTextRead(s) && { nullText: true }) }
   }
-  const effectWrap = (effectStr: string, s: JSONSchema): string =>
+  const effectWrap = (
+    effectStr: string,
+    s: JSONSchema,
+    extra?: { readonly nullSchema?: boolean },
+  ): string =>
     _effectWrap(effectStr, s, {
+      ...extra,
       ...codeExtOpts,
       ...wireOptions(s),
       ...(options?.definitions !== undefined && { definitions: options.definitions }),
@@ -354,7 +360,7 @@ function node(
   if (schema.enum) {
     const values = schema.enum.filter((value) => value !== null)
     const input = values.length > 0 ? literalInput(values) : undefined
-    if (input === undefined) return effectWrap(_enum(schema), schema)
+    if (input === undefined) return effectWrap(_enum(enumWithoutWrappedNull(schema)), schema)
     // `null` is matched ahead of the coercion, which would read it as `0` or `false`.
     const hasNull = values.length < schema.enum.length
     const piped = `${input}.pipe(Schema.decodeTo(${_enum({ ...schema, enum: values })}))`
@@ -456,7 +462,7 @@ function node(
     // JSON Schema 2020-12 §11.3 makes the keyword redundant.
     const checks = [
       isFixedLength
-        ? `Schema.isLengthBetween(${schema.minItems},${schema.minItems}${sizeArg})`
+        ? `Schema.isBetweenLength(${schema.minItems},${schema.minItems}${sizeArg})`
         : undefined,
       !isFixedLength && typeof schema.minItems === 'number'
         ? `Schema.isMinLength(${schema.minItems}${minArg})`
@@ -478,7 +484,9 @@ function node(
     if (isWireCoerced) return effectWrap('Schema.DateFromString', schema)
     return effectWrap('Schema.Date', schema)
   }
-  if (types.length === 1 && types[0] === 'null') return effectWrap('Schema.Null', schema)
+  if (types.length === 1 && types[0] === 'null') {
+    return effectWrap('Schema.Null', schema, { nullSchema: true })
+  }
 
   // An `allOf` member that is only `additionalProperties` still constrains every value.
   if (typeof schema.additionalProperties === 'object') {

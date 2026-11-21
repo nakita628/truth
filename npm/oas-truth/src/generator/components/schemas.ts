@@ -1,4 +1,4 @@
-import type { ComponentAdapter } from '../../adapter/index.js'
+import type { ComponentAdapter, ExpressionParts } from '../../adapter/index.js'
 import { analyzeSchemas, collectSchemaRefs, makeCyclicType } from '../../helper/graph.js'
 import { wrapReferences } from '../../helper/identifiers.js'
 import type { Components, Schema } from '../../openapi/index.js'
@@ -21,7 +21,7 @@ export type SchemasOptions = {
   readonly typeAlias?: 'const' | 'key'
   /**
    * Shape of the TS7022 helper type. `'library'` (default) matches what the
-   * validator infers, so `v.GenericSchema<Helper>` / `Schema.Codec<Helper>`
+   * validator infers, so `v.GenericSchema<Helper>` / `Schema.Schema<Helper>`
    * type-check under `exactOptionalPropertyTypes`. `'literal'` is the
    * Zod-shaped `prop?: T` form for every library.
    */
@@ -149,10 +149,24 @@ function makeCyclicContainer(
       mapSchema(schemas[name] ?? {}, localize),
     ]),
   )
-  return adapter.toExpression(
+  return expressionParts(
+    adapter,
     { title: varName, $defs },
-    undefined,
     ref === undefined ? undefined : { ref },
+  )
+}
+
+/** The adapter's expression for a declaration, with the comments to write above it. */
+function expressionParts(
+  adapter: ComponentAdapter,
+  schema: Schema,
+  options: { readonly ref: string } | undefined,
+): ExpressionParts {
+  return (
+    adapter.toExpressionParts?.(schema, undefined, options) ?? {
+      expression: adapter.toExpression(schema, undefined, options),
+      comments: [],
+    }
   )
 }
 
@@ -160,18 +174,21 @@ function makeCyclicContainer(
  * The import line a schemas file needs. `cyclic` is true when this file (or
  * the bundled document) contains an Arktype `scope` / TypeBox container
  * cycle — split files that are only `scope({...}).export().Member` still
- * have to import `scope`.
+ * have to import `scope`. `code` is the code the line serves, so an Effect
+ * file imports every module it names.
  */
 export function schemaImportLine(
   adapter: ComponentAdapter,
   options?: SchemasOptions,
   cyclic = false,
+  code?: string,
 ) {
   const exportTypes = options?.exportTypes === true
-  if (!cyclic && !exportTypes) return adapter.renderImport()
+  if (!cyclic && !exportTypes && code === undefined) return adapter.renderImport()
   return adapter.renderImport({
     ...(cyclic && { cyclic: true }),
     ...(exportTypes && { exportTypes: true }),
+    ...(code !== undefined && { code }),
   })
 }
 
@@ -237,22 +254,26 @@ export function makeSchemaDeclarations(
         ? undefined
         : (adapter.renderCyclic?.(
             varName,
-            container,
+            container.expression,
             [...new Set(peers.flatMap((peer) => collectSchemaRefs(schemas[peer])))].flatMap(
               (ref) =>
                 peers.includes(ref) || !identifiers.has(ref)
                   ? []
                   : [`${identifiers.get(ref)}Schema`],
             ),
-          ) ?? container)
+          ) ?? container.expression)
     const member = rendered && arktypeReadonly ? `${rendered}.readonly()` : rendered
-    const expression =
-      member ??
-      adapter.toExpression(
-        { ...schema, title: varName },
-        undefined,
-        adapter.withRef === undefined && hostRef !== undefined ? { ref: hostRef } : undefined,
-      )
+    const parts =
+      container === undefined
+        ? expressionParts(
+            adapter,
+            { ...schema, title: varName },
+            adapter.withRef === undefined && hostRef !== undefined ? { ref: hostRef } : undefined,
+          )
+        : undefined
+    const expression = member ?? parts?.expression ?? ''
+    const comments = container?.comments ?? parts?.comments
+    const leading = comments && comments.length > 0 ? `${comments.join('\n')}\n` : ''
     const body = adapter.wrapLazy
       ? wrapReferences(
           expression,
@@ -280,12 +301,13 @@ export function makeSchemaDeclarations(
         ? `\n\nexport type ${exportedTypeName(ident, varName, adapter, options)}=${infer(varName)}`
         : ''
     const containerCycle = group !== undefined && adapter.wrapLazy === undefined
+    const code = `${typeDef}${leading}export const ${varName}${annotation}=${value}${typeExport}`
     return {
       name,
       varName,
       fileName: declarationFileName(ident),
-      importLine: schemaImportLine(adapter, options, containerCycle),
-      code: `${typeDef}export const ${varName}${annotation}=${value}${typeExport}`,
+      importLine: schemaImportLine(adapter, options, containerCycle, code),
+      code,
     }
   })
 }
@@ -303,7 +325,10 @@ export function makeSchemasCode(
   if (!schemas) return ''
   const declarations = makeSchemaDeclarations(schemas, adapter, options)
   if (declarations.length === 0) return ''
-  const cyclic = declarations.some((d) => d.importLine !== schemaImportLine(adapter, options))
-  const imports = schemaImportLine(adapter, options, cyclic)
-  return `${imports}\n\n${declarations.map((d) => d.code).join(';')}\n`
+  const cyclic = declarations.some(
+    (d) => d.importLine !== schemaImportLine(adapter, options, false, d.code),
+  )
+  const code = declarations.map((d) => d.code).join(';')
+  const imports = schemaImportLine(adapter, options, cyclic, code)
+  return `${imports}\n\n${code}\n`
 }

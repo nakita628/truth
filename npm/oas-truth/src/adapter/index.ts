@@ -74,6 +74,22 @@ export type ToExpressionOptions = {
 export type RenderImportOptions = {
   readonly cyclic?: boolean
   readonly exportTypes?: boolean
+  /**
+   * The code the import line serves. Effect spreads its schema API over several modules
+   * (`Effect.succeed` for a decoding default, `SchemaTransformation` for an int64 decode),
+   * so its adapter imports each module this code names; the other libraries ignore it.
+   */
+  readonly code?: string
+}
+
+/**
+ * An expression and the comment lines schema-truth wrote above its declaration, such as
+ * TypeBox's marker for a `not` it cannot enforce. A declaration builder writes them above
+ * `export const`; an inline `schema:` slot has nowhere to put them.
+ */
+export type ExpressionParts = {
+  readonly expression: string
+  readonly comments: readonly string[]
 }
 
 /**
@@ -117,6 +133,15 @@ export type ComponentAdapter = {
     paramIn?: ParamIn,
     options?: ToExpressionOptions,
   ) => string
+  /**
+   * `toExpression` with the comment lines schema-truth emits above the declaration. Every
+   * adapter `makeAdapter` returns has it; a host adapter without it gets no comments.
+   */
+  readonly toExpressionParts?: (
+    schema: Schema,
+    paramIn?: ParamIn,
+    options?: ToExpressionOptions,
+  ) => ExpressionParts
   readonly renderTypeInfer: (constName: string) => string
   readonly wrapSchema?: (expr: string, slot?: SchemaSlot) => string
   readonly withRef?: (expr: string, ref: string) => string
@@ -155,17 +180,59 @@ function wireOptions(paramIn: ParamIn | undefined, options: ToExpressionOptions 
   }
 }
 
-/** Pull the bare expression out of a `export const X = <expr>` wrapper, then strip cross-schema refs. */
-function extractExpr(code: string, stripRefs: (expr: string) => string = (s) => s) {
-  const joined = code
-    .split('\n')
-    .filter((line) => !line.startsWith('import '))
-    .join('\n')
-    .trim()
+/**
+ * Pull the bare expression out of a `export const X = <expr>` wrapper, then strip
+ * cross-schema refs. The `//` comment lines above the declaration are returned apart, so a
+ * marker never lands between `=` and the expression.
+ */
+function extractParts(
+  code: string,
+  stripRefs: (expr: string) => string = (s) => s,
+): ExpressionParts {
+  const lines = code.split('\n').filter((line) => !line.startsWith('import '))
+  const firstCode = lines.findIndex((line) => line.trim() !== '' && !line.startsWith('//'))
+  const head = firstCode === -1 ? lines : lines.slice(0, firstCode)
+  const comments = head.filter((line) => line.startsWith('//'))
+  const joined = (firstCode === -1 ? [] : lines.slice(firstCode)).join('\n').trim()
   const match = joined.match(/^export const \w+ = (.+)$/su)
   const expr = match?.[1]
-  if (expr !== undefined) return stripRefs(expr.replace(/;?\s*$/u, ''))
-  return stripRefs(joined)
+  const expression = stripRefs(expr === undefined ? joined : expr.replace(/;?\s*$/u, ''))
+  return { expression, comments }
+}
+
+/** An adapter's `toExpression` and `toExpressionParts` over one schema-truth call. */
+function expressionMethods(
+  generate: (
+    schema: Schema,
+    paramIn: ParamIn | undefined,
+    options: ToExpressionOptions | undefined,
+  ) => string,
+  stripRefs?: (expr: string) => string,
+) {
+  const toExpressionParts = (
+    schema: Schema,
+    paramIn?: ParamIn,
+    options?: ToExpressionOptions,
+  ): ExpressionParts => extractParts(generate(schema, paramIn, options), stripRefs)
+  return {
+    toExpressionParts,
+    toExpression: (schema: Schema, paramIn?: ParamIn, options?: ToExpressionOptions) =>
+      toExpressionParts(schema, paramIn, options).expression,
+  }
+}
+
+/**
+ * The `effect` modules `code` names, `Schema` always among them: the rule schema-truth's
+ * Effect CLI writes its import line by.
+ */
+function effectModules(code: string) {
+  return [
+    ...(/(?<![\w.])Effect\./u.test(code) ? ['Effect'] : []),
+    'Schema',
+    ...(/(?<![\w.])SchemaGetter\./u.test(code) ? ['SchemaGetter'] : []),
+    ...(/(?<![\w.])SchemaIssue\./u.test(code) ? ['SchemaIssue'] : []),
+    ...(/(?<![\w.])SchemaTransformation\./u.test(code) ? ['SchemaTransformation'] : []),
+  ]
 }
 
 /** One factory per library; the mapped type makes a missing library a compile error. */
@@ -209,17 +276,16 @@ function renderArktypeCyclic(varName: string, containerExpr: string, externals: 
 
 function makeZodAdapter(): ComponentAdapter {
   return {
-    toExpression(schema, paramIn, options) {
-      return extractExpr(
+    ...expressionMethods(
+      (schema, paramIn, options) =>
         schemaToZod(toJsonSchema(schema), {
           exportType: false,
           openapi: true,
           readonly: false,
           ...wireOptions(paramIn, options),
         }),
-        stripZodLazy,
-      )
-    },
+      stripZodLazy,
+    ),
     renderImport() {
       return "import * as z from 'zod'"
     },
@@ -240,17 +306,16 @@ function makeZodAdapter(): ComponentAdapter {
 
 function makeValibotAdapter(): ComponentAdapter {
   return {
-    toExpression(schema, paramIn, options) {
-      return extractExpr(
+    ...expressionMethods(
+      (schema, paramIn, options) =>
         schemaToValibot(toJsonSchema(schema), {
           exportType: false,
           openapi: true,
           readonly: false,
           ...wireOptions(paramIn, options),
         }),
-        stripValibotLazy,
-      )
-    },
+      stripValibotLazy,
+    ),
     renderImport() {
       return "import * as v from 'valibot'"
     },
@@ -272,16 +337,14 @@ function makeValibotAdapter(): ComponentAdapter {
 
 function makeArktypeAdapter(): ComponentAdapter {
   return {
-    toExpression(schema, paramIn, options) {
-      return extractExpr(
-        schemaToArktype(toJsonSchema(schema), {
-          exportType: false,
-          openapi: true,
-          readonly: false,
-          ...wireOptions(paramIn, options),
-        }),
-      )
-    },
+    ...expressionMethods((schema, paramIn, options) =>
+      schemaToArktype(toJsonSchema(schema), {
+        exportType: false,
+        openapi: true,
+        readonly: false,
+        ...wireOptions(paramIn, options),
+      }),
+    ),
     renderImport(options) {
       return options?.cyclic === true
         ? "import { type, scope } from 'arktype'"
@@ -300,17 +363,15 @@ function makeArktypeAdapter(): ComponentAdapter {
 
 function makeTypeboxAdapter(): ComponentAdapter {
   return {
-    toExpression(schema, paramIn, options) {
-      return extractExpr(
-        schemaToTypebox(toJsonSchema(schema), {
-          exportType: false,
-          openapi: true,
-          readonly: false,
-          ...wireOptions(paramIn, options),
-          ...(options?.ref !== undefined && { ref: options.ref }),
-        }),
-      )
-    },
+    ...expressionMethods((schema, paramIn, options) =>
+      schemaToTypebox(toJsonSchema(schema), {
+        exportType: false,
+        openapi: true,
+        readonly: false,
+        ...wireOptions(paramIn, options),
+        ...(options?.ref !== undefined && { ref: options.ref }),
+      }),
+    ),
     renderImport(options) {
       return options?.exportTypes === true
         ? "import { Type, type Static } from 'typebox'"
@@ -325,19 +386,18 @@ function makeTypeboxAdapter(): ComponentAdapter {
 
 function makeEffectAdapter(): ComponentAdapter {
   return {
-    toExpression(schema, paramIn, options) {
-      return extractExpr(
+    ...expressionMethods(
+      (schema, paramIn, options) =>
         schemaToEffect(toJsonSchema(schema), {
           exportType: false,
           openapi: true,
           readonly: false,
           ...wireOptions(paramIn, options),
         }),
-        stripEffectSuspend,
-      )
-    },
-    renderImport() {
-      return "import { Schema } from 'effect'"
+      stripEffectSuspend,
+    ),
+    renderImport(options) {
+      return `import { ${effectModules(options?.code ?? '').join(', ')} } from 'effect'`
     },
     renderTypeInfer(constName) {
       return `export type ${constName}=Schema.Schema.Type<typeof ${constName}>`
@@ -345,8 +405,11 @@ function makeEffectAdapter(): ComponentAdapter {
     wrapLazy(varName) {
       return `Schema.suspend(() => ${varName})`
     },
+    // `Schema.Schema<T>` fixes the decoded type only. `Schema.Codec<T>` is `Codec<T, T>`,
+    // which fails as soon as a member encodes differently, such as a property with a
+    // `default` (optional on the encoded side).
     cyclicAnnotation(typeName) {
-      return `Schema.Codec<${typeName}>`
+      return `Schema.Schema<${typeName}>`
     },
     cyclicTypeStyle: { readonlyArrays: true },
     reservedTypeNames: ['Schema', 'Effect'],

@@ -7,7 +7,7 @@ type _Node = { readonly name: string; readonly children?: readonly _Node[] }
 const Node: Schema.Schema<_Node> = Schema.StructWithRest(
   Schema.Struct({
     name: Schema.String,
-    children: Schema.optional(Schema.Array(Schema.suspend(() => Node))),
+    children: Schema.optionalKey(Schema.Array(Schema.suspend(() => Node))),
   }),
   [Schema.Record(Schema.String, Schema.Unknown)],
 ).check(

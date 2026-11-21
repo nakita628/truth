@@ -9,13 +9,14 @@ describe('effect enum', () => {
     [{ enum: ['active'] }, 'Schema.Literal("active")'],
     [{ enum: [1, 2], type: 'number' }, 'Schema.Literals([1,2])'],
     [{ enum: [true, false], type: 'boolean' }, 'Schema.Literals([true,false])'],
-    [{ enum: [null] }, 'Schema.Literal(null)'],
+    [{ enum: [null] }, 'Schema.Null'],
     [
       { enum: [[1, 2, 3]], type: 'array' },
       'Schema.Tuple([Schema.Literal(1),Schema.Literal(2),Schema.Literal(3)])',
     ],
     [{ enum: [1, 'a', true] }, 'Schema.Literals([1,"a",true])'],
-    [{ enum: ['a', null, 42] }, 'Schema.Literals(["a",null,42])'],
+    [{ enum: ['a', null, 42] }, 'Schema.NullOr(Schema.Literals(["a",42]))'],
+    [{ enum: ['a', null] }, 'Schema.NullOr(Schema.Literal("a"))'],
   ])('_enum(%o) → %s', (input, expected) => {
     expect(_enum(input)).toBe(expected)
   })

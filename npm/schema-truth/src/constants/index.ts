@@ -375,7 +375,7 @@ export const IF_THEN_ELSE_UNSUPPORTED_MARKER =
 
 /** The first line of a TypeBox file whose generator dropped a `not` keyword. */
 export const NOT_KEYWORD_UNSUPPORTED_MARKER =
-  '// FIXME: JSON Schema `not` is not enforced by this generator; TypeBox v1 has no runtime `Type.Not` and `Value.Check` ignores the keyword (falls back to `Type.Any()`)'
+  '// FIXME: JSON Schema `not` is not enforced by this generator; TypeBox v1 has no runtime `Type.Not` and `Value.Check` ignores the keyword (the schema is generated without it)'
 
 /** The comment left where a `$ref` names a definition the document does not hold. */
 export const MISSING_DEFINITION_PREFIX = '// ⚠️ missing definition for '

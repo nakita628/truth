@@ -10,6 +10,7 @@ import {
   isStringWireLocation,
 } from '../../guard/index.js'
 import {
+  enumWithoutWrappedNull,
   constraintMessage,
   constraintPredicate,
   deepEqualExpression,
@@ -190,8 +191,13 @@ function node(
     if (!isStringWireParam || s['x-coerce'] === false) return {}
     return { stringWire: true, ...(isNullTextRead(s) && { nullText: true }) }
   }
-  const valibotWrap = (valibotStr: string, s: JSONSchema): string =>
+  const valibotWrap = (
+    valibotStr: string,
+    s: JSONSchema,
+    extra?: { readonly nullSchema?: boolean },
+  ): string =>
     _valibotWrap(valibotStr, s, {
+      ...extra,
       ...codeExtOpts,
       ...wireOptions(s),
       ...(options?.definitions !== undefined && { definitions: options.definitions }),
@@ -346,7 +352,7 @@ function node(
   if (schema.enum) {
     const values = schema.enum.filter((value) => value !== null)
     const input = values.length > 0 ? literalInput(values) : undefined
-    if (input === undefined) return valibotWrap(_enum(schema), schema)
+    if (input === undefined) return valibotWrap(_enum(enumWithoutWrappedNull(schema)), schema)
     // `null` is matched ahead of the coercion, which would read it as `0` or `false`.
     const hasNull = values.length < schema.enum.length
     const piped = prependPipe(input, _enum({ ...schema, enum: values }))
@@ -479,7 +485,9 @@ function node(
     }
     return valibotWrap('v.date()', schema)
   }
-  if (types.length === 1 && types[0] === 'null') return valibotWrap('v.null()', schema)
+  if (types.length === 1 && types[0] === 'null') {
+    return valibotWrap('v.null()', schema, { nullSchema: true })
+  }
 
   // An `allOf` member that is only `additionalProperties` still constrains every value.
   if (typeof schema.additionalProperties === 'object') {
