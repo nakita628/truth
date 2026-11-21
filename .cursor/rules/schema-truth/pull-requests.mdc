@@ -17,15 +17,12 @@ not in the conversation.
 2. Reproduce before fixing: a failing unit-test row or fixture case that shows the bug or
    the missing behaviour.
 3. Branch from `main`, named `type/topic` (`fix/valibot-enum`, `feat/x-brand`). Never commit
-   to `main` — a version bump there publishes to npm.
+   to `main`.
 4. One topic per pull request. A generator fix and a docs rewrite are two pull requests.
 
-## The title is the changelog
+## The title is the history, the changeset is the changelog
 
-`.github/workflows/release.yml` cuts each GitHub Release with
-`gh release create --generate-notes`, and those notes are the **titles of the pull
-requests merged since the previous release**. Write the title for someone reading the
-releases page, not for the diff:
+The pull request title is what `git log` shows, so write it for someone reading the history:
 
 ```text
 type(scope): summary in the imperative, no trailing period
@@ -40,6 +37,11 @@ feat(zod): support x-stringbool on boolean properties
 docs: point Effect Schema links at the v4 documentation
 ```
 
+What users read is the package's `CHANGELOG.md`, written from changesets. A pull request that
+changes what `schema-truth` or `oas-truth` ships adds one (`pnpm changeset`); its summary is
+the changelog line, so it says what changed for a user of the package. See
+`@.changeset/README.md`. Tests, fixtures, docs and CI need none.
+
 ## Body
 
 Fill in `.github/pull_request_template.md`. Keep all six headings, replace each comment
@@ -52,7 +54,7 @@ deleting it. One to three sentences per heading.
 | What    | the change as a user of the package sees it                                  |
 | Where   | generators, parser, CLI, fixtures or docs touched — and what was left out    |
 | Who     | who notices: every user, one target's users, contributors; breaking for whom |
-| When    | release impact: none, next release, or the version bumped in this change     |
+| When    | release impact: none, or the changeset this adds (`schema-truth: patch`)     |
 | How     | the approach, then the evidence: the gate below, and the fixture diff        |
 
 The evidence that matters most here is the **fixture diff**: this repository's review
@@ -62,8 +64,6 @@ that generated output is unchanged.
 ## Labels
 
 Apply exactly one: `bug`, `enhancement`, `documentation`, `breaking` or `dependencies`.
-`.github/release.yml` groups the generated notes by that label, and anything unlabelled
-falls into "Other changes".
 
 ## Green before you open it
 
@@ -77,12 +77,12 @@ vp test && vp run schema-truth#test
 Tick a box in the template only for a command that ran and passed. A command that failed
 is pasted, not hidden, and a pull request is not opened over a red gate.
 
-## A version bump is a release
+## Releasing is a separate pull request
 
-`release.yml` tags `v<version>`, publishes to npm and creates the GitHub release as soon
-as `main` carries a version of `npm/schema-truth/package.json` that is not on
-the registry. Bumping that version **is** the release — never include a bump in a pull
-request that was not asked to publish one.
+Never edit `version` or a `CHANGELOG.md` by hand. After a merge, `release.yml` opens or
+updates the **Version Packages** pull request (`chore: version packages`), which applies the
+pending changesets. Merging it publishes to npm, tags `<name>@<version>` and creates the
+GitHub releases; merge it only when a release was asked for.
 
 ## Opening it
 

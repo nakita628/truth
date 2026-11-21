@@ -80,12 +80,13 @@ Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pn
 
 ## Release (only when asked)
 
-1. Confirm `main` is green.
-2. Bump `version` in `npm/oas-truth/package.json` only (SemVer: a breaking change to the API
-   or to the emitted code is a minor bump while the version is `0.x`).
-3. Commit with the version as the subject, open the pull request, and merge it to `main` once
-   Test and Lint pass.
-4. Watch Test, then `release`: it tags `v<version>`, publishes to npm and creates the GitHub
-   release from that commit. Never publish or tag by hand.
-5. If a job fails, fix the cause and re-run the failed jobs. To fix a published release, bump
-   again — never reuse a version.
+1. Every pull request that changed what the package ships carries a changeset (`pnpm changeset`;
+   SemVer, and a breaking change to the API or to the emitted code is a `minor` while the version
+   is `0.x`).
+2. After those merge, `release.yml` keeps the **Version Packages** pull request up to date. Read
+   its diff: the versions and the `CHANGELOG.md` entries are what users will see.
+3. Merge it once it is right. Watch Test, then `release`: it publishes to npm, tags
+   `<name>@<version>` and creates the GitHub release from that commit. Never publish or tag by
+   hand.
+4. If a job fails, fix the cause and re-run the failed jobs. To fix a published release, add a
+   changeset and release again — never reuse a version.

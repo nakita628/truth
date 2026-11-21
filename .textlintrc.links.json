@@ -12,7 +12,11 @@
       "checkRelative": false,
       "retry": 2,
       "concurrency": 4,
-      "ignore": ["https://www.npmjs.com/**"]
+      "ignore": [
+        "https://www.npmjs.com/**",
+        "https://github.com/nakita628/truth/pull/**",
+        "https://github.com/nakita628/truth/commit/**"
+      ]
     }
   }
 }

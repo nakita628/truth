@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "build": "bazel build //...",
+    "changeset": "changeset",
     "check": "vp fmt --check && vp run schema-truth#build && vp run --filter './npm/*' check && pnpm lint",
     "deps": "rm -rf node_modules pnpm-lock.yaml && pnpm install",
     "fix": "vp fmt && vp run schema-truth#build && vp run --filter './npm/*' check --fix && markdownlint-cli2 --fix && textlint --fix \"**/*.md\" \"**/*.mdc\"",
@@ -16,9 +17,12 @@
     "lint:secret": "secretlint --secretlintignore .secretlintignore --maskSecrets \"**/*\"",
     "lint:spell": "cspell --no-progress --dot \"**/*.{md,mdc,ts,js,mjs,json,jsonc,yaml,yml,bazel,bzl}\"",
     "lint:text": "textlint \"**/*.md\" \"**/*.mdc\"",
-    "test": "bazel test //..."
+    "test": "bazel test //...",
+    "version-packages": "changeset version && vp fmt"
   },
   "devDependencies": {
+    "@changesets/changelog-github": "1.0.1",
+    "@changesets/cli": "3.0.3",
     "@secretlint/secretlint-rule-preset-recommend": "13.1.0",
     "actionlint": "2.0.6",
     "cspell": "10.4.0",
