@@ -142,14 +142,21 @@ describe('typebox', () => {
     })
   })
 
-  describe('not (TypeBox v1 has no runtime Type.Not — falls back to Type.Any())', () => {
+  describe('not (TypeBox v1 has no runtime Type.Not — the keyword is dropped)', () => {
     it.concurrent.each<[JSONSchema, string]>([
       [{ not: { type: 'string' } }, 'Type.Any()'],
       [{ not: { type: 'integer' } }, 'Type.Any()'],
       [{ not: { type: 'boolean' } }, 'Type.Any()'],
       [{ not: { type: 'number' } }, 'Type.Any()'],
       [{ not: { type: 'string' }, nullable: true }, 'Type.Union([Type.Any(),Type.Null()])'],
-      [{ not: { type: 'string' }, type: ['null'] }, 'Type.Union([Type.Any(),Type.Null()])'],
+      [{ not: { type: 'string' }, type: ['null'] }, 'Type.Null()'],
+      // #15: a `type` beside `not` is generated with its own constraints.
+      [{ type: 'string', minLength: 1, not: { pattern: 'x' } }, 'Type.String({minLength:1})'],
+      [
+        { type: ['string', 'null'], maxLength: 96, not: { enum: ['root'] } },
+        'Type.Union([Type.String({maxLength:96}),Type.Null()])',
+      ],
+      [{ type: 'integer', not: { const: 0 } }, 'Type.Integer()'],
       [
         {
           not: { type: 'object', properties: { a: { type: 'string' } }, required: ['a'] },
@@ -428,8 +435,8 @@ describe('typebox', () => {
 
   describe('null', () => {
     it.concurrent.each<[JSONSchema, string]>([
-      [{ type: 'null' }, 'Type.Union([Type.Null(),Type.Null()])'],
-      [{ type: 'null', nullable: true }, 'Type.Union([Type.Null(),Type.Null()])'],
+      [{ type: 'null' }, 'Type.Null()'],
+      [{ type: 'null', nullable: true }, 'Type.Null()'],
     ])('typebox(%o) → %s', (input, expected) => {
       expect(typebox(input)).toBe(expected)
     })
@@ -709,9 +716,9 @@ describe('typebox', () => {
 
   describe('x-not-message', () => {
     it('rides through Type.Any errorMessage for ajv-compatible downstreams', () => {
-      expect(
-        typebox({ type: 'string', not: { type: 'number' }, 'x-not-message': 'cannot be number' }),
-      ).toBe('Type.Any({errorMessage:"cannot be number"})')
+      expect(typebox({ not: { type: 'number' }, 'x-not-message': 'cannot be number' })).toBe(
+        'Type.Any({errorMessage:"cannot be number"})',
+      )
     })
   })
 
@@ -779,5 +786,17 @@ describe('allOf keyword members', () => {
     ],
   ])('typebox(%o, %o) → %s', (schema, options, expected) => {
     expect(typebox(schema, 'Schema', false, options)).toBe(expected)
+  })
+})
+
+describe('a null member and a null enum value are emitted once (#16, #20)', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [{ anyOf: [{ type: 'string' }, { type: 'null' }] }, 'Type.Union([Type.String(),Type.Null()])'],
+    [
+      { type: ['string', 'null'], enum: ['a', 'b', null] },
+      'Type.Union([Type.Union([Type.Literal("a"),Type.Literal("b")]),Type.Null()])',
+    ],
+  ])('typebox(%o) → %s', (input, expected) => {
+    expect(typebox(input)).toBe(expected)
   })
 })

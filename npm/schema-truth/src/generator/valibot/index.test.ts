@@ -578,7 +578,7 @@ export type DOutput = v.InferOutput<typeof D>`
     })
     const expected = `import * as v from 'valibot'
 
-export const N = v.nullable(v.null())
+export const N = v.null()
 
 export type NOutput = v.InferOutput<typeof N>`
     expect(result).toBe(expected)
@@ -737,7 +737,7 @@ export type EmptyOutput = v.InferOutput<typeof Empty>`
         n: { $ref: '#/definitions/Nothing' },
       },
     })
-    const expected = `import * as v from 'valibot'\n\ntype _Root = {n?: _Nothing}\n\ntype _Nothing = null\n\nconst Nothing: v.GenericSchema<unknown, _Nothing> = v.nullable(v.null())\n\nexport const Root: v.GenericSchema<unknown, _Root> = v.partial(v.object({n:v.lazy(() => Nothing)}))\n\nexport type RootOutput = v.InferOutput<typeof Root>`
+    const expected = `import * as v from 'valibot'\n\ntype _Root = {n?: _Nothing}\n\ntype _Nothing = null\n\nconst Nothing: v.GenericSchema<unknown, _Nothing> = v.null()\n\nexport const Root: v.GenericSchema<unknown, _Root> = v.partial(v.object({n:v.lazy(() => Nothing)}))\n\nexport type RootOutput = v.InferOutput<typeof Root>`
     expect(result).toBe(expected)
   })
 

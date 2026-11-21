@@ -31,6 +31,54 @@ describe('renderImport', () => {
       "import { Type, type Static } from 'typebox'",
     )
   })
+
+  it.each([
+    ['Schema.String', "import { Schema } from 'effect'"],
+    [
+      'Schema.String.pipe(Schema.withDecodingDefault(Effect.succeed("a")))',
+      "import { Effect, Schema } from 'effect'",
+    ],
+    [
+      'Schema.decodeTo(Schema.BigInt,SchemaTransformation.transform({}))',
+      "import { Schema, SchemaTransformation } from 'effect'",
+    ],
+    [
+      'SchemaGetter.transform(SchemaIssue.make(Effect.succeed(1)))',
+      "import { Effect, Schema, SchemaGetter, SchemaIssue } from 'effect'",
+    ],
+    ['MyEffect.succeed(1)', "import { Schema } from 'effect'"],
+  ])('effect imports every module the code names: %s', (code, expected) => {
+    expect(makeAdapter('effect').renderImport({ code })).toBe(expected)
+  })
+
+  it.each(['zod', 'valibot', 'arktype', 'typebox'] as const)('%s ignores the code', (lib) => {
+    const adapter = makeAdapter(lib)
+    expect(adapter.renderImport({ code: 'Effect.succeed(1)' })).toBe(adapter.renderImport())
+  })
+})
+
+describe('toExpressionParts', () => {
+  it('returns the marker comments apart from the expression', () => {
+    expect(
+      makeAdapter('typebox').toExpressionParts?.({ type: 'string', not: { const: 'x' } }),
+    ).toStrictEqual({
+      expression: 'Type.String()',
+      comments: [
+        '// FIXME: JSON Schema `not` is not enforced by this generator; TypeBox v1 has no runtime `Type.Not` and `Value.Check` ignores the keyword (the schema is generated without it)',
+      ],
+    })
+  })
+
+  it.each(['zod', 'valibot', 'arktype', 'typebox', 'effect'] as const)(
+    '%s: matches toExpression and has no comments for a plain schema',
+    (lib) => {
+      const adapter = makeAdapter(lib)
+      expect(adapter.toExpressionParts?.({ type: 'string' })).toStrictEqual({
+        expression: adapter.toExpression({ type: 'string' }),
+        comments: [],
+      })
+    },
+  )
 })
 
 describe('renderTypeInfer', () => {
@@ -152,7 +200,7 @@ describe('cycle helpers', () => {
       }),
     ).toBe('Schema.Array(UserSchema)')
     expect(adapter.wrapLazy?.('NodeSchema')).toBe('Schema.suspend(() => NodeSchema)')
-    expect(adapter.cyclicAnnotation?.('NodeType')).toBe('Schema.Codec<NodeType>')
+    expect(adapter.cyclicAnnotation?.('NodeType')).toBe('Schema.Schema<NodeType>')
     expect(adapter.cyclicTypeStyle).toStrictEqual({ readonlyArrays: true })
   })
 

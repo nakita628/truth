@@ -1,4 +1,4 @@
-import { isDefaultOnlyMember, isSchemaList, isSchemaObject } from '../guard/index.js'
+import { isDefaultOnlyMember, isSchemaList, isNullable, isSchemaObject } from '../guard/index.js'
 import type { JSONSchema, JSONValue } from '../parser/index.js'
 import { coerceDefault } from '../utils/index.js'
 
@@ -18,6 +18,19 @@ export function itemsSchemaOf(items: JSONSchema['items']): JSONSchema | undefine
   if (isSchemaObject(items)) return items
   if (isSchemaList(items)) return items[0]
   return undefined
+}
+
+/**
+ * The node an enum emitter reads: without the `null` among its values when the nullability
+ * wrapper adds `null` already (`type: ['string', 'null'], enum: ['a', null]`), so the value is
+ * not listed twice. An enum of nothing but `null` keeps it.
+ */
+export function enumWithoutWrappedNull(schema: JSONSchema): JSONSchema {
+  if (schema.enum === undefined || !isNullable(schema)) return schema
+  const values = schema.enum.filter((value) => value !== null)
+  return values.length === 0 || values.length === schema.enum.length
+    ? schema
+    : { ...schema, enum: values }
 }
 
 /**

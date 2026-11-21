@@ -31,7 +31,7 @@ const Animal: Schema.Schema<_Animal> = Schema.StructWithRest(
   Schema.Struct({
     name: Schema.String,
     species: Schema.String,
-    offspring: Schema.optional(Schema.Array(Schema.suspend(() => Animal))),
+    offspring: Schema.optionalKey(Schema.Array(Schema.suspend(() => Animal))),
   }),
   [Schema.Record(Schema.String, Schema.Unknown)],
 ).check(
@@ -44,7 +44,7 @@ const Comment: Schema.Schema<_Comment> = Schema.StructWithRest(
   Schema.Struct({
     author: Schema.String,
     text: Schema.String,
-    replies: Schema.optional(Schema.Array(Schema.suspend(() => Comment))),
+    replies: Schema.optionalKey(Schema.Array(Schema.suspend(() => Comment))),
   }),
   [Schema.Record(Schema.String, Schema.Unknown)],
 ).check(
@@ -56,7 +56,7 @@ const Comment: Schema.Schema<_Comment> = Schema.StructWithRest(
 const Folder: Schema.Schema<_Folder> = Schema.StructWithRest(
   Schema.Struct({
     name: Schema.String,
-    children: Schema.optional(Schema.Array(Schema.suspend(() => Folder))),
+    children: Schema.optionalKey(Schema.Array(Schema.suspend(() => Folder))),
   }),
   [Schema.Record(Schema.String, Schema.Unknown)],
 ).check(
@@ -69,7 +69,7 @@ const Person: Schema.Schema<_Person> = Schema.StructWithRest(
   Schema.Struct({
     name: Schema.String,
     position: Schema.String,
-    subordinates: Schema.optional(Schema.Array(Schema.suspend(() => Person))),
+    subordinates: Schema.optionalKey(Schema.Array(Schema.suspend(() => Person))),
   }),
   [Schema.Record(Schema.String, Schema.Unknown)],
 ).check(
@@ -81,10 +81,10 @@ const Person: Schema.Schema<_Person> = Schema.StructWithRest(
 export const SelfReferencingEntities: Schema.Schema<_SelfReferencingEntities> =
   Schema.StructWithRest(
     Schema.Struct({
-      animal: Schema.optional(Schema.suspend(() => Animal)),
-      person: Schema.optional(Schema.suspend(() => Person)),
-      folder: Schema.optional(Schema.suspend(() => Folder)),
-      comment: Schema.optional(Schema.suspend(() => Comment)),
+      animal: Schema.optionalKey(Schema.suspend(() => Animal)),
+      person: Schema.optionalKey(Schema.suspend(() => Person)),
+      folder: Schema.optionalKey(Schema.suspend(() => Folder)),
+      comment: Schema.optionalKey(Schema.suspend(() => Comment)),
     }),
     [Schema.Record(Schema.String, Schema.Unknown)],
   )

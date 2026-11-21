@@ -10,7 +10,7 @@ export const User = Schema.StructWithRest(
         expected: 'a string of at least 1 character',
       }),
     ).annotate({ description: 'Name of the user' }),
-    age: Schema.optional(
+    age: Schema.optionalKey(
       Schema.Number.check(Schema.isInt(), Schema.isGreaterThanOrEqualTo(0)).annotate({
         description: 'Age of the user',
       }),

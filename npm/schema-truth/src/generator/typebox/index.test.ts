@@ -472,7 +472,7 @@ export type D = Static<typeof D>`
     })
     const expected = `import { Type, type Static } from 'typebox'
 
-export const N = Type.Union([Type.Null(),Type.Null()])
+export const N = Type.Null()
 
 export type N = Static<typeof N>`
     expect(result).toBe(expected)

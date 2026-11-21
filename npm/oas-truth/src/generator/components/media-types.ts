@@ -44,7 +44,7 @@ export function makeMediaTypesCode(
     ),
     {
       trailingNewline: true,
-      importLine: adapter.renderImport(),
+      importLine: (code) => adapter.renderImport({ code }),
     },
   )
 }

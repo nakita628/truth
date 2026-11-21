@@ -7,7 +7,7 @@ const types = scope({
     'flags?': ['string[]', ':', (data: unknown[], ctx) => new Set(data).size === data.length],
     'meta?': { '[string]': 'string' },
   },
-  D: { score: 'number.integer >= 0 & number.integer <= 100', 'extra?': 'null | null | E' },
+  D: { score: 'number.integer >= 0 & number.integer <= 100', 'extra?': 'null | E' },
   B: { type: "'B'", name: 'string', detail: ['D', '&', { 'comment?': 'string' }] },
   C: { type: "'C'", entries: ['E[]', '&', 'unknown[] >= 1'] },
   A: { id: 'string.uuid', type: "'B' | 'C'", payload: 'B | C' },

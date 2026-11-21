@@ -22,7 +22,7 @@ const E: z.ZodType<_E> = z.object({
 
 const D: z.ZodType<_D> = z.object({
   score: z.int().min(0).max(100).default(50),
-  extra: z.union([z.null().nullable(), z.lazy(() => E)]).exactOptional(),
+  extra: z.union([z.null(), z.lazy(() => E)]).exactOptional(),
 })
 
 const B: z.ZodType<_B> = z.object({

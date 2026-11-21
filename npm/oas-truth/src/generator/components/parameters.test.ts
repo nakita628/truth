@@ -57,7 +57,7 @@ describe('makeParametersCode', () => {
       parameters: { Limit: { name: 'limit', in: 'query', schema: { type: 'integer' } } },
     } as unknown as Components
     expect(makeParametersCode(components, effect, true)).toBe(
-      "import { Schema } from 'effect'\n\nexport const LimitParamsSchema=Schema.String.check(Schema.isPattern(/^-?(?:0|[1-9]\\d*)$/)).pipe(Schema.decodeTo(Schema.Finite,SchemaTransformation.transform({decode:(input)=>Number(input),encode:(output)=>String(output)}))).check(Schema.isInt())\n\nexport type LimitParamsSchema=Schema.Schema.Type<typeof LimitParamsSchema>\n",
+      "import { Schema, SchemaTransformation } from 'effect'\n\nexport const LimitParamsSchema=Schema.String.check(Schema.isPattern(/^-?(?:0|[1-9]\\d*)$/)).pipe(Schema.decodeTo(Schema.Finite,SchemaTransformation.transform({decode:(input)=>Number(input),encode:(output)=>String(output)}))).check(Schema.isInt())\n\nexport type LimitParamsSchema=Schema.Schema.Type<typeof LimitParamsSchema>\n",
     )
   })
 

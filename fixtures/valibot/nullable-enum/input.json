@@ -1,0 +1,28 @@
+{
+  "type": "object",
+  "properties": {
+    "finish_reason": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "stop",
+        "length",
+        null
+      ]
+    },
+    "status": {
+      "type": "string",
+      "nullable": true,
+      "enum": [
+        "active",
+        "inactive",
+        null
+      ]
+    }
+  },
+  "required": [
+    "finish_reason"
+  ]
+}

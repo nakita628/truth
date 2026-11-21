@@ -288,7 +288,7 @@ describe('effect', () => {
       ],
       [
         { not: { type: 'string' }, type: ['null'] },
-        "Schema.NullOr(Schema.Null).check(Schema.makeFilter((input) => typeof input !== 'string'))",
+        "Schema.Null.check(Schema.makeFilter((input) => typeof input !== 'string'))",
       ],
       [{ not: { const: 42 } }, 'Schema.Unknown.check(Schema.makeFilter((input) => input !== 42))'],
       [
@@ -336,8 +336,14 @@ describe('effect', () => {
         { enum: [true, false], type: ['boolean', 'null'] },
         'Schema.NullOr(Schema.Literals([true,false]))',
       ],
-      [{ enum: [null] }, 'Schema.Literal(null)'],
-      [{ enum: [null], type: ['null'] }, 'Schema.NullOr(Schema.Literal(null))'],
+      [{ enum: [null] }, 'Schema.Null'],
+      [{ enum: [null], type: ['null'] }, 'Schema.NullOr(Schema.Null)'],
+      // #20: `Schema.Literals` takes no `null`; `Schema.NullOr` adds it once.
+      [
+        { type: ['string', 'null'], enum: ['a', 'b', null] },
+        'Schema.NullOr(Schema.Literals(["a","b"]))',
+      ],
+      [{ enum: ['a', 'b', null] }, 'Schema.NullOr(Schema.Literals(["a","b"]))'],
       [{ enum: ['abc'] }, 'Schema.Literal("abc")'],
       [{ enum: ['abc'], type: ['string'], nullable: true }, 'Schema.NullOr(Schema.Literal("abc"))'],
       [{ enum: ['abc'], type: ['string', 'null'] }, 'Schema.NullOr(Schema.Literal("abc"))'],
@@ -608,7 +614,7 @@ describe('effect', () => {
       ],
       [
         { type: 'array', items: { type: 'string' }, minItems: 5, maxItems: 5 },
-        'Schema.Array(Schema.String).check(Schema.isLengthBetween(5,5))',
+        'Schema.Array(Schema.String).check(Schema.isBetweenLength(5,5))',
       ],
       [
         {
@@ -723,9 +729,9 @@ describe('effect', () => {
 
   describe('null', () => {
     it.concurrent.each<[JSONSchema, string]>([
-      [{ type: 'null' }, 'Schema.NullOr(Schema.Null)'],
-      [{ type: 'null', nullable: true }, 'Schema.NullOr(Schema.Null)'],
-      [{ type: ['null'] }, 'Schema.NullOr(Schema.Null)'],
+      [{ type: 'null' }, 'Schema.Null'],
+      [{ type: 'null', nullable: true }, 'Schema.Null'],
+      [{ type: ['null'] }, 'Schema.Null'],
     ])('effect(%o) → %s', (input, expected) => {
       expect(effect(input)).toBe(expected)
     })
@@ -1455,5 +1461,20 @@ describe('allOf keyword members', () => {
     ],
   ])('effect(%o, %o) → %s', (schema, options, expected) => {
     expect(effect(schema, 'Schema', false, options)).toBe(expected)
+  })
+})
+
+describe('a null member and a null enum value are emitted once (#16, #20)', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { anyOf: [{ type: 'string' }, { type: 'null' }] },
+      'Schema.Union([Schema.String,Schema.Null])',
+    ],
+    [
+      { type: ['string', 'null'], enum: ['a', 'b', null] },
+      'Schema.NullOr(Schema.Literals(["a","b"]))',
+    ],
+  ])('effect(%o) → %s', (input, expected) => {
+    expect(effect(input)).toBe(expected)
   })
 })

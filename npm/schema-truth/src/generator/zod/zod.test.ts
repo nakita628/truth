@@ -319,7 +319,7 @@ describe('zod', () => {
         ],
         [
           { not: { type: 'string' }, type: ['null'] },
-          "z.null().nullable().refine((val) => typeof val !== 'string')",
+          "z.null().refine((val) => typeof val !== 'string')",
         ],
         [{ type: 'integer', not: { const: 0 } }, 'z.int().refine((val) => val !== 0)'],
         [
@@ -934,12 +934,12 @@ describe('zod', () => {
 
       describe('null', () => {
         it.concurrent.each<[JSONSchema, string]>([
-          [{ type: 'null' }, 'z.null().nullable()'],
-          [{ type: 'null', nullable: true }, 'z.null().nullable()'],
-          [{ type: ['null'] }, 'z.null().nullable()'],
-          [{ type: 'null', default: 'test' }, 'z.null().nullable()'],
-          [{ type: ['null'], default: 'test' }, 'z.null().nullable()'],
-          [{ type: 'null', nullable: true, default: 'test' }, 'z.null().nullable()'],
+          [{ type: 'null' }, 'z.null()'],
+          [{ type: 'null', nullable: true }, 'z.null()'],
+          [{ type: ['null'] }, 'z.null()'],
+          [{ type: 'null', default: 'test' }, 'z.null()'],
+          [{ type: ['null'], default: 'test' }, 'z.null()'],
+          [{ type: 'null', nullable: true, default: 'test' }, 'z.null()'],
         ])('zod(%o) → %s', (input, expected) => {
           expect(zod(input)).toBe(expected)
         })
@@ -1991,7 +1991,7 @@ describe('zod string wire', () => {
     [{ type: ['string', 'null'] }, 'z.string().nullable()'],
     [
       { oneOf: [{ type: 'integer' }, { type: 'null' }] },
-      `z.preprocess(${WIRE_NULL},z.union([z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()),z.preprocess(${WIRE_NULL},z.null().nullable())]).nullable())`,
+      `z.preprocess(${WIRE_NULL},z.union([z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()),z.preprocess(${WIRE_NULL},z.null())]).nullable())`,
     ],
     // A typeless constraint implies its type.
     [
@@ -2301,5 +2301,37 @@ describe('object defaults and additionalProperties', () => {
     ).toBe(
       'z.intersection(z.object({a:z.string().exactOptional()}),z.record(z.string(),z.number()))',
     )
+  })
+})
+
+describe('a null member and a null enum value are emitted once (#16, #20)', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [{ anyOf: [{ type: 'string' }, { type: 'null' }] }, 'z.union([z.string(),z.null()])'],
+    [{ type: ['string', 'null'], enum: ['a', 'b', null] }, 'z.enum(["a","b"]).nullable()'],
+  ])('zod(%o) → %s', (input, expected) => {
+    expect(zod(input)).toBe(expected)
+  })
+})
+
+describe('a `not` enum on a nullable string lets `null` through (#18)', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: ['string', 'null'], not: { enum: ['root'] } },
+      'z.string().nullable().refine((val) => val === null || !["root"].includes(val))',
+    ],
+    [
+      { type: 'string', nullable: true, not: { enum: ['root'] } },
+      'z.string().nullable().refine((val) => val === null || !["root"].includes(val))',
+    ],
+    [
+      { type: ['string', 'null'], not: { enum: ['root', null] } },
+      'z.string().nullable().refine((val) => !["root",null].includes(val))',
+    ],
+    [
+      { type: 'string', not: { enum: ['root'] } },
+      'z.string().refine((val) => !["root"].includes(val))',
+    ],
+  ])('zod(%o) → %s', (input, expected) => {
+    expect(zod(input)).toBe(expected)
   })
 })

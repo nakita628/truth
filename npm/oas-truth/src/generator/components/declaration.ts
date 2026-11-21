@@ -14,14 +14,20 @@ export type ComponentCodeOptions = {
 /**
  * Join declaration bodies the way `make<Kind>Code` already does: `;` between
  * entries, no `import ` line. `trailingNewline` matches examples / links /
- * security-schemes / parameters / headers.
+ * security-schemes / parameters / headers. `importLine` is the line itself, or
+ * built from the joined code, so it imports what the declarations name.
  */
 export function joinDeclarations(
   declarations: readonly ComponentDeclaration[],
-  options?: { readonly trailingNewline?: boolean; readonly importLine?: string },
+  options?: {
+    readonly trailingNewline?: boolean
+    readonly importLine?: string | ((code: string) => string)
+  },
 ) {
   if (declarations.length === 0) return ''
   const body = declarations.map((d) => d.code).join(';')
   const text = options?.trailingNewline === true ? `${body}\n` : body
-  return options?.importLine === undefined ? text : `${options.importLine}\n\n${text}`
+  const importLine =
+    typeof options?.importLine === 'function' ? options.importLine(body) : options?.importLine
+  return importLine === undefined ? text : `${importLine}\n\n${text}`
 }

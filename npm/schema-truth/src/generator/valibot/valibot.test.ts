@@ -315,7 +315,7 @@ describe('valibot', () => {
       ],
       [
         { not: { type: 'string' }, type: ['null'] },
-        "v.pipe(v.nullable(v.null()),v.check((input) => typeof input !== 'string'))",
+        "v.pipe(v.null(),v.check((input) => typeof input !== 'string'))",
       ],
       [{ not: { const: 42 } }, 'v.custom<unknown>((input) => input !== 42)'],
       [
@@ -729,12 +729,12 @@ describe('valibot', () => {
 
   describe('null', () => {
     it.concurrent.each<[JSONSchema, string]>([
-      [{ type: 'null' }, 'v.nullable(v.null())'],
-      [{ type: 'null', nullable: true }, 'v.nullable(v.null())'],
-      [{ type: ['null'] }, 'v.nullable(v.null())'],
-      [{ type: 'null', default: 'test' }, 'v.nullable(v.null())'],
-      [{ type: ['null'], default: 'test' }, 'v.nullable(v.null())'],
-      [{ type: 'null', nullable: true, default: 'test' }, 'v.nullable(v.null())'],
+      [{ type: 'null' }, 'v.null()'],
+      [{ type: 'null', nullable: true }, 'v.null()'],
+      [{ type: ['null'] }, 'v.null()'],
+      [{ type: 'null', default: 'test' }, 'v.null()'],
+      [{ type: ['null'], default: 'test' }, 'v.null()'],
+      [{ type: 'null', nullable: true, default: 'test' }, 'v.null()'],
     ])('valibot(%o) → %s', (input, expected) => {
       expect(valibot(input)).toBe(expected)
     })
@@ -1341,7 +1341,7 @@ describe('valibot contains / minContains / maxContains', () => {
       [
         { oneOf: [{ type: 'integer' }, { type: 'null' }] },
         { paramIn: 'query' },
-        "v.pipe(v.unknown(),v.transform((input)=>(input==='null'?null:input)),v.nullable(v.union([v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.transform((input)=>Number(input)),v.number(),v.safeInteger()),v.pipe(v.unknown(),v.transform((input)=>(input==='null'?null:input)),v.nullable(v.null()))])))",
+        "v.pipe(v.unknown(),v.transform((input)=>(input==='null'?null:input)),v.nullable(v.union([v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.transform((input)=>Number(input)),v.number(),v.safeInteger()),v.pipe(v.unknown(),v.transform((input)=>(input==='null'?null:input)),v.null())])))",
       ],
       [
         { minimum: 1 },
@@ -1584,5 +1584,14 @@ describe('allOf keyword members', () => {
     ],
   ])('valibot(%o, %o) → %s', (schema, options, expected) => {
     expect(valibot(schema, 'Schema', false, options)).toBe(expected)
+  })
+})
+
+describe('a null member and a null enum value are emitted once (#16, #20)', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [{ anyOf: [{ type: 'string' }, { type: 'null' }] }, 'v.union([v.string(),v.null()])'],
+    [{ type: ['string', 'null'], enum: ['a', 'b', null] }, 'v.nullable(v.picklist(["a","b"]))'],
+  ])('valibot(%o) → %s', (input, expected) => {
+    expect(valibot(input)).toBe(expected)
   })
 })

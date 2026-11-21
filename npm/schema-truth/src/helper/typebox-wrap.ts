@@ -3,6 +3,15 @@ import type { JSONSchema } from '../parser/index.js'
 import { hasKeptDefault } from './schema.js'
 import type { SchemaDefinitions } from './schema.js'
 
+/** The options of {@link typeboxWrap}. */
+export type TypeboxWrapOptions = {
+  /**
+   * The expression is the `null` schema itself (a `type: 'null'` node): nullability adds
+   * nothing to it, so it is not wrapped a second time.
+   */
+  readonly nullSchema?: boolean
+}
+
 /**
  * Wraps a TypeBox schema string with `Type.Union([..., Type.Null()])` (when nullable),
  * `Type.Readonly()` (on `x-readonly`) and, outermost, `Type.Optional()` when a `default`
@@ -20,8 +29,12 @@ export function typeboxWrap(
   typeboxStr: string,
   schema: JSONSchema,
   definitions?: SchemaDefinitions,
+  options?: TypeboxWrapOptions,
 ): string {
-  const withNullable = isNullable(schema) ? `Type.Union([${typeboxStr},Type.Null()])` : typeboxStr
+  const withNullable =
+    isNullable(schema) && options?.nullSchema !== true
+      ? `Type.Union([${typeboxStr},Type.Null()])`
+      : typeboxStr
   const withReadonly =
     schema['x-readonly'] === true ? `Type.Readonly(${withNullable})` : withNullable
   // TypeBox v1's `Type.Optional(type)` takes one arg; the default value itself is

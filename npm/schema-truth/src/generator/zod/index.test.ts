@@ -534,7 +534,7 @@ export type D = z.infer<typeof D>`
     })
     const expected = `import * as z from 'zod'
 
-export const N = z.null().nullable()
+export const N = z.null()
 
 export type N = z.infer<typeof N>`
     expect(result).toBe(expected)

@@ -24,7 +24,7 @@ const E: v.GenericSchema<unknown, _E> = v.partial(
 
 const D: v.GenericSchema<unknown, _D> = v.object({
   score: v.optional(v.pipe(v.number(), v.integer(), v.minValue(0), v.maxValue(100)), 50),
-  extra: v.optional(v.union([v.nullable(v.null()), v.lazy(() => E)])),
+  extra: v.optional(v.union([v.null(), v.lazy(() => E)])),
 })
 
 const B: v.GenericSchema<unknown, _B> = v.object({

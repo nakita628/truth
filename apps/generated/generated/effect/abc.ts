@@ -8,6 +8,8 @@ type _B = { readonly c?: _C }
 
 const C: Schema.Schema<_C> = Schema.String
 
-const B: Schema.Schema<_B> = Schema.Struct({ c: Schema.optional(Schema.suspend(() => C)) })
+const B: Schema.Schema<_B> = Schema.Struct({ c: Schema.optionalKey(Schema.suspend(() => C)) })
 
-export const A: Schema.Schema<_A> = Schema.Struct({ b: Schema.optional(Schema.suspend(() => B)) })
+export const A: Schema.Schema<_A> = Schema.Struct({
+  b: Schema.optionalKey(Schema.suspend(() => B)),
+})

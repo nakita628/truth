@@ -17,6 +17,7 @@ import {
   isStringWireLocation,
 } from '../../guard/index.js'
 import {
+  enumWithoutWrappedNull,
   arktypePreprocess,
   arktypeWrap as _arktypeWrap,
   constraintMessage,
@@ -50,7 +51,7 @@ import type { ArktypeWrapOptions } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { normalizeTypes, resolveOpenAPIRef } from '../../utils/index.js'
-import { _enum } from './enum.js'
+import { _enum, ARKTYPE_STRING_UNION_LIMIT, isDslLiteralUnion } from './enum.js'
 import { bigintMorph, integer, isInt64 } from './integer.js'
 import { number, numberMorph } from './number.js'
 import { object } from './object.js'
@@ -70,10 +71,27 @@ function combine(op: '&' | '|', inScope: boolean) {
       : `type(${acc}).${op === '&' ? 'and' : 'or'}(${s})`
 }
 
+/** `items` in consecutive groups of at most `size`. */
+function chunksOf<T>(items: readonly T[], size: number): readonly (readonly T[])[] {
+  return Array.from({ length: Math.ceil(items.length / size) }, (_, i) =>
+    items.slice(i * size, (i + 1) * size),
+  )
+}
+
+/**
+ * A union of ArkType expressions. Quoted members join into one string-DSL union, unless
+ * there are more than {@link ARKTYPE_STRING_UNION_LIMIT} of them: then literals become
+ * `type.enumerated(...)` and anything else is joined in groups, so no single string is
+ * long enough to exceed TypeScript's instantiation depth.
+ */
 function unionStr(schemas: string[], inScope = false): string {
-  return schemas.every(isQuoted)
-    ? `"${schemas.map((s) => s.slice(1, -1)).join(' | ')}"`
-    : schemas.reduce(combine('|', inScope))
+  if (!schemas.every(isQuoted)) return schemas.reduce(combine('|', inScope))
+  const members = schemas.map((s) => s.slice(1, -1))
+  if (members.length <= ARKTYPE_STRING_UNION_LIMIT) return `"${members.join(' | ')}"`
+  if (isDslLiteralUnion(members)) return `type.enumerated(${members.join(',')})`
+  return chunksOf(members, ARKTYPE_STRING_UNION_LIMIT)
+    .map((group) => `"${group.join(' | ')}"`)
+    .reduce(combine('|', inScope))
 }
 
 function intersectionStr(schemas: string[], inScope = false): string {
@@ -220,8 +238,11 @@ function node(
     ...(options?.unsafeCodeExtensions === true && { unsafeCodeExtensions: true }),
     ...(isArktype && { scopeMode: true }),
   }
-  const arktypeWrap = (arktypeStr: string, s: JSONSchema): string =>
-    _arktypeWrap(arktypeStr, s, codeExtOpts)
+  const arktypeWrap = (
+    arktypeStr: string,
+    s: JSONSchema,
+    extra?: { readonly nullSchema?: boolean },
+  ): string => _arktypeWrap(arktypeStr, s, { ...codeExtOpts, ...extra })
   const readonly = (v: string) => (options?.readonly ? `${v}.readonly()` : v)
   const isStringWireParam = isStringWireLocation(options?.paramIn)
   const isWireCoerced = isStringWireParam && schema['x-coerce'] !== false
@@ -404,7 +425,7 @@ function node(
   if (schema.enum) {
     const values = schema.enum.filter((value) => value !== null)
     const input = values.length > 0 ? literalInput(values) : undefined
-    if (input === undefined) return arktypeWrap(_enum(schema), schema)
+    if (input === undefined) return arktypeWrap(_enum(enumWithoutWrappedNull(schema)), schema)
     // `null` is matched ahead of the coercion, which would read it as `0` or `false`.
     const hasNull = values.length < schema.enum.length
     const piped = wireNumeric(input, _enum({ ...schema, enum: values }))
@@ -599,7 +620,9 @@ function node(
     if (isWireCoerced) return arktypeWrap('"string.date.parse"', schema)
     return arktypeWrap('"Date"', schema)
   }
-  if (types.length === 1 && types[0] === 'null') return arktypeWrap('"null"', schema)
+  if (types.length === 1 && types[0] === 'null') {
+    return arktypeWrap('"null"', schema, { nullSchema: true })
+  }
 
   // An `allOf` member that is only `additionalProperties` still constrains every value.
   if (typeof schema.additionalProperties === 'object') {

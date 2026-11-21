@@ -11,6 +11,7 @@ import {
   isStringWireLocation,
 } from '../../guard/index.js'
 import {
+  enumWithoutWrappedNull,
   foldAllOfMembers,
   integerWirePattern,
   isKeywordOnlyMember,
@@ -309,11 +310,16 @@ export function typebox(
 
   if (schema.not) {
     // TypeBox v1 does not expose a runtime `Type.Not(...)` constructor and
-    // `Value.Check` does not evaluate the JSON Schema `not` keyword. We emit
-    // a permissive `Type.Any()` fallback so the generated file still imports,
-    // and surface the omission via a file-level marker in `index.ts`.
+    // `Value.Check` does not evaluate the JSON Schema `not` keyword, so only the
+    // keyword itself is dropped, and the omission is surfaced via a file-level marker
+    // in `index.ts`. A `type` beside `not` still holds and is generated with its own
+    // constraints; a bare `not` falls back to a permissive `Type.Any()`.
     // `x-not-message` rides through `errorMessage` for ajv-compatible
     // downstreams; TypeBox's own `Value.Check` will not surface it.
+    const { not: dropped, ...withoutNot } = schema
+    if (dropped !== undefined && withoutNot.type !== undefined) {
+      return typebox(withoutNot, rootName, isTypebox, options)
+    }
     return typeboxWrap(
       tbPrim('Type.Any', schema, messageOpt(schema['x-not-message']), hostRef),
       schema,
@@ -343,7 +349,7 @@ export function typebox(
       schema,
     )
   }
-  if (schema.enum) return typeboxWrap(_enum(schema, hostRef), schema)
+  if (schema.enum) return typeboxWrap(_enum(enumWithoutWrappedNull(schema), hostRef), schema)
   if (schema.properties) {
     return readonly(typeboxWrap(object(schema, rootName, isTypebox, options), schema))
   }
@@ -471,7 +477,9 @@ export function typebox(
     )
   }
   if (types.length === 1 && types[0] === 'null') {
-    return typeboxWrap(tbPrim('Type.Null', schema, [], hostRef), schema)
+    return typeboxWrap(tbPrim('Type.Null', schema, [], hostRef), schema, undefined, {
+      nullSchema: true,
+    })
   }
 
   // An `allOf` member that is only `additionalProperties` still constrains every value.

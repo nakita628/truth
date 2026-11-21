@@ -48,7 +48,7 @@ export function makeParametersCode(
     ),
     {
       trailingNewline: true,
-      importLine: adapter.renderImport(),
+      importLine: (code) => adapter.renderImport({ code }),
     },
   )
 }

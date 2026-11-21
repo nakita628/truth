@@ -9,6 +9,11 @@ import type { SchemaDefinitions } from './schema.js'
 
 /** The options of {@link zodWrap}. */
 export type ZodWrapOptions = CodeExtensionOptions & {
+  /**
+   * The expression is the `null` schema itself (a `type: 'null'` node): nullability adds
+   * nothing to it, so it is not wrapped a second time.
+   */
+  readonly nullSchema?: boolean
   /** Definitions a `default` beside a `$ref` is reconciled against. */
   readonly definitions?: SchemaDefinitions
 }
@@ -44,7 +49,8 @@ export function zodWrap(zodStr: string, schema: JSONSchema, options?: ZodWrapOpt
       : undefined
   // `.nullable()` must precede `.default()` so a `default: null` is valid against
   // the nullable type; for non-null defaults the order is behaviourally identical.
-  const withNullable = isNullable(schema) ? `${zodStr}.nullable()` : zodStr
+  const withNullable =
+    isNullable(schema) && options?.nullSchema !== true ? `${zodStr}.nullable()` : zodStr
   const withDefault = defaultResult?.keep
     ? `${withNullable}.default(${formatLiteral(defaultResult.value)})`
     : withNullable

@@ -12,6 +12,11 @@ import { isNullMatchedFirst, wireDefaultValue, wireNullText } from './wire.js'
 /** The options of {@link valibotWrap} beyond the code extensions. */
 export type ValibotWrapOptions = CodeExtensionOptions & {
   /**
+   * The expression is the `null` schema itself (a `type: 'null'` node): nullability adds
+   * nothing to it, so it is not wrapped a second time.
+   */
+  readonly nullSchema?: boolean
+  /**
    * The schema reads a string-wire parameter: its input is text, so a default is spelled
    * in its text form (`'1'`, `'true'`), which the pipe coerces back.
    */
@@ -60,7 +65,9 @@ export function valibotWrap(
   options?: ValibotWrapOptions,
 ): string {
   const nullText = options?.nullText === true
-  const nullable = isNullable(schema) || (nullText && !isNullMatchedFirst(schema))
+  const nullable =
+    (isNullable(schema) && options?.nullSchema !== true) ||
+    (nullText && !isNullMatchedFirst(schema))
   const withNullable = nullable ? `v.nullable(${valibotStr})` : valibotStr
   const withNullText = nullText
     ? `v.pipe(v.unknown(),v.transform(${wireNullText('input')}),${withNullable})`

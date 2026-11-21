@@ -138,7 +138,7 @@ describe('makeSchemaDeclarations', () => {
     [
       'effect',
       'export const PetSchema=Schema.Struct({name:Schema.String,tag:Schema.optionalKey(TagSchema)}).annotate({description:"A pet"})',
-      'type NodeType={"children"?:readonly (NodeType)[]}\n\nexport const NodeSchema:Schema.Codec<NodeType>=Schema.Struct({children:Schema.optionalKey(Schema.Array(Schema.suspend(() => NodeSchema)))})',
+      'type NodeType={"children"?:readonly (NodeType)[]}\n\nexport const NodeSchema:Schema.Schema<NodeType>=Schema.Struct({children:Schema.optionalKey(Schema.Array(Schema.suspend(() => NodeSchema)))})',
     ],
   ] as const)('%s: declares a dependency and a self-cycle', (lib, pet, node) => {
     const schemas = {
@@ -215,8 +215,8 @@ describe('makeSchemaDeclarations', () => {
       'effect',
       [
         'export const TagSchema=Schema.String',
-        'type AType={"b"?:Schema.Schema.Type<typeof BSchema>}\n\nexport const ASchema:Schema.Codec<AType>=Schema.Struct({b:Schema.optionalKey(Schema.suspend(() => BSchema))})',
-        'type BType={"a"?:Schema.Schema.Type<typeof ASchema>;"tag"?:Schema.Schema.Type<typeof TagSchema>}\n\nexport const BSchema:Schema.Codec<BType>=Schema.Struct({a:Schema.optionalKey(Schema.suspend(() => ASchema)),tag:Schema.optionalKey(TagSchema)})',
+        'type AType={"b"?:Schema.Schema.Type<typeof BSchema>}\n\nexport const ASchema:Schema.Schema<AType>=Schema.Struct({b:Schema.optionalKey(Schema.suspend(() => BSchema))})',
+        'type BType={"a"?:Schema.Schema.Type<typeof ASchema>;"tag"?:Schema.Schema.Type<typeof TagSchema>}\n\nexport const BSchema:Schema.Schema<BType>=Schema.Struct({a:Schema.optionalKey(Schema.suspend(() => ASchema)),tag:Schema.optionalKey(TagSchema)})',
       ],
     ],
   ] as const)('%s: a mutual cycle shares one container per member', (lib, expected) => {
@@ -437,11 +437,11 @@ describe('generated schemas type-check and run', () => {
     },
   )
 
-  it('effect: a recursive Comment is Schema.Codec<CommentType> and rejects a bad body', () => {
+  it('effect: a recursive Comment is Schema.Schema<CommentType> and rejects a bad body', () => {
     const code = makeSchemasCode({ schemas: commentCycle }, makeAdapter('effect'), {
       exportTypes: true,
     })
-    expect(code).toContain('Schema.Codec<CommentType>')
+    expect(code).toContain('Schema.Schema<CommentType>')
     expect(typecheck('effect-comment.ts', code, exactOptional)).toBe('')
     expect(
       typecheck(
@@ -478,4 +478,98 @@ export const bad = Value.Check(NodeSchema, { children: 'nope' })
     expect(ok).toBe(true)
     expect(bad).toBe(false)
   })
+})
+
+describe('declarations that carry more than the default import', () => {
+  beforeEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+    fs.mkdirSync(tmpDir, { recursive: true })
+  })
+
+  afterEach(() => {
+    fs.rmSync(tmpDir, { recursive: true, force: true })
+  })
+
+  const notSchemas = {
+    Target: {
+      type: 'object',
+      properties: {
+        target: { anyOf: [{ type: 'string', not: { pattern: '[^A-Za-z0-9]' } }, { type: 'null' }] },
+      },
+    },
+  } as const
+
+  it('typebox: writes the `not` marker above one declaration', () => {
+    expect(makeSchemaDeclarations(notSchemas, typebox)).toStrictEqual([
+      {
+        name: 'Target',
+        varName: 'TargetSchema',
+        fileName: 'target',
+        importLine: "import { Type } from 'typebox'",
+        code: '// FIXME: JSON Schema `not` is not enforced by this generator; TypeBox v1 has no runtime `Type.Not` and `Value.Check` ignores the keyword (the schema is generated without it)\nexport const TargetSchema=Type.Object({target:Type.Optional(Type.Union([Type.String(),Type.Null()]))})',
+      },
+    ])
+  })
+
+  it('typebox: a schema with `not` type-checks', { timeout: 30_000 }, () => {
+    const code = makeSchemasCode({ schemas: notSchemas }, typebox, { exportTypes: true })
+    expect(typecheck('typebox-not.ts', code)).toBe('')
+  })
+
+  it('typebox: an inline `not` keeps no marker in the expression', () => {
+    expect(typebox.toExpression({ type: 'string', not: { const: 'x' } })).toBe('Type.String()')
+  })
+
+  const int64Schemas = {
+    Pet: { type: 'object', properties: { id: { type: 'integer', format: 'int64' } } },
+  } as const
+
+  it('effect: the import line names SchemaTransformation when the code uses it', () => {
+    const [pet] = makeSchemaDeclarations(int64Schemas, makeAdapter('effect'))
+    expect(pet?.importLine).toBe("import { Schema, SchemaTransformation } from 'effect'")
+  })
+
+  it('effect: a declaration written with its import line type-checks', { timeout: 30_000 }, () => {
+    const [pet] = makeSchemaDeclarations(int64Schemas, makeAdapter('effect'))
+    expect(typecheck('effect-int64.ts', `${pet?.importLine}\n\n${pet?.code}\n`)).toBe('')
+  })
+
+  const defaultCycle = {
+    Leaf: {
+      type: 'object',
+      properties: { op: { type: 'string', enum: ['eq', 'ne'], default: 'eq' } },
+      required: ['op'],
+    },
+    Node: {
+      type: 'object',
+      properties: {
+        children: {
+          type: 'array',
+          items: {
+            anyOf: [{ $ref: '#/components/schemas/Leaf' }, { $ref: '#/components/schemas/Node' }],
+          },
+        },
+      },
+      required: ['children'],
+    },
+  } as const
+
+  it('effect: each declaration imports what it names', () => {
+    expect(
+      makeSchemaDeclarations(defaultCycle, makeAdapter('effect')).map((d) => d.importLine),
+    ).toStrictEqual(["import { Effect, Schema } from 'effect'", "import { Schema } from 'effect'"])
+  })
+
+  it(
+    'effect: a recursive schema whose encoded side differs (a `default`) type-checks',
+    { timeout: 30_000 },
+    () => {
+      const code = makeSchemasCode({ schemas: defaultCycle }, makeAdapter('effect'), {
+        exportTypes: true,
+      })
+      expect(code.split('\n')[0]).toBe("import { Effect, Schema } from 'effect'")
+      expect(code).toContain('export const NodeSchema:Schema.Schema<NodeType>=')
+      expect(typecheck('effect-default-cycle.ts', code, exactOptional)).toBe('')
+    },
+  )
 })
