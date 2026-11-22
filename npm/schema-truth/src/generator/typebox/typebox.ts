@@ -161,9 +161,10 @@ function numericBounds(schema: JSONSchema): readonly NumericBound[] {
     ])
   }
   if (multipleOf !== undefined) {
-    // TypeBox's own `multipleOf` check, with its tolerance for binary fractions.
+    // TypeBox's own `multipleOf` check: an integer passes a divisor of the form 1/n
+    // outright, and any other value within its tolerance for binary fractions.
     bounds.push([
-      `((remainder)=>Math.min(Math.abs(remainder),Math.abs(remainder-${multipleOf}),Math.abs(remainder+${multipleOf}))<1e-10)(Number(value)%${multipleOf})`,
+      `((number)=>(Number.isInteger(number)&&(1/${multipleOf})%1===0)||((remainder)=>Math.min(Math.abs(remainder),Math.abs(remainder-${multipleOf}),Math.abs(remainder+${multipleOf}))<1e-10)(number%${multipleOf}))(Number(value))`,
       'multipleOf',
       `must be multiple of ${multipleOf}`,
     ])

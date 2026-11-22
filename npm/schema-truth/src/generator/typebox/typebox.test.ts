@@ -715,7 +715,7 @@ describe('typebox', () => {
           'x-multipleOf-message': 'halves',
           'x-error-message': 'bad',
         },
-        'Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$"}),(value)=>((remainder)=>Math.min(Math.abs(remainder),Math.abs(remainder-0.5),Math.abs(remainder+0.5))<1e-10)(Number(value)%0.5),()=>"halves")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+        'Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$"}),(value)=>((number)=>(Number.isInteger(number)&&(1/0.5)%1===0)||((remainder)=>Math.min(Math.abs(remainder),Math.abs(remainder-0.5),Math.abs(remainder+0.5))<1e-10)(number%0.5))(Number(value)),()=>"halves")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
       ],
       [
         { type: 'integer', maximum: 9, 'x-error-message': 'bad' },
@@ -828,5 +828,41 @@ describe('a null member and a null enum value are emitted once (#16, #20)', () =
     ],
   ])('typebox(%o) → %s', (input, expected) => {
     expect(typebox(input)).toBe(expected)
+  })
+})
+
+describe('the bounds of a number read from text run as TypeBox checks a number (#30)', () => {
+  /** Runs the emitted expression with stand-ins for `Type` and `Codec`, collecting its refinements. */
+  function accepts(schema: JSONSchema): (text: string) => boolean {
+    const refinements: ((text: string) => boolean)[] = []
+    const Type = {
+      String: () => ({}),
+      Refine: (inner: unknown, check: (text: string) => boolean) => {
+        refinements.push(check)
+        return inner
+      },
+    }
+    const Codec = () => ({ Decode: () => ({ Encode: () => ({}) }) })
+    // oxlint-disable-next-line typescript/no-implied-eval, eslint/no-new-func -- the test runs the emitted source itself
+    new Function(
+      'Type',
+      'Codec',
+      `return ${typebox(schema, 'Schema', false, { paramIn: 'query' })}`,
+    )(Type, Codec)
+    return (text) => refinements.every((check) => check(text))
+  }
+
+  it.concurrent.each<[JSONSchema, string, boolean]>([
+    [{ type: 'number', multipleOf: 0.1 }, '1000000000', true],
+    [{ type: 'number', multipleOf: 0.001 }, '12345678901234', true],
+    [{ type: 'number', multipleOf: 0.1 }, '0.3', true],
+    [{ type: 'number', multipleOf: 0.1 }, '0.35', false],
+    [{ type: 'integer', multipleOf: 3 }, '9', true],
+    [{ type: 'integer', multipleOf: 3 }, '10', false],
+    [{ type: 'integer', minimum: 1, maximum: 100 }, '100', true],
+    [{ type: 'integer', minimum: 1, maximum: 100 }, '500', false],
+    [{ type: 'integer', minimum: 1, maximum: 100 }, '0', false],
+  ])('%o accepts %s: %s', (schema, text, expected) => {
+    expect(accepts(schema)(text)).toBe(expected)
   })
 })
