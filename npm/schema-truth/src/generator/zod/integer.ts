@@ -121,7 +121,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
     const inner = isInt32
       ? innerChain
       : `z.number(${baseErrorArg}).int(${intErrorArg})${constraints}`
-    return `${zodWireNumber('integer', baseErrorArg)}.pipe(${inner})`
+    return zodWireNumber('integer', inner)
   }
   if (numberChain) {
     const intErrorArg = errorMessage ? zodError(errorMessage) : ''

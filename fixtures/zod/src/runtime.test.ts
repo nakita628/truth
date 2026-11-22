@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vite-plus/test'
+import * as z from 'zod'
 import { User as DefsUser } from '../$defs/output.ts'
 import { Config as AdditionalPropertiesConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
@@ -780,6 +781,26 @@ describe('zod fixtures: wire-query runtime', () => {
   ])('rejects %o at %s', (input, key) => {
     const result = WireQuery.safeParse(input)
     expect(result.error?.issues.map((issue) => issue.path)).toStrictEqual([[key]])
+  })
+
+  it('documents each parameter by its input as the number the spec says, bounds included', () => {
+    const { properties } = z.toJSONSchema(WireQuery, {
+      io: 'input',
+      unrepresentable: 'any',
+    })
+    const safe = Number.MAX_SAFE_INTEGER
+    expect(properties?.page).toStrictEqual({ type: 'integer', minimum: 1, maximum: safe })
+    expect(properties?.ids).toStrictEqual({
+      type: 'array',
+      items: { type: 'integer', minimum: -safe, maximum: safe },
+    })
+    expect(properties?.sort).toStrictEqual({
+      anyOf: [
+        { type: 'number', const: 1 },
+        { type: 'number', const: -1 },
+      ],
+    })
+    expect(properties?.offset).toStrictEqual({ type: 'number', minimum: 0 })
   })
 })
 

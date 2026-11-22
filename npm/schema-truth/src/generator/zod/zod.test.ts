@@ -1769,13 +1769,13 @@ describe('zod', () => {
   describe('paramIn coercion', () => {
     it('query: integer → z.coerce.number().int()', () => {
       expect(zod({ type: 'integer' }, 'Schema', false, { paramIn: 'query' })).toBe(
-        'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())',
+        "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())",
       )
     })
 
     it('query: number → z.coerce.number()', () => {
       expect(zod({ type: 'number' }, 'Schema', false, { paramIn: 'query' })).toBe(
-        'z.string().regex(/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/).transform((val)=>Number(val)).pipe(z.number())',
+        "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/.test(val)?Number(val):val,z.number())",
       )
     })
 
@@ -1795,13 +1795,13 @@ describe('zod', () => {
       [
         'header',
         { type: 'integer' },
-        'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())',
+        "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())",
       ],
       ['cookie', { type: 'boolean' }, 'z.stringbool()'],
       [
         'formData',
         { type: 'number' },
-        'z.string().regex(/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/).transform((val)=>Number(val)).pipe(z.number())',
+        "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/.test(val)?Number(val):val,z.number())",
       ],
     ])('%s: %o is coerced from text', (paramIn, schema, expected) => {
       expect(zod(schema, 'Schema', false, { paramIn })).toBe(expected)
@@ -1820,7 +1820,7 @@ describe('zod', () => {
           { paramIn: 'query' },
         ),
       ).toBe(
-        'z.object({page:z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()),q:z.string().exactOptional()})',
+        "z.object({page:z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()),q:z.string().exactOptional()})",
       )
     })
 
@@ -1828,7 +1828,7 @@ describe('zod', () => {
       expect(
         zod({ type: 'array', items: { type: 'integer' } }, 'Schema', false, { paramIn: 'query' }),
       ).toBe(
-        'z.preprocess((val)=>(val===undefined||Array.isArray(val)?val:[val]),z.array(z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())))',
+        "z.preprocess((val)=>(val===undefined||Array.isArray(val)?val:[val]),z.array(z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())))",
       )
     })
 
@@ -1836,7 +1836,7 @@ describe('zod', () => {
       expect(
         zod({ type: 'integer', minimum: 1, maximum: 100 }, 'Schema', false, { paramIn: 'query' }),
       ).toBe(
-        'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int().min(1).max(100))',
+        "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int().min(1).max(100))",
       )
     })
 
@@ -1848,7 +1848,7 @@ describe('zod', () => {
 
     it('paramIn query + format int32 → pipe preserves range constraint', () => {
       expect(zod({ type: 'integer', format: 'int32' }, 'Schema', false, { paramIn: 'query' })).toBe(
-        'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.int32())',
+        "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.int32())",
       )
     })
 
@@ -1961,22 +1961,22 @@ describe('zod string wire', () => {
     ],
     [
       { type: 'array', prefixItems: [{ type: 'integer' }] },
-      `z.preprocess(${WIRE_ARRAY},z.tuple([z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())]))`,
+      `z.preprocess(${WIRE_ARRAY},z.tuple([z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())]))`,
     ],
     // A literal is read through the same coercion as its type.
     [
       { type: 'integer', enum: [1, 2, 3] },
-      'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.union([z.literal(1),z.literal(2),z.literal(3)]))',
+      "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.union([z.literal(1),z.literal(2),z.literal(3)]))",
     ],
     [
       { type: 'number', const: 1.5 },
-      'z.string().regex(/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/).transform((val)=>Number(val)).pipe(z.literal(1.5))',
+      "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/.test(val)?Number(val):val,z.literal(1.5))",
     ],
     [{ type: 'boolean', enum: [true] }, 'z.stringbool().pipe(z.literal(true))'],
     [{ type: 'string', enum: ['a', 'b'] }, 'z.enum(["a","b"])'],
     [
       { type: 'integer', enum: [1, 2, null] },
-      `z.preprocess(${WIRE_NULL},z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.union([z.literal(1),z.literal(2)])).nullable())`,
+      `z.preprocess(${WIRE_NULL},z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.union([z.literal(1),z.literal(2)])).nullable())`,
     ],
     [
       { type: 'integer', format: 'int64', enum: [1, 2] },
@@ -1986,37 +1986,37 @@ describe('zod string wire', () => {
     // The text `null` is null for a schema that takes null and no string.
     [
       { type: ['integer', 'null'] },
-      `z.preprocess(${WIRE_NULL},z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()).nullable())`,
+      `z.preprocess(${WIRE_NULL},z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()).nullable())`,
     ],
     [{ type: ['string', 'null'] }, 'z.string().nullable()'],
     [
       { oneOf: [{ type: 'integer' }, { type: 'null' }] },
-      `z.preprocess(${WIRE_NULL},z.union([z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()),z.preprocess(${WIRE_NULL},z.null())]).nullable())`,
+      `z.preprocess(${WIRE_NULL},z.union([z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()),z.preprocess(${WIRE_NULL},z.null())]).nullable())`,
     ],
     // A typeless constraint implies its type.
     [
       { minimum: 1 },
-      'z.string().regex(/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/).transform((val)=>Number(val)).pipe(z.number().min(1))',
+      "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/.test(val)?Number(val):val,z.number().min(1))",
     ],
     [{ maxLength: 3 }, 'z.string().max(3)'],
     [{ minimum: 1, maxLength: 3 }, 'z.any()'],
     // `not` keeps the declared type.
     [
       { type: 'integer', not: { const: 0 } },
-      'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()).refine((val) => val !== 0)',
+      "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()).refine((val) => val !== 0)",
     ],
     // Coerced members both read `1`; the first wins.
     [
       { oneOf: [{ type: 'integer' }, { type: 'boolean' }] },
-      'z.union([z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()),z.stringbool()])',
+      "z.union([z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()),z.stringbool()])",
     ],
     [
       { type: ['number', 'boolean'] },
-      'z.union([z.string().regex(/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/).transform((val)=>Number(val)).pipe(z.number()),z.stringbool()])',
+      "z.union([z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/.test(val)?Number(val):val,z.number()),z.stringbool()])",
     ],
     [
       { type: ['string', 'integer'] },
-      'z.union([z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()),z.string()])',
+      "z.union([z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()),z.string()])",
     ],
     // A parameter named like an Object.prototype member is guarded.
     [
@@ -2028,7 +2028,7 @@ describe('zod string wire', () => {
           ['id', { type: 'string' }],
         ]),
       },
-      `z.preprocess(${OWN_PROPERTIES},z.object({constructor:z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()).exactOptional(),id:z.string().exactOptional()}))`,
+      `z.preprocess(${OWN_PROPERTIES},z.object({constructor:z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()).exactOptional(),id:z.string().exactOptional()}))`,
     ],
     [
       {
@@ -2036,7 +2036,7 @@ describe('zod string wire', () => {
         properties: Object.fromEntries([['valueOf', { type: 'integer' }]]),
         required: ['valueOf'],
       },
-      `z.preprocess(${OWN_PROPERTIES},z.object({valueOf:z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())}))`,
+      `z.preprocess(${OWN_PROPERTIES},z.object({valueOf:z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())}))`,
     ],
   ])('zod(%o, query) → %s', (schema, expected) => {
     expect(zod(schema, 'Schema', false, { paramIn: 'query' })).toBe(expected)
@@ -2077,10 +2077,10 @@ describe('zod parameter serialization', () => {
     type: 'object',
     properties: { a: { type: 'integer' }, b: { type: 'string' } },
   }
-  const wireIntegers = `z.preprocess(${WIRE_ARRAY},z.array(z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())))`
+  const wireIntegers = `z.preprocess(${WIRE_ARRAY},z.array(z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())))`
   const wireStrings = `z.preprocess(${WIRE_ARRAY},z.array(z.string()))`
   const pairObject =
-    'z.object({a:z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()).exactOptional(),b:z.string().exactOptional()})'
+    "z.object({a:z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()).exactOptional(),b:z.string().exactOptional()})"
   const split = (separator: string, prefix?: string) =>
     `(val)=>{if(typeof val!=='string')return val;const text=${prefix === undefined ? 'val' : `val.replace(${prefix},'')`};return (text===''?[]:text.split(${JSON.stringify(separator)}))}`
   const pairs = (prefix?: string) =>
@@ -2161,18 +2161,18 @@ describe('zod parameter serialization', () => {
     [
       { type: 'integer' },
       { paramIn: 'path', style: 'matrix' },
-      `z.preprocess((val)=>{if(typeof val!=='string')return val;const text=val.replace(${matrix},'');return text},z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()))`,
+      `z.preprocess((val)=>{if(typeof val!=='string')return val;const text=val.replace(${matrix},'');return text},z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()))`,
     ],
     [
       { type: 'integer' },
       { paramIn: 'path', style: 'simple' },
-      'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())',
+      "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())",
     ],
     // allowEmptyValue and JSON content.
     [
       { type: 'integer', default: 1 },
       { paramIn: 'query', allowEmptyValue: true },
-      `z.preprocess((val)=>(val===''?undefined:val),z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()).default(1))`,
+      `z.preprocess((val)=>(val===''?undefined:val),z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()).default(1))`,
     ],
     [
       { type: 'object', properties: { a: { type: 'integer' } } },
@@ -2187,7 +2187,7 @@ describe('zod parameter serialization', () => {
     [
       { type: 'integer' },
       { paramIn: 'query', contentType: 'text/plain' },
-      'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())',
+      "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())",
     ],
   ])('zod(%o, %o) → %s', (schema, options, expected) => {
     expect(zod(schema, 'Schema', false, options)).toBe(expected)
@@ -2195,7 +2195,7 @@ describe('zod parameter serialization', () => {
 
   it('reads a header array property with its own style', () => {
     const wire =
-      'z.preprocess((val)=>(val===undefined||Array.isArray(val)?val:[val]),z.array(z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())))'
+      "z.preprocess((val)=>(val===undefined||Array.isArray(val)?val:[val]),z.array(z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())))"
     const reader =
       "(val)=>{if(typeof val!=='string')return val;const text=val;return (text===''?[]:text.split(\",\"))}"
     expect(
@@ -2267,7 +2267,7 @@ describe('allOf keyword members', () => {
     [
       { allOf: [{ type: 'integer' }, { minimum: 5 }] },
       { paramIn: 'query' },
-      'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int().min(5))',
+      "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int().min(5))",
     ],
   ])('zod(%o, %o) → %s', (schema, options, expected) => {
     expect(zod(schema, 'Schema', false, options)).toBe(expected)
