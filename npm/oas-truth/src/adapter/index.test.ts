@@ -200,7 +200,7 @@ describe('cycle helpers', () => {
       }),
     ).toBe('Schema.Array(UserSchema)')
     expect(adapter.wrapLazy?.('NodeSchema')).toBe('Schema.suspend(() => NodeSchema)')
-    expect(adapter.cyclicAnnotation?.('NodeType')).toBe('Schema.Schema<NodeType>')
+    expect(adapter.cyclicAnnotation?.('NodeType')).toBe('Schema.Codec<NodeType, unknown>')
     expect(adapter.cyclicTypeStyle).toStrictEqual({ readonlyArrays: true })
   })
 

@@ -52,7 +52,9 @@ dependency order. `makeSchemaDeclarations` returns the same declarations one by 
 `varName`, `fileName`, `importLine`, `code`) so a host can split a file per schema.
 
 Recursive `$ref` cycles keep a helper type so the const can be annotated (`z.ZodType<NodeType>`,
-`v.GenericSchema<NodeType>`, `Schema.Schema<NodeType>`). That helper matches what the library
+`v.GenericSchema<NodeType>`, `Schema.Codec<NodeType, unknown>`). The Effect annotation leaves the
+encoded side free and the services `never`, so the declaration still decodes and passes to
+`Schema.toStandardSchemaV1`. That helper matches what the library
 infers — `| undefined` on Valibot optionals, `readonly` arrays on Effect — so it
 type-checks under `exactOptionalPropertyTypes`. ArkType cycles become
 `scope({...}).export().Member`; that declaration's `importLine` is then
