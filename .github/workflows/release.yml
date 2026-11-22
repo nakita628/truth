@@ -1,31 +1,45 @@
 name: release
 
-# Releases are driven by changesets (.changeset/*.md, see .changeset/README.md), and run after
-# Test has passed on main, as three jobs that each hold only what they need:
+# Releases are driven by changesets (.changeset/*.md, see .changeset/README.md) and need nobody
+# to approve or merge anything. After Test has passed on main, jobs that each hold only what
+# they need run in turn:
 #
 #   version         opens or updates the "Version Packages" pull request while changesets are
 #                   pending: it bumps the versions, writes each CHANGELOG.md, deletes the files.
+#   merge           merges that pull request and starts this workflow again on main for it.
+#   test            only in a run started on main: Test itself, on the commit to publish.
 #   publish         publishes every workspace package whose version is not on npm yet, which
 #                   only a merged Version Packages pull request produces; otherwise a no-op.
 #   github-release  tags `<name>@<version>` and creates the GitHub release, with that version's
 #                   CHANGELOG.md section, for each package publish just released.
 #
+# The merge is made with the workflow's token, and GitHub starts no workflow for what that token
+# does except a workflow_dispatch: the merge starts no Test run, and a Test run the token started
+# would start nothing when it ended. So the merge job starts this workflow on main itself, and a
+# run started that way (or by hand, to retry a release) tests the commit before publishing it.
+#
 # `workflow_run` is the trigger zizmor warns about because it hands a token to code from a
 # pull request when misused; here every job runs only for a `push` to main whose Test run
-# passed, and checks out code that is already on main (see .github/zizmor.yml).
+# passed, or in a run started on main after its `test` job passed, and checks out code that is
+# already on main (see .github/zizmor.yml).
 on:
   workflow_run: # zizmor: ignore[dangerous-triggers]
     workflows: [Test]
     types: [completed]
     branches: [main]
+  # Started on main by the merge job once it has merged the Version Packages pull request.
+  workflow_dispatch: {}
 
 # Nothing is granted by default; each job asks for exactly what it needs.
 permissions: {}
 
-# One release at a time, and never cancel one that has started publishing.
+# One release at a time, and never cancel one that has started publishing. `queue: max` keeps
+# every run that waits: by default a run that queues up cancels the one already waiting, which
+# could be the run the merge job started.
 concurrency:
   group: ${{ github.workflow }}
   cancel-in-progress: false
+  queue: max
 
 jobs:
   version:
@@ -36,10 +50,12 @@ jobs:
     permissions:
       contents: write # commit the version bump to the changeset-release/main branch
       pull-requests: write # open or update the Version Packages pull request
+    outputs:
+      pr-number: ${{ steps.changesets.outputs.pr-number }}
     steps:
       # The default ref, the tip of main: changesets/action builds the branch on `GITHUB_SHA`,
-      # so the checkout must hold that commit. Nothing here publishes; the pull request it
-      # opens is reviewed and tested like any other before it lands.
+      # so the checkout must hold that commit. Nothing here publishes: the run the merge job
+      # starts tests the merge on main before anything reaches npm.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           persist-credentials: false
@@ -54,19 +70,87 @@ jobs:
       # Without pending changesets this does nothing. With them it runs `version-packages`
       # (changeset version, then vp fmt over the written files) and commits the result through
       # the GitHub API, so no git credentials are needed. No `publish-script`: publishing is the
-      # job below, which holds the OIDC token this one never sees.
-      - uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
+      # publish job's, which holds the OIDC token this one never sees.
+      - id: changesets
+        uses: changesets/action@ae32849d5ba541f9ae29e40e22a623bc13562f51 # v2.1.2
         with:
           version-script: vp run version-packages
           commit-message: 'chore: version packages'
           pr-title: 'chore: version packages'
 
+  # Merges the pull request the version job opened or updated (`pr-number` is set only then), so
+  # a changeset that lands on main is released without anyone approving or merging the bump. A
+  # job of its own, which checks nothing out and runs nothing but gh, so the npm code the version
+  # job runs never holds `actions: write`. Only the Actions bot's own open pull request from
+  # changeset-release/main in this repository into main is merged. A merge right after the push
+  # can find GitHub still working out whether the pull request is mergeable, so it is tried a few
+  # times. The merge starts no workflow (see the top of this file), so the last command starts
+  # this one.
+  merge:
+    name: Merge the Version Packages pull request
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    needs: version
+    if: needs.version.outputs.pr-number != ''
+    permissions:
+      actions: write # gh workflow run starts this workflow on main after the merge
+      contents: write # merge the pull request into main
+      pull-requests: write # read and merge the pull request
+    steps:
+      - name: Merge it and start the release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          NUMBER: ${{ needs.version.outputs.pr-number }}
+        run: |
+          set -euo pipefail
+          own=$(gh pr view "$NUMBER" --json state,author,headRefName,baseRefName,isCrossRepository \
+            --jq '.state == "OPEN" and (.isCrossRepository | not) and .author.login == "app/github-actions"
+              and .headRefName == "changeset-release/main" and .baseRefName == "main"')
+          if [ "$own" != true ]; then
+            echo "::error::#$NUMBER is not the Actions bot's open Version Packages pull request from changeset-release/main"
+            exit 1
+          fi
+          for attempt in 1 2 3 4 5 6; do
+            if gh pr merge "$NUMBER" --squash; then
+              break
+            fi
+            if [ "$attempt" -eq 6 ]; then
+              echo "::error::Could not merge #$NUMBER"
+              exit 1
+            fi
+            sleep 10
+          done
+          gh workflow run release.yml --ref main
+
+  # Test, in a run started on main: the run that publishes a merge the version job made has to
+  # test that commit itself, since no Test run follows that merge (see the top of this file).
+  # A job that calls a reusable workflow takes no runs-on or timeout-minutes; Test's jobs carry
+  # their own.
+  test:
+    name: Test
+    if: github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main'
+    # The `$/` self-repository form zizmor asks for is one actionlint (`pnpm lint:actions`)
+    # rejects for a reusable workflow.
+    uses: ./.github/workflows/test.yml # zizmor: ignore[self-repository]
+    permissions:
+      contents: read # the checkouts in Test's jobs
+
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
     timeout-minutes: 20
-    # Only a commit that was pushed to main and whose Test run passed is releasable.
-    if: github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push'
+    needs: test
+    # Only a commit that was pushed to main and whose Test run passed is releasable, or the tip
+    # of main once the `test` job has passed on it. `test` is skipped after a Test run, so the
+    # condition says `!cancelled()` rather than leaving the default `success()`, which would skip
+    # this job along with it.
+    if: >-
+      ${{ !cancelled() && (
+        (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success' &&
+          github.event.workflow_run.event == 'push') ||
+        (github.event_name == 'workflow_dispatch' && github.ref == 'refs/heads/main' &&
+          needs.test.result == 'success')) }}
     environment: release
     permissions:
       contents: read # the checkout, nothing else
@@ -74,9 +158,11 @@ jobs:
     outputs:
       released: ${{ steps.unpublished.outputs.released }}
     steps:
+      # The commit Test passed on: the Test run's after a push, and the run's own `github.sha`,
+      # which the `test` job checked out, in a run started on main.
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
 
       # Which public packages carry a version npm does not have. A registry query that fails
@@ -152,13 +238,14 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 10
     needs: publish
-    if: needs.publish.outputs.released != '[]'
+    # `!cancelled()` for the same reason as publish: `test` is skipped after a Test run.
+    if: ${{ !cancelled() && needs.publish.result == 'success' && needs.publish.outputs.released != '[]' }}
     permissions:
       contents: write # create the tag and the release
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          ref: ${{ github.event.workflow_run.head_sha }}
+          ref: ${{ github.event.workflow_run.head_sha || github.sha }}
           persist-credentials: false
 
       # One tag and release per published package, on the commit that was published, with
@@ -168,7 +255,7 @@ jobs:
         env:
           GH_TOKEN: ${{ github.token }}
           RELEASED: ${{ needs.publish.outputs.released }}
-          SHA: ${{ github.event.workflow_run.head_sha }}
+          SHA: ${{ github.event.workflow_run.head_sha || github.sha }}
         run: |
           set -euo pipefail
           for tag in $(jq -r '.[]' <<<"$RELEASED"); do

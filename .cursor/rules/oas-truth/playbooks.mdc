@@ -78,15 +78,17 @@ Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pn
 2. Add it to `lint.rules` in `npm/oas-truth/vite.config.ts` in its section, with the reason.
 3. Run `pnpm check` and fix every finding in the code.
 
-## Release (only when asked)
+## Release
+
+Nobody releases by hand: a changeset that merges into `main` is published once Test passes.
 
 1. Every pull request that changed what the package ships carries a changeset (`pnpm changeset`;
    SemVer, and a breaking change to the API or to the emitted code is a `minor` while the version
-   is `0.x`).
-2. After those merge, `release.yml` keeps the **Version Packages** pull request up to date. Read
-   its diff: the versions and the `CHANGELOG.md` entries are what users will see.
-3. Merge it once it is right. Watch Test, then `release`: it publishes to npm, tags
-   `<name>@<version>` and creates the GitHub release from that commit. Never publish or tag by
+   is `0.x`). Its summary is the `CHANGELOG.md` entry users will see, so it is reviewed with the
+   change.
+2. After it merges, `release.yml` opens the **Version Packages** pull request, merges it itself,
+   tests the merge on `main`, publishes to npm, tags `<name>@<version>` and creates the GitHub
+   release from that commit. Leave that pull request to the workflow; never publish or tag by
    hand.
-4. If a job fails, fix the cause and re-run the failed jobs. To fix a published release, add a
-   changeset and release again — never reuse a version.
+3. If a job fails, fix the cause and re-run the failed jobs, or start `release.yml` on `main` by
+   hand. To fix a published release, add a changeset and release again — never reuse a version.

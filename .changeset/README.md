@@ -12,4 +12,4 @@ Emit `Schema.isBetweenLength` for an array with `minItems` equal to `maxItems`.
 
 Write the summary for someone reading the changelog: what changed for a user of the package, in one or two sentences. While both packages are `0.x`, a breaking change is a `minor`.
 
-After a merge to `main`, [release.yml](../.github/workflows/release.yml) opens or updates the **Version Packages** pull request, which applies every pending changeset: it bumps the versions, writes the changelogs and deletes the files. Merging that pull request is the release. See [Releasing](../README.md#releasing).
+After a merge to `main`, [release.yml](../.github/workflows/release.yml) opens or updates the **Version Packages** pull request, which applies every pending changeset: it bumps the versions, writes the changelogs and deletes the files. It then merges that pull request itself, with no approval, and publishes the merge once Test passes on it, so a changeset is released as soon as its pull request merges. See [Releasing](../README.md#releasing).

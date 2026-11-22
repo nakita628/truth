@@ -32,7 +32,7 @@ vite.config.ts                shared formatting style (printWidth 100, single qu
 lint/actionlint.mjs           runs actionlint (the npm WebAssembly build) over .github/workflows
 .github/workflows/test.yaml   CI (Test): build, test, `vp run check`
 .github/workflows/lint.yaml   CI (Lint): the repository linters, zizmor included
-.github/workflows/release.yml after Test on main: Version Packages PR, npm publish, tag + release
+.github/workflows/release.yml after Test on main: merges the Version Packages PR, npm publish, tag + release
 ```
 
 ## Commands
