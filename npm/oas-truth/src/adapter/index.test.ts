@@ -264,7 +264,7 @@ describe('cycle helpers', () => {
 describe('toExpression coerces path/query params', () => {
   it('reads an integer query param as a canonical integer string', () => {
     expect(makeAdapter('zod').toExpression({ type: 'integer' }, 'query')).toBe(
-      'z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())',
+      "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())",
     )
   })
 })

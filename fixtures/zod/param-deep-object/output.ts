@@ -10,11 +10,10 @@ export const Filter = z.preprocess(
     return Object.keys(out).length > 0 ? out : val
   },
   z.object({
-    age: z
-      .string()
-      .regex(/^-?(?:0|[1-9]\d*)$/)
-      .transform((val) => Number(val))
-      .pipe(z.number().int()),
+    age: z.preprocess(
+      (val) => (typeof val === 'string' && /^-?(?:0|[1-9]\d*)$/.test(val) ? Number(val) : val),
+      z.number().int(),
+    ),
     name: z.string().exactOptional(),
   }),
 )

@@ -212,14 +212,16 @@ function node(
   const readonly = (v: string) => (options?.readonly ? `${v}.readonly()` : v)
   const wireArray = (v: string) =>
     isStringWireParam ? `z.preprocess(${wireArrayOnce('val')},${v})` : v
-  // What reads a literal's input into the literal's type: on the wire the text is coerced,
-  // and a 64-bit integer is a bigint wherever it comes from.
-  const literalInput = (values: readonly unknown[]): string | undefined => {
+  // A literal schema behind what reads its input into the literal's type: on the wire the
+  // text is coerced, and a 64-bit integer is a bigint wherever it comes from.
+  const literalInput = (values: readonly unknown[], literal: string): string | undefined => {
     if (values.every((v) => typeof v === 'number')) {
-      if (isInt64(schema)) return int64Input(isWireCoerced)
-      if (isWireCoerced) return zodWireNumber(wireNumericKind(schema, values))
+      if (isInt64(schema)) return `${int64Input(isWireCoerced)}.pipe(${literal})`
+      if (isWireCoerced) return zodWireNumber(wireNumericKind(schema, values), literal)
     }
-    if (isWireCoerced && values.every((v) => typeof v === 'boolean')) return 'z.stringbool()'
+    if (isWireCoerced && values.every((v) => typeof v === 'boolean')) {
+      return `z.stringbool().pipe(${literal})`
+    }
     return undefined
   }
   // The expression a `$ref` names, bare: the caller wraps it once with what the node
@@ -346,16 +348,15 @@ function node(
         : isPrimitive(value)
           ? `z.literal(${JSON.stringify(value)}${errorPart})`
           : `z.custom<${JSON.stringify(value)}>((input) => ${deepEqualExpression(value, 'input')}${errorPart})`
-    const input = literalInput([value])
-    return zodWrap(input ? `${input}.pipe(${literal})` : literal, schema)
+    return zodWrap(literalInput([value], literal) ?? literal, schema)
   }
   if (schema.enum) {
     const values = schema.enum.filter((value) => value !== null)
-    const input = values.length > 0 ? literalInput(values) : undefined
-    if (input === undefined) return zodWrap(_enum(enumWithoutWrappedNull(schema)), schema)
+    const piped =
+      values.length > 0 ? literalInput(values, _enum({ ...schema, enum: values })) : undefined
+    if (piped === undefined) return zodWrap(_enum(enumWithoutWrappedNull(schema)), schema)
     // `null` is matched ahead of the coercion, which would read it as `0` or `false`.
     const hasNull = values.length < schema.enum.length
-    const piped = `${input}.pipe(${_enum({ ...schema, enum: values })})`
     return zodWrap(hasNull && !isNullable(schema) ? `${piped}.nullable()` : piped, schema)
   }
   if (schema.properties) return readonly(zodWrap(object(schema, rootName, isZod, options), schema))

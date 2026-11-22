@@ -17,7 +17,7 @@ describe('makeParametersCode', () => {
       },
     } as unknown as Components
     expect(makeParametersCode(components, zod, true)).toBe(
-      "import * as z from 'zod'\n\nexport const LimitParamsSchema=z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int().min(1))\n\nexport type LimitParamsSchema=z.infer<typeof LimitParamsSchema>\n",
+      "import * as z from 'zod'\n\nexport const LimitParamsSchema=z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int().min(1))\n\nexport type LimitParamsSchema=z.infer<typeof LimitParamsSchema>\n",
     )
   })
 
@@ -26,7 +26,7 @@ describe('makeParametersCode', () => {
       parameters: { Limit: { name: 'limit', in: 'query', schema: { type: 'integer' } } },
     } as unknown as Components
     expect(makeParametersCode(components, zod)).toBe(
-      "import * as z from 'zod'\n\nexport const LimitParamsSchema=z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())\n",
+      "import * as z from 'zod'\n\nexport const LimitParamsSchema=z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())\n",
     )
   })
 
@@ -66,7 +66,7 @@ describe('makeParametersCode', () => {
       parameters: { Id: { name: 'id', in: 'path', schema: { type: 'integer' } } },
     } as unknown as Components
     expect(makeParametersCode(components, zod)).toBe(
-      "import * as z from 'zod'\n\nexport const IdParamsSchema=z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())\n",
+      "import * as z from 'zod'\n\nexport const IdParamsSchema=z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())\n",
     )
   })
 
@@ -75,7 +75,7 @@ describe('makeParametersCode', () => {
       parameters: { Trace: { name: 'trace', in: 'header', schema: { type: 'integer' } } },
     } as unknown as Components
     expect(makeParametersCode(components, zod)).toBe(
-      "import * as z from 'zod'\n\nexport const TraceParamsSchema=z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())\n",
+      "import * as z from 'zod'\n\nexport const TraceParamsSchema=z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())\n",
     )
   })
 
@@ -101,7 +101,7 @@ describe('makeParametersCode', () => {
       },
     } as unknown as Components
     expect(makeParametersCode(components, zod)).toBe(
-      "import * as z from 'zod'\n\nexport const IdsParamsSchema=z.preprocess((val)=>{if(typeof val!=='string')return val;const text=val;return (text===''?[]:text.split(\",\"))},z.preprocess((val)=>(val===undefined||Array.isArray(val)?val:[val]),z.array(z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int()))))\n",
+      "import * as z from 'zod'\n\nexport const IdsParamsSchema=z.preprocess((val)=>{if(typeof val!=='string')return val;const text=val;return (text===''?[]:text.split(\",\"))},z.preprocess((val)=>(val===undefined||Array.isArray(val)?val:[val]),z.array(z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int()))))\n",
     )
   })
 
@@ -164,7 +164,7 @@ describe('makeParametersCode', () => {
       },
     } as unknown as Components
     expect(makeParametersCode(components, zod)).toBe(
-      "import * as z from 'zod'\n\nexport const LimitParamsSchema=z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int());export const OffsetParamsSchema=z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())\n",
+      "import * as z from 'zod'\n\nexport const LimitParamsSchema=z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int());export const OffsetParamsSchema=z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())\n",
     )
   })
 
@@ -194,7 +194,7 @@ describe('makeParametersDeclarations', () => {
         name: 'Limit',
         varName: 'LimitParamsSchema',
         fileName: 'limit',
-        code: 'export const LimitParamsSchema=z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())',
+        code: "export const LimitParamsSchema=z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())",
       },
     ])
   })
@@ -223,7 +223,7 @@ describe('makeParametersDeclarations', () => {
       parameters: { Limit: { name: 'limit', in: 'query', schema: { type: 'integer' } } },
     } as unknown as Components
     expect(makeParametersDeclarations(components, hook)[0]?.code).toBe(
-      'export const LimitParamsSchema=z.string().regex(/^-?(?:0|[1-9]\\d*)$/).transform((val)=>Number(val)).pipe(z.number().int())',
+      "export const LimitParamsSchema=z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int())",
     )
   })
 })

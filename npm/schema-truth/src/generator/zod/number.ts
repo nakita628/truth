@@ -3,13 +3,15 @@ import type { JSONSchema } from '../../parser/index.js'
 import { zodBaseError, zodError } from '../../utils/index.js'
 
 /**
- * Wire text checked against the integer or JSON number grammar, then read with `Number`.
+ * Wire text that matches the integer or JSON number grammar, read with `Number` ahead of
+ * `inner`; any other value reaches `inner` as it is and fails its type check.
  * `z.coerce.number()` uses `Number` on its own, which accepts `""`, `" "` and `"0x10"`.
+ * A `z.preprocess` and not a `z.string()` pipe, because `z.toJSONSchema` documents a pipe
+ * by its input and a preprocess by `inner`: the parameter stays the spec's number.
  */
-export function zodWireNumber(kind: 'integer' | 'number', errorArg = ''): string {
+export function zodWireNumber(kind: 'integer' | 'number', inner: string): string {
   const pattern = kind === 'integer' ? integerWirePattern() : numberWirePattern()
-  const errorPart = errorArg === '' ? '' : `,${errorArg}`
-  return `z.string().regex(${pattern}${errorPart}).transform((val)=>Number(val))`
+  return `z.preprocess((val)=>typeof val==='string'&&${pattern}.test(val)?Number(val):val,${inner})`
 }
 
 /**
@@ -94,7 +96,7 @@ export function number(schema: JSONSchema, options?: { readonly wire?: boolean }
       ? `.multipleOf(${schema.multipleOf}${multipleOfErrorArg})`
       : undefined
   const innerChain = [base, minimum, maximum, multipleOf].filter((v) => v !== undefined).join('')
-  if (isWire) return `${zodWireNumber('number', baseErrorArg)}.pipe(${innerChain})`
+  if (isWire) return zodWireNumber('number', innerChain)
   if (isCoerce && (isFloat32 || isFloat64)) {
     return `z.coerce.number(${baseErrorArg}).pipe(${innerChain})`
   }
