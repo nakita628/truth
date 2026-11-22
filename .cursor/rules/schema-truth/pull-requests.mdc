@@ -17,7 +17,8 @@ not in the conversation.
 2. Reproduce before fixing: a failing unit-test row or fixture case that shows the bug or
    the missing behaviour.
 3. Branch from `main`, named `type/topic` (`fix/valibot-enum`, `feat/x-brand`). Never commit
-   to `main`.
+   to `main`. The hourly Issue loop (Repository settings in `@README.md`) names its branch
+   `issue-<number>` instead.
 4. One topic per pull request. A generator fix and a docs rewrite are two pull requests.
 
 ## The title is the history, the changeset is the changelog
@@ -77,12 +78,14 @@ vp test && vp run schema-truth#test
 Tick a box in the template only for a command that ran and passed. A command that failed
 is pasted, not hidden, and a pull request is not opened over a red gate.
 
-## Releasing is a separate pull request
+## Releasing is automatic
 
 Never edit `version` or a `CHANGELOG.md` by hand. After a merge, `release.yml` opens or
 updates the **Version Packages** pull request (`chore: version packages`), which applies the
-pending changesets. Merging it publishes to npm, tags `<name>@<version>` and creates the
-GitHub releases; merge it only when a release was asked for.
+pending changesets, and merges it itself, with no approval; the run it then starts tests the
+merge on `main`, publishes to npm, tags `<name>@<version>` and creates the GitHub releases.
+So merging a pull request that carries a changeset releases it. Leave the Version Packages
+pull request to the workflow.
 
 ## Opening it
 

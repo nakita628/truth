@@ -1,0 +1,74 @@
+name: Delete closed branch
+
+# "Automatically delete head branches" (a repository setting, see README.md) deletes the branch
+# of a merged pull request. This deletes the branch of one closed without being merged, so the
+# branches of abandoned attempts (the Issue loop's, a closed update) do not pile up. It leaves
+# alone a fork's branch, the default branch, a branch another open pull request is opened from
+# or based on, and a branch pushed to after the pull request was closed.
+#
+# `pull_request_target` is the trigger zizmor warns about because it hands a write token to a
+# run a pull request starts. It is used because `pull_request` does not run for a pull request
+# with merge conflicts, the usual state of an abandoned one. Nothing from the pull request is
+# checked out or run, and its branch name reaches the shell only through an environment variable.
+on:
+  pull_request_target: # zizmor: ignore[dangerous-triggers]
+    types: [closed]
+
+# Nothing is granted by default; the job asks for exactly what it needs.
+permissions: {}
+
+# One run per pull request at a time.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: false
+
+jobs:
+  delete:
+    name: Delete the head branch
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: >-
+      ${{ !github.event.pull_request.merged &&
+        github.event.pull_request.head.repo.full_name == github.repository &&
+        github.event.pull_request.head.ref != github.event.repository.default_branch }}
+    permissions:
+      contents: write # delete the branch through the git refs API
+      pull-requests: read # list the open pull requests that still use the branch
+    steps:
+      - name: Delete the branch unless something still uses it
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          BRANCH: ${{ github.event.pull_request.head.ref }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          # A name the API path would have to escape is left alone rather than guessed at.
+          if ! [[ $BRANCH =~ ^[A-Za-z0-9._/-]+$ ]]; then
+            echo "::notice::Left $BRANCH alone: the API path would need its name escaped"
+            exit 0
+          fi
+          users=$( {
+            gh pr list --state open --limit 1000 --head "$BRANCH" --json number --jq '.[].number'
+            gh pr list --state open --limit 1000 --base "$BRANCH" --json number --jq '.[].number'
+          } | sort -u | paste -sd ' ' -)
+          if [ -n "$users" ]; then
+            echo "::notice::Left $BRANCH alone: open pull requests still use it ($users)"
+            exit 0
+          fi
+          # A query that fails stops the run; only a branch that is not there any more is fine.
+          if ! tip=$(gh api "repos/$GH_REPO/git/ref/heads/$BRANCH" --jq .object.sha 2>&1); then
+            if grep -q 'HTTP 404' <<<"$tip"; then
+              echo "$BRANCH is already gone"
+              exit 0
+            fi
+            echo "$tip" >&2
+            exit 1
+          fi
+          if [ "$tip" != "$HEAD_SHA" ]; then
+            echo "::notice::Left $BRANCH alone: it is at $tip, not at $HEAD_SHA where #$NUMBER was closed"
+            exit 0
+          fi
+          gh api -X DELETE "repos/$GH_REPO/git/refs/heads/$BRANCH"
+          echo "Deleted $BRANCH: #$NUMBER was closed without being merged"
