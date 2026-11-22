@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.8.7
+
+### Patch Changes
+
+- [#38](https://github.com/nakita628/truth/pull/38) [`b38c595`](https://github.com/nakita628/truth/commit/b38c595a22e6d6443f0d0a11873082b744479480) Thanks [@nakita628](https://github.com/nakita628)! - TypeBox: a number or integer read from text (query, path, header, cookie, form field) now carries its wire `pattern` as a string, so the schema serializes as valid JSON Schema, and checks its `minimum`, `maximum`, `exclusiveMinimum`, `exclusiveMaximum` and `multipleOf` with `Type.Refine`.
+
 ## 0.8.6
 
 ### Patch Changes
