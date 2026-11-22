@@ -405,11 +405,13 @@ function makeEffectAdapter(): ComponentAdapter {
     wrapLazy(varName) {
       return `Schema.suspend(() => ${varName})`
     },
-    // `Schema.Schema<T>` fixes the decoded type only. `Schema.Codec<T>` is `Codec<T, T>`,
-    // which fails as soon as a member encodes differently, such as a property with a
-    // `default` (optional on the encoded side).
+    // `Schema.Codec<T, unknown>` fixes the decoded type and leaves the encoded one free, so a
+    // member that encodes differently, such as a property with a `default` (optional on the
+    // encoded side), still fits; `Schema.Codec<T>` is `Codec<T, T>` and would not. Its services
+    // stay `never`, which `Schema.toStandardSchemaV1` and `Schema.decodeUnknownSync` require;
+    // `Schema.Schema<T>` leaves them `unknown`.
     cyclicAnnotation(typeName) {
-      return `Schema.Schema<${typeName}>`
+      return `Schema.Codec<${typeName}, unknown>`
     },
     cyclicTypeStyle: { readonlyArrays: true },
     reservedTypeNames: ['Schema', 'Effect'],

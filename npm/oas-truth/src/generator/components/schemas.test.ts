@@ -138,7 +138,7 @@ describe('makeSchemaDeclarations', () => {
     [
       'effect',
       'export const PetSchema=Schema.Struct({name:Schema.String,tag:Schema.optionalKey(TagSchema)}).annotate({description:"A pet"})',
-      'type NodeType={"children"?:readonly (NodeType)[]}\n\nexport const NodeSchema:Schema.Schema<NodeType>=Schema.Struct({children:Schema.optionalKey(Schema.Array(Schema.suspend(() => NodeSchema)))})',
+      'type NodeType={"children"?:readonly (NodeType)[]}\n\nexport const NodeSchema:Schema.Codec<NodeType, unknown>=Schema.Struct({children:Schema.optionalKey(Schema.Array(Schema.suspend(() => NodeSchema)))})',
     ],
   ] as const)('%s: declares a dependency and a self-cycle', (lib, pet, node) => {
     const schemas = {
@@ -215,8 +215,8 @@ describe('makeSchemaDeclarations', () => {
       'effect',
       [
         'export const TagSchema=Schema.String',
-        'type AType={"b"?:Schema.Schema.Type<typeof BSchema>}\n\nexport const ASchema:Schema.Schema<AType>=Schema.Struct({b:Schema.optionalKey(Schema.suspend(() => BSchema))})',
-        'type BType={"a"?:Schema.Schema.Type<typeof ASchema>;"tag"?:Schema.Schema.Type<typeof TagSchema>}\n\nexport const BSchema:Schema.Schema<BType>=Schema.Struct({a:Schema.optionalKey(Schema.suspend(() => ASchema)),tag:Schema.optionalKey(TagSchema)})',
+        'type AType={"b"?:Schema.Schema.Type<typeof BSchema>}\n\nexport const ASchema:Schema.Codec<AType, unknown>=Schema.Struct({b:Schema.optionalKey(Schema.suspend(() => BSchema))})',
+        'type BType={"a"?:Schema.Schema.Type<typeof ASchema>;"tag"?:Schema.Schema.Type<typeof TagSchema>}\n\nexport const BSchema:Schema.Codec<BType, unknown>=Schema.Struct({a:Schema.optionalKey(Schema.suspend(() => ASchema)),tag:Schema.optionalKey(TagSchema)})',
       ],
     ],
   ] as const)('%s: a mutual cycle shares one container per member', (lib, expected) => {
@@ -437,11 +437,11 @@ describe('generated schemas type-check and run', () => {
     },
   )
 
-  it('effect: a recursive Comment is Schema.Schema<CommentType> and rejects a bad body', () => {
+  it('effect: a recursive Comment is Schema.Codec<CommentType, unknown> and rejects a bad body', () => {
     const code = makeSchemasCode({ schemas: commentCycle }, makeAdapter('effect'), {
       exportTypes: true,
     })
-    expect(code).toContain('Schema.Schema<CommentType>')
+    expect(code).toContain('Schema.Codec<CommentType, unknown>')
     expect(typecheck('effect-comment.ts', code, exactOptional)).toBe('')
     expect(
       typecheck(
@@ -451,6 +451,24 @@ describe('generated schemas type-check and run', () => {
       ),
     ).toContain('TS2322')
   })
+
+  // Hosts bridge a declaration to Standard Schema (hono-openapi's `resolver`, Hono's validators),
+  // which takes a schema with no decoding services.
+  it.each([
+    ['a self-cycle', selfCycle, ['NodeSchema']],
+    ['a mutual cycle', mutualCycle, ['ASchema', 'BSchema']],
+  ] as const)(
+    'effect: %s can be passed to Schema.toStandardSchemaV1',
+    { timeout: 30_000 },
+    (label, schemas, names) => {
+      const code = makeSchemasCode({ schemas }, makeAdapter('effect'), { exportTypes: true })
+      const bridges = names.map(
+        (name) => `export const ${name}Standard = Schema.toStandardSchemaV1(Schema.Array(${name}))`,
+      )
+      const fileName = `effect-standard-${label.replaceAll(' ', '-')}.ts`
+      expect(typecheck(fileName, [code, ...bridges].join('\n'), exactOptional)).toBe('')
+    },
+  )
 
   it('arktype accepts a tree and rejects a bad child', async () => {
     const file = path.join(tmpDir, 'arktype-run.mts')
@@ -568,8 +586,24 @@ describe('declarations that carry more than the default import', () => {
         exportTypes: true,
       })
       expect(code.split('\n')[0]).toBe("import { Effect, Schema } from 'effect'")
-      expect(code).toContain('export const NodeSchema:Schema.Schema<NodeType>=')
+      expect(code).toContain('export const NodeSchema:Schema.Codec<NodeType, unknown>=')
       expect(typecheck('effect-default-cycle.ts', code, exactOptional)).toBe('')
+    },
+  )
+
+  it(
+    'effect: a recursive schema whose encoded side differs is still a Standard Schema',
+    { timeout: 30_000 },
+    () => {
+      const code = makeSchemasCode({ schemas: defaultCycle }, makeAdapter('effect'), {
+        exportTypes: true,
+      })
+      const source = [
+        code,
+        'export const standard = Schema.toStandardSchemaV1(Schema.Array(NodeSchema))',
+        'export const decoded = Schema.decodeUnknownSync(NodeSchema)({ children: [] })',
+      ].join('\n')
+      expect(typecheck('effect-default-cycle-standard.ts', source, exactOptional)).toBe('')
     },
   )
 })

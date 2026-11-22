@@ -1,0 +1,7 @@
+{
+  // A changeset is front matter and a summary that `changeset version` moves into a package's
+  // CHANGELOG.md, under the heading of the version it releases, so it has no heading of its own.
+  "config": {
+    "MD041": false,
+  },
+}

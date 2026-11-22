@@ -21,7 +21,7 @@ export type SchemasOptions = {
   readonly typeAlias?: 'const' | 'key'
   /**
    * Shape of the TS7022 helper type. `'library'` (default) matches what the
-   * validator infers, so `v.GenericSchema<Helper>` / `Schema.Schema<Helper>`
+   * validator infers, so `v.GenericSchema<Helper>` / `Schema.Codec<Helper, unknown>`
    * type-check under `exactOptionalPropertyTypes`. `'literal'` is the
    * Zod-shaped `prop?: T` form for every library.
    */
