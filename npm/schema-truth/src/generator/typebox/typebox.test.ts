@@ -691,8 +691,38 @@ describe('typebox', () => {
   describe('paramIn coercion', () => {
     it('query: number → Type.Transform decode Number', () => {
       expect(typebox({ type: 'number' }, 'Schema', false, { paramIn: 'query' })).toBe(
-        'Codec(Type.String({pattern:/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/})).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+        'Codec(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$"})).Decode((value)=>Number(value)).Encode((value)=>String(value))',
       )
+    })
+
+    it.concurrent.each<[JSONSchema, string]>([
+      [
+        { type: 'integer', minimum: 1, maximum: 100 },
+        'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number(value)>=1,()=>"must be >= 1"),(value)=>Number(value)<=100,()=>"must be <= 100")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'number', exclusiveMinimum: 0, exclusiveMaximum: 1 },
+        'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$"}),(value)=>Number(value)>0,()=>"must be > 0"),(value)=>Number(value)<1,()=>"must be < 1")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'integer', minimum: 0, exclusiveMinimum: true, 'x-minimum-message': 'unused' },
+        'Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number(value)>0,()=>"must be > 0")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        {
+          type: 'number',
+          multipleOf: 0.5,
+          'x-multipleOf-message': 'halves',
+          'x-error-message': 'bad',
+        },
+        'Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$"}),(value)=>((remainder)=>Math.min(Math.abs(remainder),Math.abs(remainder-0.5),Math.abs(remainder+0.5))<1e-10)(Number(value)%0.5),()=>"halves")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'integer', maximum: 9, 'x-error-message': 'bad' },
+        'Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number(value)<=9,()=>"bad")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+    ])('query: %o checks its bounds on the text → %s', (input, expected) => {
+      expect(typebox(input, 'Schema', false, { paramIn: 'query' })).toBe(expected)
     })
 
     it("path: boolean → Type.Transform decode 'true'|'false'", () => {
@@ -777,7 +807,7 @@ describe('allOf keyword members', () => {
     [
       { type: 'integer' },
       { paramIn: 'query' },
-      'Codec(Type.String({pattern:/^-?(?:0|[1-9]\\d*)$/})).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      'Codec(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"})).Decode((value)=>Number(value)).Encode((value)=>String(value))',
     ],
     [
       { type: 'boolean' },
