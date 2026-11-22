@@ -1,4 +1,9 @@
-import { DEFAULT_ROOT_NAME, DEFINITION_REF_PREFIXES } from '../../constants/index.js'
+import {
+  DEFAULT_ROOT_NAME,
+  DEFINITION_REF_PREFIXES,
+  INTEGER_WIRE_PATTERN,
+  NUMBER_WIRE_PATTERN,
+} from '../../constants/index.js'
 import {
   hasNumericKeyword,
   hasStringKeyword,
@@ -13,10 +18,8 @@ import {
 import {
   enumWithoutWrappedNull,
   foldAllOfMembers,
-  integerWirePattern,
   isKeywordOnlyMember,
   itemsSchemaOf,
-  numberWirePattern,
   schemaNamer,
   stringboolPattern,
   stringboolTruthyPattern,
@@ -102,6 +105,71 @@ function wireString(schema: JSONSchema, ref?: string, pattern?: string): string 
     ...typeboxDefaultOpt(schema, true),
   ]
   return opts.length > 0 ? `Type.String({${opts.join(',')}})` : 'Type.String()'
+}
+
+/**
+ * A number-from-text wire: the `Type.String` carries its pattern as a string, the
+ * JSON Schema form (a `RegExp` serializes as `{}`), and each numeric bound is a
+ * `Type.Refine` on the text read as a number, since the decoded value is not checked.
+ */
+function numericWire(schema: JSONSchema, pattern: RegExp, ref?: string): string {
+  return numericBounds(schema).reduce(
+    (wire, [check, keyword, message]) =>
+      `Type.Refine(${wire},(value)=>${check},()=>${JSON.stringify(
+        schema[`x-${keyword}-message`] ?? schema['x-error-message'] ?? message,
+      )})`,
+    wireString(schema, ref, JSON.stringify(pattern.source)),
+  )
+}
+
+type NumericBound = readonly [
+  check: string,
+  keyword: 'minimum' | 'exclusiveMinimum' | 'maximum' | 'exclusiveMaximum' | 'multipleOf',
+  message: string,
+]
+
+/** The checks of the numeric keywords on `Number(value)`, with TypeBox's own messages. */
+function numericBounds(schema: JSONSchema): readonly NumericBound[] {
+  const bounds: NumericBound[] = []
+  const { minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf } = schema
+  if (minimum !== undefined) {
+    bounds.push(
+      exclusiveMinimum === true
+        ? [`Number(value)>${minimum}`, 'exclusiveMinimum', `must be > ${minimum}`]
+        : [`Number(value)>=${minimum}`, 'minimum', `must be >= ${minimum}`],
+    )
+  }
+  if (typeof exclusiveMinimum === 'number') {
+    bounds.push([
+      `Number(value)>${exclusiveMinimum}`,
+      'exclusiveMinimum',
+      `must be > ${exclusiveMinimum}`,
+    ])
+  }
+  if (maximum !== undefined) {
+    bounds.push(
+      exclusiveMaximum === true
+        ? [`Number(value)<${maximum}`, 'exclusiveMaximum', `must be < ${maximum}`]
+        : [`Number(value)<=${maximum}`, 'maximum', `must be <= ${maximum}`],
+    )
+  }
+  if (typeof exclusiveMaximum === 'number') {
+    bounds.push([
+      `Number(value)<${exclusiveMaximum}`,
+      'exclusiveMaximum',
+      `must be < ${exclusiveMaximum}`,
+    ])
+  }
+  if (multipleOf !== undefined) {
+    // TypeBox's own `multipleOf` check: an integer passes a divisor of the form 1/n
+    // outright, and any other value within its tolerance for binary fractions.
+    bounds.push([
+      `((number)=>(Number.isInteger(number)&&(1/${multipleOf})%1===0)||((remainder)=>Math.min(Math.abs(remainder),Math.abs(remainder-${multipleOf}),Math.abs(remainder+${multipleOf}))<1e-10)(number%${multipleOf}))(Number(value))`,
+      'multipleOf',
+      `must be multiple of ${multipleOf}`,
+    ])
+  }
+  return bounds
 }
 
 /** A keyword-only `allOf` member. TypeBox has no type-guarded check, so the keyword's type carries it. */
@@ -357,26 +425,24 @@ export function typebox(
   const types = normalizeTypes(schema.type)
   if (types.includes('string')) return typeboxWrap(string(schema, hostRef), schema)
   if (types.includes('number')) {
-    const base = number(schema, hostRef)
     if (isStringWireParam) {
-      const wire = wireString(schema, hostRef, numberWirePattern())
+      const wire = numericWire(schema, NUMBER_WIRE_PATTERN, hostRef)
       return typeboxWrap(
         `Codec(${wire}).Decode((value)=>Number(value)).Encode((value)=>String(value))`,
         schema,
       )
     }
-    return typeboxWrap(base, schema)
+    return typeboxWrap(number(schema, hostRef), schema)
   }
   if (types.includes('integer')) {
-    const base = integer(schema, hostRef)
     if (isStringWireParam) {
-      const wire = wireString(schema, hostRef, integerWirePattern())
+      const wire = numericWire(schema, INTEGER_WIRE_PATTERN, hostRef)
       return typeboxWrap(
         `Codec(${wire}).Decode((value)=>Number(value)).Encode((value)=>String(value))`,
         schema,
       )
     }
-    return typeboxWrap(base, schema)
+    return typeboxWrap(integer(schema, hostRef), schema)
   }
   if (types.includes('boolean')) {
     if (isStringWireParam) {
