@@ -48,3 +48,18 @@ describe('valibot enum', () => {
   // Whole-enum messages now come from x-error-message; per-value
   // business rules belong in handler code.
 })
+
+describe('valibot enum of an int64 beyond 1e21', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'integer', format: 'int64', enum: [1e21, 2] },
+      'v.union([v.literal(1000000000000000000000n),v.literal(2n)])',
+    ],
+    [
+      { type: 'integer', format: 'int64', enum: [1e21, 1.5] },
+      'v.union([v.literal(1000000000000000000000n),v.literal(1.5)])',
+    ],
+  ])('_enum(%o) → %s', (input, expected) => {
+    expect(_enum(input)).toBe(expected)
+  })
+})

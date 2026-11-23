@@ -5,6 +5,7 @@ import {
   arktypeWrap,
   effectWrap,
   serializeJSValue,
+  typeboxDefaultOpt,
   typeboxMetaOpts,
   typeboxWrap,
   valibotWrap,
@@ -223,5 +224,39 @@ describe('arktypeWrap with metadata', () => {
         deprecated: true,
       } satisfies JSONSchema),
     ).toBe('type({name:"string"})')
+  })
+})
+
+describe('a 64-bit or bigint default', () => {
+  const definitions = {
+    Big: { type: 'integer', format: 'bigint' },
+    Long: { type: 'integer', format: 'int64' },
+  } satisfies { [name: string]: JSONSchema }
+  const long = { type: 'integer', format: 'int64', default: 1e21 } satisfies JSONSchema
+  const big = { $ref: '#/$defs/Big', default: 5 } satisfies JSONSchema
+  const allOf = { allOf: [{ $ref: '#/$defs/Long' }], default: 7 } satisfies JSONSchema
+  it('zodWrap', () => {
+    expect(zodWrap('S', long)).toBe('S.default(1000000000000000000000n)')
+    expect(zodWrap('S', big, { definitions })).toBe('S.default(BigInt(5))')
+    expect(zodWrap('S', allOf, { definitions })).toBe('S.default(7n)')
+  })
+  it('valibotWrap', () => {
+    expect(valibotWrap('S', long)).toBe('v.optional(S,1000000000000000000000n)')
+    expect(valibotWrap('S', big, { definitions })).toBe('v.optional(S,BigInt(5))')
+  })
+  it('effectWrap', () => {
+    expect(effectWrap('S', long)).toBe(
+      'S.pipe(Schema.withDecodingDefault(Effect.succeed(1000000000000000000000n)))',
+    )
+    expect(effectWrap('S', big, { definitions })).toBe(
+      'S.pipe(Schema.withDecodingDefault(Effect.succeed(BigInt(5))))',
+    )
+  })
+  it('typeboxDefaultOpt', () => {
+    expect(typeboxDefaultOpt({ type: 'integer', format: 'bigint', default: 5 })).toStrictEqual([
+      'default:5n',
+    ])
+    expect(typeboxDefaultOpt(big, false, definitions)).toStrictEqual(['default:5n'])
+    expect(typeboxDefaultOpt(allOf, false, definitions)).toStrictEqual(['default:7'])
   })
 })

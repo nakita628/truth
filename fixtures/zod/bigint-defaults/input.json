@@ -1,0 +1,20 @@
+{
+  "title": "Limits",
+  "type": "object",
+  "$defs": {
+    "Big": { "type": "integer", "format": "bigint" }
+  },
+  "properties": {
+    "between": {
+      "type": "integer",
+      "format": "bigint",
+      "minimum": 1,
+      "exclusiveMinimum": 5,
+      "maximum": 10,
+      "exclusiveMaximum": 8
+    },
+    "large": { "type": "integer", "format": "int64", "default": 1e21 },
+    "level": { "type": "integer", "format": "int64", "enum": [1e21, 2] },
+    "big": { "$ref": "#/$defs/Big", "default": 5 }
+  }
+}

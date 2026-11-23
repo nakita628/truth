@@ -1,7 +1,7 @@
 import { bigintBounds, bigintCall, bigintLiteral } from '../../helper/bigint.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { zodBaseError, zodError, zodErrorPart } from '../../utils/index.js'
-import { zodWireNumber } from './number.js'
+import { joinChecks, zodWireNumber } from './number.js'
 
 /** Whether a node is a 64-bit integer: a value beyond 2^53 that Zod reads as a bigint. */
 export function isInt64(schema: JSONSchema) {
@@ -61,56 +61,50 @@ export function integer(node: JSONSchema, options?: { readonly wire?: boolean })
   const minErrorPart = minErrorArg ? `,${minErrorArg}` : ''
   const exMinErrorArg = exclusiveMinMessage ? zodError(exclusiveMinMessage) : ''
   const exMinErrorPart = exMinErrorArg ? `,${exMinErrorArg}` : ''
-  const minimum = (() => {
-    if (schema.minimum === undefined && schema.exclusiveMinimum === undefined) {
-      return undefined
-    }
-    const value = schema.minimum ?? schema.exclusiveMinimum
-    if (value === 0 && schema.exclusiveMinimum === true) {
+  const inclusiveMinimum = (() => {
+    if (typeof schema.minimum !== 'number') return undefined
+    if (schema.minimum === 0 && schema.exclusiveMinimum === true) {
       return `.positive(${exMinErrorArg})`
     }
-    if (value === 0 && schema.exclusiveMinimum === false) {
+    if (schema.minimum === 0 && schema.exclusiveMinimum === false) {
       return `.nonnegative(${minErrorArg})`
     }
-    if (
-      (schema.exclusiveMinimum === true || schema.minimum === undefined) &&
-      typeof value === 'number'
-    ) {
-      return `.gt(${lit(value)}${exMinErrorPart})`
+    if (schema.exclusiveMinimum === true) {
+      return `.gt(${lit(schema.minimum)}${exMinErrorPart})`
     }
-    if (typeof schema.minimum === 'number') {
-      return `.min(${lit(schema.minimum)}${minErrorPart})`
-    }
-    return undefined
+    return `.min(${lit(schema.minimum)}${minErrorPart})`
   })()
+  // A 2020-12 numeric `exclusiveMinimum` is a bound of its own, checked beside `minimum`.
+  const exclusiveMinimum =
+    typeof schema.exclusiveMinimum === 'number'
+      ? `.gt(${lit(schema.exclusiveMinimum)}${exMinErrorPart})`
+      : undefined
+  const minimum = joinChecks(inclusiveMinimum, exclusiveMinimum)
   const maximumMessage = schema['x-maximum-message'] ?? errorMessage
   const exclusiveMaxMessage = schema['x-exclusiveMaximum-message'] ?? errorMessage
   const maxErrorArg = maximumMessage ? zodError(maximumMessage) : ''
   const maxErrorPart = maxErrorArg ? `,${maxErrorArg}` : ''
   const exMaxErrorArg = exclusiveMaxMessage ? zodError(exclusiveMaxMessage) : ''
   const exMaxErrorPart = exMaxErrorArg ? `,${exMaxErrorArg}` : ''
-  const maximum = (() => {
-    if (schema.maximum === undefined && schema.exclusiveMaximum === undefined) {
-      return undefined
-    }
-    const value = schema.maximum ?? schema.exclusiveMaximum
-    if (value === 0 && schema.exclusiveMaximum === true) {
+  const inclusiveMaximum = (() => {
+    if (typeof schema.maximum !== 'number') return undefined
+    if (schema.maximum === 0 && schema.exclusiveMaximum === true) {
       return `.negative(${exMaxErrorArg})`
     }
-    if (value === 0 && schema.exclusiveMaximum === false) {
+    if (schema.maximum === 0 && schema.exclusiveMaximum === false) {
       return `.nonpositive(${maxErrorArg})`
     }
-    if (
-      (schema.exclusiveMaximum === true || schema.maximum === undefined) &&
-      typeof value === 'number'
-    ) {
-      return `.lt(${lit(value)}${exMaxErrorPart})`
+    if (schema.exclusiveMaximum === true) {
+      return `.lt(${lit(schema.maximum)}${exMaxErrorPart})`
     }
-    if (typeof schema.maximum === 'number') {
-      return `.max(${lit(schema.maximum)}${maxErrorPart})`
-    }
-    return undefined
+    return `.max(${lit(schema.maximum)}${maxErrorPart})`
   })()
+  // A 2020-12 numeric `exclusiveMaximum` is a bound of its own, checked beside `maximum`.
+  const exclusiveMaximum =
+    typeof schema.exclusiveMaximum === 'number'
+      ? `.lt(${lit(schema.exclusiveMaximum)}${exMaxErrorPart})`
+      : undefined
+  const maximum = joinChecks(inclusiveMaximum, exclusiveMaximum)
   const multipleOfMessage = schema['x-multipleOf-message'] ?? errorMessage
   const multipleOfErrorArg = zodErrorPart(multipleOfMessage)
   const multipleOf =

@@ -1,5 +1,7 @@
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault, makeSafeKey } from '../utils/index.js'
+import type { DefaultSchema } from '../utils/index.js'
+import { bigintFormatOf, bigintLiteral } from './bigint.js'
 import { examplesOf } from './schema.js'
 import type { SchemaDefinitions } from './schema.js'
 
@@ -38,6 +40,11 @@ export function typeboxMetaOpts(schema: JSONSchema, ref?: string) {
   ].filter((v) => v !== undefined)
 }
 
+/** Whether a bigint-format node is a `Type.BigInt`: an `enum` or `const` is a number literal. */
+function isTypeBigInt(node: DefaultSchema) {
+  return node.enum === undefined && node.const === undefined
+}
+
 /**
  * Returns the TypeBox `default` option entry (`['default:1']`) for a schema, or
  * `[]` when absent/droppable. TypeBox v1's `Type.Optional(type)` takes one arg —
@@ -55,6 +62,15 @@ export function typeboxDefaultOpt(
   const result = coerceDefault(schema, schema.default, definitions)
   if (!result.keep) return []
   const value = stringWire ? String(result.value) : result.value
+  // `Type.BigInt` checks `typeof value === 'bigint'`, so the default `Value.Default` puts in
+  // has to be a bigint too, beside a `$ref` or `allOf` as much as on the node itself.
+  if (
+    typeof value === 'number' &&
+    Number.isInteger(value) &&
+    bigintFormatOf(schema, definitions, isTypeBigInt) === 'bigint'
+  ) {
+    return [`default:${bigintLiteral(value)}`]
+  }
   const formatLiteral =
     typeof value === 'boolean' || typeof value === 'number' ? `${value}` : JSON.stringify(value)
   return [`default:${formatLiteral}`]

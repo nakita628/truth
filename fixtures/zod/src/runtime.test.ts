@@ -3,6 +3,7 @@ import * as z from 'zod'
 import { User as DefsUser } from '../$defs/output.ts'
 import { Config as AdditionalPropertiesConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
+import { Limits } from '../bigint-defaults/output.ts'
 import { Amount } from '../not-int64/output.ts'
 import { Filters } from '../object-default/output.ts'
 import { Headers } from '../param-header-array/output.ts'
@@ -864,5 +865,21 @@ describe('zod fixtures: string-formats runtime', () => {
       slug: 'a',
       email: 'a@b.co',
     })
+  })
+})
+
+describe('bigint-defaults', () => {
+  it('checks a minimum beside a numeric exclusiveMinimum, and a maximum beside an exclusiveMaximum', () => {
+    expect([5n, 6n, 7n, 8n].map((between) => Limits.safeParse({ between }).success)).toStrictEqual(
+      [false, true, true, false],
+    )
+  })
+
+  it('fills the int64 and bigint defaults as bigints', () => {
+    expect(Limits.parse({})).toStrictEqual({ large: 1000000000000000000000n, big: 5n })
+  })
+
+  it('reads an int64 enum member beyond 1e21', () => {
+    expect(Limits.parse({ level: '1000000000000000000000' }).level).toBe(1000000000000000000000n)
   })
 })

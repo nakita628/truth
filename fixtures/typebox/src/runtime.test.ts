@@ -4,6 +4,7 @@ import { User as DefsUser } from '../$defs/output.ts'
 import { Config as AdditionalConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
 import { Amount } from '../bigint-bounds/output.ts'
+import { Limits } from '../bigint-defaults/output.ts'
 import { Metadata } from '../pattern-hex/output.ts'
 import { Combined as AllofCombined } from '../allof/output.ts'
 import { StringOrNumber as AnyofStringOrNumber } from '../anyof/output.ts'
@@ -817,5 +818,22 @@ describe('bigint-bounds', () => {
   // starts from the minimum and does not look at `multipleOf`.
   it('creates a value from the rounded minimum', () => {
     expect(Value.Create(Amount)).toBe(1n)
+  })
+})
+
+describe('bigint-defaults', () => {
+  it('checks a minimum beside a numeric exclusiveMinimum, and a maximum beside an exclusiveMaximum', () => {
+    expect([5n, 6n, 7n, 8n].map((between) => Value.Check(Limits, { between }))).toStrictEqual([
+      false,
+      true,
+      true,
+      false,
+    ])
+  })
+
+  it('fills a bigint default beside a $ref that the bigint target accepts', () => {
+    const filled = Value.Default(Limits, {})
+    expect(filled).toStrictEqual({ big: 5n, large: 1e21 })
+    expect(Value.Check(Limits, { big: 5n })).toBe(true)
   })
 })

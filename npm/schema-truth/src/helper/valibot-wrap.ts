@@ -1,6 +1,7 @@
 import { isNullable } from '../guard/index.js'
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault } from '../utils/index.js'
+import { bigintFormatOf, bigintValueLiteral } from './bigint.js'
 import { readCodeExtension } from './code-extensions.js'
 import type { CodeExtensionOptions } from './code-extensions.js'
 import { serializeJSValue } from './meta.js'
@@ -32,11 +33,11 @@ export type ValibotWrapOptions = CodeExtensionOptions & {
 }
 
 /** A default as the Valibot literal of the schema's input: a bigint for a 64-bit integer. */
-function defaultLiteral(schema: JSONSchema, value: unknown, stringWire: boolean) {
+function defaultLiteral(format: string | undefined, value: unknown, stringWire: boolean) {
   if (stringWire) return jsLiteral(wireDefaultValue(value))
   if (typeof value === 'number') {
-    if (schema.format === 'int64' || schema.format === 'uint64') return `${value}n`
-    if (schema.format === 'bigint') return `BigInt(${value})`
+    if (format === 'int64' || format === 'uint64') return bigintValueLiteral(value)
+    if (format === 'bigint') return `BigInt(${value})`
   }
   return jsLiteral(value)
 }
@@ -73,7 +74,7 @@ export function valibotWrap(valibotStr: string, schema: JSONSchema, options?: Va
       ? coerceDefault(schema, schema.default, options?.definitions)
       : undefined
   const withDefault = defaultResult?.keep
-    ? `v.optional(${withNullText},${defaultLiteral(schema, defaultResult.value, options?.stringWire === true)})`
+    ? `v.optional(${withNullText},${defaultLiteral(bigintFormatOf(schema, options?.definitions), defaultResult.value, options?.stringWire === true)})`
     : withNullText
 
   const examples = examplesOf(schema)

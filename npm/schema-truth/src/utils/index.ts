@@ -90,10 +90,14 @@ export function normalizeTypes(types?: string | readonly string[]) {
   return [...types]
 }
 
+/** The `format`s whose values are bigints, which a fractional number is not. */
+const BIGINT_FORMATS: ReadonlySet<string> = new Set(['int64', 'uint64', 'bigint'])
+
 /** The keywords of a schema node {@link coerceDefault} reads a `default` against. */
 export type DefaultSchema = {
   readonly $ref?: string
   readonly type?: string | readonly string[]
+  readonly format?: string
   readonly nullable?: boolean
   readonly enum?: readonly unknown[]
   readonly const?: unknown
@@ -118,7 +122,8 @@ type DefaultResult = { readonly keep: boolean; readonly value: unknown }
  * - `null` is kept only on a nullable schema (or one whose `enum` lists it).
  * - an `enum` / `const` takes only what it lists.
  * - text that spells a value of the schema's type is read as that value: `'true'`
- *   for a boolean, `'7'` for a number or an integer; a number or a boolean for a
+ *   for a boolean, `'7'` for a number or an integer (a fraction is dropped for an
+ *   integer or an `int64` / `uint64` / `bigint` format); a number or a boolean for a
  *   string is written as text. Any other scalar of the wrong type is dropped
  *   (`'null'` for an integer, `'strict'` with the quotes for an enum).
  * - an array keeps its items when every one is a value of `items`.
@@ -230,7 +235,9 @@ function conformDefault(
             ? Number(value)
             : undefined
       if (number === undefined) return undefined
-      if (type === 'integer' && !Number.isInteger(number)) return undefined
+      // A 64-bit or bigint format holds only integers, whatever `type` it sits beside.
+      const isWhole = type === 'integer' || BIGINT_FORMATS.has(schema.format ?? '')
+      if (isWhole && !Number.isInteger(number)) return undefined
       return { keep: true, value: number }
     }
     if (type === 'string') {
@@ -288,7 +295,7 @@ function readObject(
 }
 
 /** The definition a local `$ref` names, when `definitions` has it. */
-function definitionOf(
+export function definitionOf(
   ref: string,
   definitions: { readonly [name: string]: DefaultSchema } | undefined,
 ) {
