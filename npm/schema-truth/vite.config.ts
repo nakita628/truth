@@ -73,6 +73,9 @@ export default defineConfig({
       'custom/effect-promise-import': 'error',
       'custom/no-effect-fn': 'error',
       'custom/no-effect-flatmap': 'error',
+      'custom/effect-gen-return': 'error',
+      'custom/identifier-case': 'error',
+      'custom/no-undeclared-dependency': 'error',
       // `_enum` is the one sanctioned dangling underscore: `enum` is a reserved word, so
       // the generator that emits an enum cannot be named after what it does without it.
       'no-underscore-dangle': ['error', { allow: ['_enum'] }],

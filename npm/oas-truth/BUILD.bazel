@@ -15,6 +15,7 @@ js_library(
     ] + glob(
         [
             "src/**/*.ts",
+            "lint/**",
         ],
         exclude = ["src/**/*.test.ts"],
     ),

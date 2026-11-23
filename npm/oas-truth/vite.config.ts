@@ -26,6 +26,9 @@ export default defineConfig({
     // Setting `plugins` replaces oxlint's default list — restate the defaults, then add
     // import / promise / node / jsdoc.
     plugins: ['typescript', 'unicorn', 'oxc', 'import', 'promise', 'node', 'jsdoc', 'jest'],
+    // The repository conventions a glob cannot express (naming, declared dependencies); see
+    // lint/custom.js.
+    jsPlugins: ['./lint/custom.js'],
     options: {
       typeAware: true,
       typeCheck: true,
@@ -49,6 +52,10 @@ export default defineConfig({
     // above and are not restated; this list only adds rules from the pedantic / style /
     // restriction / nursery categories, which no category enables.
     rules: {
+      'custom/type-pascal-case': 'error',
+      'custom/predicate-is-name': 'error',
+      'custom/identifier-case': 'error',
+      'custom/no-undeclared-dependency': 'error',
       // `@internal` and friends are modifiers, so their text belongs to the description;
       // `check-tag-names` is what catches a tag that is merely misspelled.
       'jsdoc/empty-tags': 'error',
@@ -515,6 +522,23 @@ export default defineConfig({
     // Regexes match relative specifiers only, so external packages never collide with a banned
     // directory name.
     overrides: [
+      {
+        // The plugin itself: oxlint's plugin API is untyped, so it walks ESTree nodes typed
+        // `any`, and the plugin object is the module's default export.
+        files: ['lint/**'],
+        rules: {
+          'import/no-default-export': 'off',
+          'import/no-anonymous-default-export': 'off',
+          'unicorn/no-anonymous-default-export': 'off',
+          'typescript/no-unsafe-argument': 'off',
+          'typescript/no-unsafe-assignment': 'off',
+          'typescript/no-unsafe-call': 'off',
+          'typescript/no-unsafe-member-access': 'off',
+          'typescript/no-unsafe-return': 'off',
+          'typescript/strict-boolean-expressions': 'off',
+          'typescript/no-unnecessary-condition': 'off',
+        },
+      },
       {
         files: ['src/utils/**', 'src/openapi/**'],
         rules: {
