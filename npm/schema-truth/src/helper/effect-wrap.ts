@@ -1,7 +1,12 @@
 import { isNullable } from '../guard/index.js'
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault } from '../utils/index.js'
-import { bigintFormatOf, bigintValueLiteral } from './bigint.js'
+import {
+  bigintFormatOf,
+  bigintValueLiteral,
+  isBigintSchema,
+  isWritableBigintDefault,
+} from './bigint.js'
 import { readCodeExtension } from './code-extensions.js'
 import type { CodeExtensionOptions } from './code-extensions.js'
 import { serializeJSValue } from './meta.js'
@@ -97,9 +102,15 @@ export function effectWrap(effectStr: string, schema: JSONSchema, options?: Effe
       : undefined
   const decodingDefault =
     options?.stringWire === true ? 'Schema.withDecodingDefaultType' : 'Schema.withDecodingDefault'
-  const withDefault = defaultResult?.keep
-    ? `${withCodeExts}.pipe(${decodingDefault}(Effect.succeed(${defaultLiteral(bigintFormatOf(schema, options?.definitions), defaultResult.value)})))`
-    : withCodeExts
+  // A `default` beside a `$ref` is the bigint its target holds; a fraction there is dropped.
+  const defaultFormat =
+    typeof defaultResult?.value === 'number'
+      ? bigintFormatOf(schema, options?.definitions, isBigintSchema)
+      : undefined
+  const withDefault =
+    defaultResult?.keep === true && isWritableBigintDefault(defaultResult.value, defaultFormat)
+      ? `${withCodeExts}.pipe(${decodingDefault}(Effect.succeed(${defaultLiteral(defaultFormat, defaultResult.value)})))`
+      : withCodeExts
 
   const examples = examplesOf(schema)
   const ann: { [key: string]: unknown } = {}

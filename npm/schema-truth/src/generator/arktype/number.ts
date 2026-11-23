@@ -11,28 +11,35 @@ export type NumericBound = {
 /** The comparators of a numeric node: `>= 1`, `< 5`, `% 2`. */
 export function numericConstraints(schema: JSONSchema) {
   const minimum =
-    schema.minimum !== undefined
-      ? ({
+    schema.minimum === undefined
+      ? undefined
+      : ({
           op: schema.exclusiveMinimum === true ? '>' : '>=',
           value: String(schema.minimum),
         } as const)
-      : typeof schema.exclusiveMinimum === 'number'
-        ? ({ op: '>', value: String(schema.exclusiveMinimum) } as const)
-        : undefined
+  // A 2020-12 numeric `exclusiveMinimum` is a bound of its own, checked beside `minimum`.
+  const exclusiveMinimum =
+    typeof schema.exclusiveMinimum === 'number'
+      ? ({ op: '>', value: String(schema.exclusiveMinimum) } as const)
+      : undefined
   const maximum =
-    schema.maximum !== undefined
-      ? ({
+    schema.maximum === undefined
+      ? undefined
+      : ({
           op: schema.exclusiveMaximum === true ? '<' : '<=',
           value: String(schema.maximum),
         } as const)
-      : typeof schema.exclusiveMaximum === 'number'
-        ? ({ op: '<', value: String(schema.exclusiveMaximum) } as const)
-        : undefined
+  const exclusiveMaximum =
+    typeof schema.exclusiveMaximum === 'number'
+      ? ({ op: '<', value: String(schema.exclusiveMaximum) } as const)
+      : undefined
   const multipleOf =
     schema.multipleOf !== undefined
       ? ({ op: '%', value: String(schema.multipleOf) } as const)
       : undefined
-  return [minimum, maximum, multipleOf].filter((bound) => bound !== undefined)
+  return [minimum, exclusiveMinimum, maximum, exclusiveMaximum, multipleOf].filter(
+    (bound) => bound !== undefined,
+  )
 }
 
 /** The range comparators of a fixed-width numeric `format`, if it has one. */

@@ -1488,3 +1488,11 @@ describe('a null member and a null enum value are emitted once (#16, #20)', () =
     })
   })
 })
+
+describe('effect const of an int64 beyond 1e21', () => {
+  it('spells the literal in digits', () => {
+    expect(effect({ type: 'integer', format: 'int64', const: 1e21 })).toBe(
+      String.raw`Schema.Union([Schema.BigInt,Schema.Number.check(Schema.isInt()),Schema.String.check(Schema.isPattern(/^-?\d+$/))]).pipe(Schema.decodeTo(Schema.BigInt,SchemaTransformation.transform({decode:(input)=>BigInt(input),encode:(output)=>output}))).pipe(Schema.decodeTo(Schema.Literal(1000000000000000000000n)))`,
+    )
+  })
+})

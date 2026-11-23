@@ -8,6 +8,7 @@ import {
   isShapelessMember,
   isStringWireLocation,
 } from '../../guard/index.js'
+import { bigintValueLiteral } from '../../helper/bigint.js'
 import {
   enumWithoutWrappedNull,
   constraintMessage,
@@ -345,7 +346,7 @@ function node(
     const errorPart = zodErrorPart(constMessage)
     const literal =
       typeof value === 'number' && isInt64(schema)
-        ? `z.literal(${value}n${errorPart})`
+        ? `z.literal(${bigintValueLiteral(value)}${errorPart})`
         : isPrimitive(value)
           ? `z.literal(${JSON.stringify(value)}${errorPart})`
           : `z.custom<${JSON.stringify(value)}>((input) => ${deepEqualExpression(value, 'input')}${errorPart})`

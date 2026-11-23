@@ -1,11 +1,6 @@
 import * as z from 'zod'
 
-type _Limits = {
-  between?: bigint
-  large?: bigint
-  level?: 1000000000000000000000n | 2n
-  big?: _Big
-}
+type _Limits = { between?: bigint; large?: bigint; level?: 9007199254740992n | 2n; big?: _Big }
 
 type _Big = bigint
 
@@ -17,12 +12,12 @@ export const Limits: z.ZodType<_Limits> = z.object({
     .union([z.bigint(), z.number().int(), z.string().regex(/^-?\d+$/)])
     .transform((val) => BigInt(val))
     .pipe(z.int64())
-    .default(1000000000000000000000n)
+    .default(9007199254740992n)
     .exactOptional(),
   level: z
     .union([z.bigint(), z.number().int(), z.string().regex(/^-?\d+$/)])
     .transform((val) => BigInt(val))
-    .pipe(z.union([z.literal(1000000000000000000000n), z.literal(2n)]))
+    .pipe(z.union([z.literal(9007199254740992n), z.literal(2n)]))
     .exactOptional(),
   big: z
     .lazy(() => Big)

@@ -1,7 +1,12 @@
 import { isNullable } from '../guard/index.js'
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault } from '../utils/index.js'
-import { bigintFormatOf, bigintValueLiteral } from './bigint.js'
+import {
+  bigintFormatOf,
+  bigintValueLiteral,
+  isBigintSchema,
+  isWritableBigintDefault,
+} from './bigint.js'
 import { readCodeExtension } from './code-extensions.js'
 import type { CodeExtensionOptions } from './code-extensions.js'
 import { serializeJSValue } from './meta.js'
@@ -73,9 +78,15 @@ export function valibotWrap(valibotStr: string, schema: JSONSchema, options?: Va
     schema.default !== undefined
       ? coerceDefault(schema, schema.default, options?.definitions)
       : undefined
-  const withDefault = defaultResult?.keep
-    ? `v.optional(${withNullText},${defaultLiteral(bigintFormatOf(schema, options?.definitions), defaultResult.value, options?.stringWire === true)})`
-    : withNullText
+  // A `default` beside a `$ref` is the bigint its target holds; a fraction there is dropped.
+  const defaultFormat =
+    typeof defaultResult?.value === 'number'
+      ? bigintFormatOf(schema, options?.definitions, isBigintSchema)
+      : undefined
+  const withDefault =
+    defaultResult?.keep === true && isWritableBigintDefault(defaultResult.value, defaultFormat)
+      ? `v.optional(${withNullText},${defaultLiteral(defaultFormat, defaultResult.value, options?.stringWire === true)})`
+      : withNullText
 
   const examples = examplesOf(schema)
   const actions: string[] = []

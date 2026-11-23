@@ -1,11 +1,6 @@
 import * as v from 'valibot'
 
-type _Limits = {
-  between?: bigint
-  large?: bigint
-  level?: 1000000000000000000000n | 2n
-  big?: _Big
-}
+type _Limits = { between?: bigint; large?: bigint; level?: 9007199254740992n | 2n; big?: _Big }
 
 type _Big = bigint
 
@@ -32,7 +27,7 @@ export const Limits: v.GenericSchema<unknown, _Limits> = v.object({
       v.minValue(-9223372036854775808n),
       v.maxValue(9223372036854775807n),
     ),
-    1000000000000000000000n,
+    9007199254740992n,
   ),
   level: v.optional(
     v.pipe(
@@ -42,7 +37,7 @@ export const Limits: v.GenericSchema<unknown, _Limits> = v.object({
         v.pipe(v.string(), v.regex(/^-?\d+$/)),
       ]),
       v.transform((input) => BigInt(input)),
-      v.union([v.literal(1000000000000000000000n), v.literal(2n)]),
+      v.union([v.literal(9007199254740992n), v.literal(2n)]),
     ),
   ),
   big: v.optional(

@@ -115,8 +115,29 @@ export function bigintBounds(schema: JSONSchema): BigintSchema {
 }
 
 /**
+ * Whether a bigint-format node is emitted as bigints. An `enum` or `const` is spelled with
+ * bigint literals for `int64` / `uint64` and with number literals for `format: bigint`;
+ * any other node is a bigint schema only as an `integer` (a `number` with the format is a
+ * plain number schema).
+ */
+export function isBigintSchema(node: DefaultSchema) {
+  if (node.enum !== undefined || node.const !== undefined) return node.format !== 'bigint'
+  const types = node.type === undefined ? [] : [node.type].flat()
+  return types.includes('integer')
+}
+
+/**
+ * Whether a default can be written for a node of the given bigint format: a fraction has
+ * no bigint spelling, and `BigInt(1.5)` would throw as the generated module loads.
+ */
+export function isWritableBigintDefault(value: unknown, format: string | undefined) {
+  return typeof value !== 'number' || format === undefined || Number.isInteger(value)
+}
+
+/**
  * The bigint `format` (`int64`, `uint64` or `bigint`) a node's values have: its own, or the
- * one on the definition its `$ref` names or on an `allOf` member, so a `default` beside a
+ * one on the definition its `$ref` names, on an `allOf` member or on every non-null member
+ * of a union, so a `default` beside a
  * `$ref` is written as the bigint the target holds. `holdsBigint` narrows which nodes count,
  * for a target that spells some of them (an `enum`) with numbers. A reference already being
  * read ends the search, as a cycle does.
@@ -141,7 +162,11 @@ export function bigintFormatOf(
       const found = search(member, reading)
       if (found !== undefined) return found
     }
-    return undefined
+    // A union is a bigint when every member but `null` is the same one: the nullable
+    // `anyOf: [{ $ref }, { type: 'null' }]` of OpenAPI 3.1.
+    const members = (node.anyOf ?? node.oneOf ?? []).filter((member) => member.type !== 'null')
+    const [first, ...rest] = members.map((member) => search(member, reading))
+    return first !== undefined && rest.every((found) => found === first) ? first : undefined
   }
   return search(schema, new Set())
 }

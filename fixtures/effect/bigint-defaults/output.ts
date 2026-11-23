@@ -3,7 +3,7 @@ import { Effect, Schema, SchemaTransformation } from 'effect'
 type _Limits = {
   readonly between?: bigint
   readonly large?: bigint
-  readonly level?: 1000000000000000000000n | 2n
+  readonly level?: 9007199254740992n | 2n
   readonly big?: _Big
 }
 
@@ -37,7 +37,7 @@ export const Limits: Schema.Schema<_Limits> = Schema.Struct({
     .check(
       Schema.isBetweenBigInt({ minimum: -9223372036854775808n, maximum: 9223372036854775807n }),
     )
-    .pipe(Schema.withDecodingDefault(Effect.succeed(1000000000000000000000n))),
+    .pipe(Schema.withDecodingDefault(Effect.succeed(9007199254740992n))),
   level: Schema.optionalKey(
     Schema.Union([
       Schema.BigInt,
@@ -53,7 +53,7 @@ export const Limits: Schema.Schema<_Limits> = Schema.Struct({
           }),
         ),
       )
-      .pipe(Schema.decodeTo(Schema.Literals([1000000000000000000000n, 2n]))),
+      .pipe(Schema.decodeTo(Schema.Literals([9007199254740992n, 2n]))),
   ),
   big: Schema.suspend(() => Big).pipe(Schema.withDecodingDefault(Effect.succeed(BigInt(5)))),
 })

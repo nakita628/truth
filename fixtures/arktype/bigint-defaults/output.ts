@@ -18,7 +18,7 @@ const types = scope({
     'level?': type('bigint | number.integer')
       .or(/^-?\d+$/)
       .pipe((data) => BigInt(data))
-      .to('1000000000000000000000n | 2n'),
+      .to('9007199254740992n | 2n'),
     'big?': 'Big',
   },
 }).export()

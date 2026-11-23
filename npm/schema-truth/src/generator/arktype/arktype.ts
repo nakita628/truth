@@ -16,6 +16,7 @@ import {
   isShapelessMember,
   isStringWireLocation,
 } from '../../guard/index.js'
+import { bigintValueLiteral } from '../../helper/bigint.js'
 import {
   enumWithoutWrappedNull,
   arktypePreprocess,
@@ -145,7 +146,7 @@ function keywordConstraint(schema: JSONSchema) {
 
 function formatConst(value: unknown, isBigint: boolean) {
   if (typeof value === 'string') return `"'${value}'"`
-  if (typeof value === 'number' && isBigint) return `"${value}n"`
+  if (typeof value === 'number' && isBigint) return `"${bigintValueLiteral(value)}"`
   if (typeof value === 'number' || typeof value === 'boolean') return `"${String(value)}"`
   if (value !== null && typeof value === 'object') return '"unknown"'
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- JSON.stringify returns undefined for undefined, a function or a symbol; lib.d.ts types it as string

@@ -2335,3 +2335,11 @@ describe('a `not` enum on a nullable string lets `null` through (#18)', () => {
     expect(zod(input)).toBe(expected)
   })
 })
+
+describe('zod const of an int64 beyond 1e21', () => {
+  it('spells the literal in digits', () => {
+    expect(zod({ type: 'integer', format: 'int64', const: 1e21 })).toBe(
+      String.raw`z.union([z.bigint(),z.number().int(),z.string().regex(/^-?\d+$/)]).transform((val)=>BigInt(val)).pipe(z.literal(1000000000000000000000n))`,
+    )
+  })
+})

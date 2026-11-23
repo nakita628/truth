@@ -13,8 +13,8 @@
       "maximum": 10,
       "exclusiveMaximum": 8
     },
-    "large": { "type": "integer", "format": "int64", "default": 1e21 },
-    "level": { "type": "integer", "format": "int64", "enum": [1e21, 2] },
+    "large": { "type": "integer", "format": "int64", "default": 9007199254740992 },
+    "level": { "type": "integer", "format": "int64", "enum": [9007199254740992, 2] },
     "big": { "$ref": "#/$defs/Big", "default": 5 }
   }
 }

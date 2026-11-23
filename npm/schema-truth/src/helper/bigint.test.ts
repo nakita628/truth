@@ -1,7 +1,14 @@
 import { describe, expect, it } from 'vite-plus/test'
 
 import type { JSONSchema } from '../parser/index.js'
-import { bigintBounds, bigintDivisor, bigintFormatOf, bigintValueLiteral } from './bigint.js'
+import {
+  bigintBounds,
+  bigintDivisor,
+  bigintFormatOf,
+  bigintValueLiteral,
+  isBigintSchema,
+  isWritableBigintDefault,
+} from './bigint.js'
 import type { BigintSchema } from './bigint.js'
 
 describe('bigintBounds', () => {
@@ -66,6 +73,17 @@ describe('bigintValueLiteral', () => {
   })
 })
 
+describe('isWritableBigintDefault', () => {
+  it.concurrent.each<[unknown, string | undefined, boolean]>([
+    [5, 'bigint', true],
+    [1.5, 'bigint', false],
+    [1.5, undefined, true],
+    ['a', 'int64', true],
+  ])('isWritableBigintDefault(%o, %o) -> %o', (value, format, expected) => {
+    expect(isWritableBigintDefault(value, format)).toBe(expected)
+  })
+})
+
 describe('bigintFormatOf', () => {
   const definitions = {
     Big: { type: 'integer', format: 'bigint' },
@@ -78,9 +96,14 @@ describe('bigintFormatOf', () => {
     [{ $ref: '#/$defs/Big', default: 5 }, 'bigint'],
     [{ $ref: '#/components/schemas/Long', default: 5 }, 'int64'],
     [{ allOf: [{ $ref: '#/$defs/Long' }], default: 5 }, 'int64'],
+    [{ anyOf: [{ $ref: '#/$defs/Long' }, { type: 'null' }], default: 5 }, 'int64'],
+    [{ oneOf: [{ $ref: '#/$defs/Long' }, { type: 'string' }] }, undefined],
+    [{ type: 'number', format: 'bigint' }, undefined],
+    [{ format: 'int64', enum: [1, 2] }, 'int64'],
+    [{ type: 'integer', format: 'bigint', enum: [1, 2] }, undefined],
     [{ $ref: '#/$defs/Loop' }, undefined],
     [{ $ref: '#/$defs/Missing' }, undefined],
   ])('bigintFormatOf(%o) -> %s', (schema, expected) => {
-    expect(bigintFormatOf(schema, definitions)).toBe(expected)
+    expect(bigintFormatOf(schema, definitions, isBigintSchema)).toBe(expected)
   })
 })

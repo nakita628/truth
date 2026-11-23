@@ -833,7 +833,12 @@ describe('bigint-defaults', () => {
 
   it('fills a bigint default beside a $ref that the bigint target accepts', () => {
     const filled = Value.Default(Limits, {})
-    expect(filled).toStrictEqual({ big: 5n, large: 1e21 })
+    expect(filled).toStrictEqual({ big: 5n, large: 9007199254740992 })
     expect(Value.Check(Limits, { big: 5n })).toBe(true)
+  })
+
+  // A bigint default is not JSON: the trade-off for a default the schema accepts.
+  it('does not serialize once it carries a bigint default', () => {
+    expect(() => JSON.stringify(Limits)).toThrow(TypeError)
   })
 })
