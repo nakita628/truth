@@ -61,7 +61,7 @@ So a pull request with a changeset is released when it merges. The jobs hold sep
 
 ### Repository settings
 
-The release and the hourly Issue loop rely on settings that live in the repository's settings rather than in its files. The Issue loop is a scheduled Claude Code session: each hour it takes the oldest open issue opened by the owner or labelled `claude`, works on it on an `issue-<number>` branch, opens a pull request, has it reviewed and squash-merges it once CI passes.
+The release and the Issue loop rely on settings that live in the repository's settings rather than in its files. The Issue loop is a Claude Code scheduled task: it starts when the owner opens an issue, and once a day it takes the oldest open issue the owner opened that has no pull request and no `question` label. It works on an `issue-<number>` branch, pushes it when it opens the pull request (leaving the issue alone if that branch or a linked pull request already exists), has the pull request reviewed and squash-merges it once CI passes. It acts only on the owner's issues, comments and reviews.
 
 | Setting                                                                                                | Why                                                                                                                                                                                  |
 | ------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -70,7 +70,7 @@ The release and the hourly Issue loop rely on settings that live in the reposito
 | **General → Pull Requests**: Automatically delete head branches                                        | a merged pull request's branch goes with it; [delete-closed-branch.yml](./.github/workflows/delete-closed-branch.yml) deletes the branch of one closed without merging               |
 | No branch protection rule or ruleset on `main` that requires an approving review or a status check     | the Version Packages pull request gets no review and no Test run of its own (GitHub starts none for the workflow's token); `release.yml` tests the merge on `main` before publishing |
 | **Environments → `release`**: deployment branches limited to `main`, no required reviewers             | only `main` reaches the npm OIDC token, and no publish waits for an approval                                                                                                         |
-| A `claude` label                                                                                       | hands an issue someone else opened to the Issue loop                                                                                                                                 |
+| A `question` label (one of GitHub's defaults)                                                          | marks an issue that waits on the owner; the Issue loop skips it                                                                                                                      |
 
 The owner applies them with the commands below. The `PUT` on the environment replaces its protection rules, so it also drops a required reviewer or a wait timer.
 
@@ -79,7 +79,6 @@ gh api -X PUT repos/nakita628/truth/actions/permissions/workflow -f default_work
 gh api -X PATCH repos/nakita628/truth -F allow_squash_merge=true -F delete_branch_on_merge=true
 gh api -X PUT repos/nakita628/truth/environments/release --input - <<<'{"deployment_branch_policy":{"protected_branches":false,"custom_branch_policies":true}}'
 gh api -X POST repos/nakita628/truth/environments/release/deployment-branch-policies -f name=main -f type=branch
-gh label create claude -R nakita628/truth --description "Hand this issue to the Issue loop"
 ```
 
 ## Contributing

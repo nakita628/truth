@@ -12,7 +12,7 @@ not in the conversation.
 2. Reproduce before fixing: a failing unit-test row or fixture case that shows the bug or
    the missing behaviour.
 3. Branch from `main`, named `type/topic` (`fix/valibot-enum`, `feat/x-brand`). Never commit
-   to `main`. The hourly Issue loop (Repository settings in `README.md`) names its branch
+   to `main`. The Issue loop (Repository settings in `README.md`) names its branch
    `issue-<number>` instead.
 4. One topic per pull request. A generator fix and a docs rewrite are two pull requests.
 
