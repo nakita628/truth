@@ -1,6 +1,6 @@
-# AGENTS.md
+# Contributing to truth
 
-Instructions for coding agents working on this repository. It is a pnpm workspace of npm packages, built and tested through Bazel; the layout, the commands and the release procedure are in [README.md](./README.md). Read it first.
+How to change this repository, for people and coding agents alike. It is a pnpm workspace of npm packages, built and tested through Bazel; the layout, the commands and the release procedure are in [README.md](./README.md). Read it first.
 
 ## Rules
 
