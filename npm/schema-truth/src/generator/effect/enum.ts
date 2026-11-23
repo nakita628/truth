@@ -9,6 +9,7 @@ function literal(v: unknown, isBigint: boolean) {
   if (typeof v === 'string') return `"${v}"`
   if (typeof v === 'number' && isBigint) return `${v}n`
   if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- JSON.stringify returns undefined for undefined, a function or a symbol; lib.d.ts types it as string
   return JSON.stringify(v) ?? 'null'
 }
 
@@ -17,6 +18,7 @@ function literal(v: unknown, isBigint: boolean) {
  * primitive, so an object or array value is matched by a guard.
  */
 export function deepEqualSchema(values: readonly unknown[]) {
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- JSON.stringify returns undefined for undefined, a function or a symbol; lib.d.ts types it as string
   const type = values.map((v) => JSON.stringify(v) ?? 'null').join('|')
   const test = values.map((v) => `(${deepEqualExpression(v, 'input')})`).join('||')
   return `Schema.declare((input: unknown): input is ${type} => ${test})`
@@ -49,8 +51,8 @@ export function _enum(schema: JSONSchema) {
   const errorMessage = enumMessage ?? schema['x-error-message']
   const annotate = (code: string) =>
     errorMessage ? `${code}.annotate(${effectError(errorMessage)})` : code
-  const tuple = (arr: readonly unknown[]) =>
-    `Schema.Tuple([${arr.map((i: unknown) => `Schema.Literal(${lit(i)})`).join(',')}])`
+  const tuple = (members: readonly unknown[]) =>
+    `Schema.Tuple([${members.map((i: unknown) => `Schema.Literal(${lit(i)})`).join(',')}])`
   const literals = (values: readonly unknown[]) => {
     // `Schema.Literals` takes only `LiteralValue`s (string, number, bigint, boolean): a
     // `null` among the values is `Schema.Null`, joined to the rest by `Schema.NullOr`.

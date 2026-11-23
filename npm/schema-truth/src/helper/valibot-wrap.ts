@@ -81,7 +81,7 @@ export function valibotWrap(valibotStr: string, schema: JSONSchema, options?: Va
   if (schema.description !== undefined) {
     actions.push(`v.description(${JSON.stringify(schema.description)})`)
   }
-  const metaObj: Record<string, unknown> = {}
+  const metaObj: { [key: string]: unknown } = {}
   if (examples !== undefined) metaObj.examples = examples
   if (schema.deprecated !== undefined) metaObj.deprecated = schema.deprecated
   if (schema.externalDocs !== undefined) metaObj.externalDocs = schema.externalDocs

@@ -101,7 +101,7 @@ export function effectWrap(effectStr: string, schema: JSONSchema, options?: Effe
     : withCodeExts
 
   const examples = examplesOf(schema)
-  const ann: Record<string, unknown> = {}
+  const ann: { [key: string]: unknown } = {}
   if (schema.description !== undefined) ann.description = schema.description
   // v4 types `examples` as `ReadonlyArray<T>`. OpenAPI examples are
   // documentation metadata, not constraints, and specs may carry incomplete

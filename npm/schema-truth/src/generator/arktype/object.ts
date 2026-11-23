@@ -175,7 +175,7 @@ export function object(
       : ''
   const dependentRequiredNarrows: readonly string[] = schema.dependentRequired
     ? Object.entries(schema.dependentRequired).map(([key, deps]) => {
-        const depsCheck = deps.map((d) => `'${d}' in data`).join(' && ')
+        const depsCheck = deps.map((dependency) => `'${dependency}' in data`).join(' && ')
         return narrowPredicate(`!('${key}' in data) || (${depsCheck})`, depReqMessage)
       })
     : []
@@ -197,18 +197,18 @@ export function object(
   const unevaluatedPropertiesNarrow = (() => {
     // `additionalProperties` as a schema holds the keys no property or pattern covers, as
     // `unevaluatedProperties` does here.
-    const u =
+    const restSchema =
       typeof schema.additionalProperties === 'object'
         ? schema.additionalProperties
         : schema.unevaluatedProperties
-    if (u === undefined || u === true) return ''
+    if (restSchema === undefined || restSchema === true) return ''
     const message =
       typeof schema.additionalProperties === 'object' ? addlPropsMessage : unevalPropsRawMessage
-    if (u === false) {
+    if (restSchema === false) {
       return narrowPredicate(`Object.keys(data).every((key) => ${isEvaluated})`, message)
     }
-    if (typeof u === 'object') {
-      const s = callbackType(arktype(u, rootName, isArktype, options), isArktype)
+    if (typeof restSchema === 'object') {
+      const s = callbackType(arktype(restSchema, rootName, isArktype, options), isArktype)
       return narrowPredicate(
         `Object.entries(data).every(([key, value]) => ${isEvaluated} || ${s}.allows(value))`,
         message,

@@ -403,14 +403,14 @@ function leastCommonMultiple(left: number, right: number) {
 }
 
 function greatestCommonDivisor(left: number, right: number) {
-  let x = left
-  let y = right
-  while (y !== 0) {
-    const next = x % y
-    x = y
-    y = next
+  let a = left
+  let b = right
+  while (b !== 0) {
+    const next = a % b
+    a = b
+    b = next
   }
-  return x
+  return a
 }
 
 function numericGuard(schema: JSONSchema, param: string) {

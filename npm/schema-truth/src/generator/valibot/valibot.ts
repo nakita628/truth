@@ -288,7 +288,10 @@ function node(
       isKeywordOnlyMember(s) ? keywordConstraint(s) : valibot(s, rootName, isValibot, options),
     )
     if (schemas.length === 0) return valibotWrap('v.any()', { ...schema, nullable })
-    const intersected = schemas.length === 1 ? schemas[0] : `v.intersect([${schemas.join(',')}])`
+    const intersected =
+      schemas.length === 1 && schemas[0] !== undefined
+        ? schemas[0]
+        : `v.intersect([${schemas.join(',')}])`
     const allOfMessage = schema['x-allOf-message']
     const baseResult = allOfMessage
       ? (() => {
@@ -306,6 +309,7 @@ function node(
 
   if (schema.not) {
     const { not: inner, ...withoutNot } = schema
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- the document is parsed JSON, never checked against the type: a null can sit where the type says a schema
     if (typeof inner !== 'object' || inner === null) return valibotWrap('v.any()', schema)
     const notMessage = schema['x-not-message']
     const errorPart = valibotErrorPart(notMessage)
@@ -363,11 +367,11 @@ function node(
   }
 
   const types = normalizeTypes(schema.type)
-  const primitive = (t: string) => {
-    if (t === 'string') return string(schema)
-    if (t === 'number') return number(schema, { wire: isWireCoerced })
-    if (t === 'integer') return integer(schema, { wire: isWireCoerced })
-    if (t !== 'boolean') return undefined
+  const primitive = (primitiveType: string) => {
+    if (primitiveType === 'string') return string(schema)
+    if (primitiveType === 'number') return number(schema, { wire: isWireCoerced })
+    if (primitiveType === 'integer') return integer(schema, { wire: isWireCoerced })
+    if (primitiveType !== 'boolean') return undefined
     const errorMessage = schema['x-error-message']
     const errorArg = errorMessage ? valibotError(errorMessage) : ''
     return isWireCoerced ? stringbool(errorArg) : `v.boolean(${errorArg})`
@@ -378,24 +382,24 @@ function node(
       .filter((m) => m !== undefined)
     return valibotWrap(`v.union([${members.join(',')}])`, schema)
   }
-  for (const t of ['string', 'number', 'integer', 'boolean']) {
-    if (!types.includes(t)) continue
-    const expression = primitive(t)
+  for (const primitiveType of ['string', 'number', 'integer', 'boolean']) {
+    if (!types.includes(primitiveType)) continue
+    const expression = primitive(primitiveType)
     if (expression !== undefined) return valibotWrap(expression, schema)
   }
 
   if (types.includes('array')) {
-    if (schema.prefixItems?.length) {
+    if (schema.prefixItems !== undefined && schema.prefixItems.length > 0) {
       const items = schema.prefixItems.map((s) => valibot(s, rootName, isValibot, options))
       // JSON Schema 2020-12 §11.3: unevaluatedItems applies beyond prefixItems.
       // `v.tuple` accepts extras by default; `v.strictTuple` rejects them.
       // `unevaluatedItems: schema` → `v.tupleWithRest(...)`.
-      const u = schema.unevaluatedItems
+      const unevaluatedItems = schema.unevaluatedItems
       const unevaluatedItemsMessage = schema['x-unevaluatedItems-message']
       const unevaluatedItemsArg = valibotErrorPart(unevaluatedItemsMessage)
-      const tupleExpr = isSchemaObject(u)
-        ? `v.tupleWithRest([${items.join(',')}],${valibot(u, rootName, isValibot, options)})`
-        : u === false
+      const tupleExpr = isSchemaObject(unevaluatedItems)
+        ? `v.tupleWithRest([${items.join(',')}],${valibot(unevaluatedItems, rootName, isValibot, options)})`
+        : unevaluatedItems === false
           ? `v.strictTuple([${items.join(',')}]${unevaluatedItemsArg})`
           : `v.tuple([${items.join(',')}])`
       const prefixItemsMessage = schema['x-prefixItems-message']
@@ -422,9 +426,9 @@ function node(
     const uniqueArg = valibotErrorPart(uniqueItemsMessage)
     // v3.0: contains / minContains / maxContains as separate checks
     const containsActions = (() => {
-      const c = schema.contains
-      if (!c) return []
-      const containsSchema = valibot(c, rootName, isValibot, options)
+      const contains = schema.contains
+      if (!contains) return []
+      const containsSchema = valibot(contains, rootName, isValibot, options)
       const minC = schema.minContains
       const maxC = schema.maxContains
       const errorMessage = schema['x-error-message']

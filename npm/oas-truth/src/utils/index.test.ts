@@ -138,10 +138,10 @@ describe('makeSchemaVarName', () => {
     expect(makeSchemaVarName('#/components/schemas/User%20Name')).toBe('UserNameSchema')
   })
   it('returns undefined for a non-schema ref', () => {
-    expect(makeSchemaVarName('#/components/responses/X')).toBe(undefined)
+    expect(makeSchemaVarName('#/components/responses/X')).toBeUndefined()
   })
   it('returns undefined for an unrelated string', () => {
-    expect(makeSchemaVarName('User')).toBe(undefined)
+    expect(makeSchemaVarName('User')).toBeUndefined()
   })
 })
 

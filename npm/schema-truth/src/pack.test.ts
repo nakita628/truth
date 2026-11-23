@@ -69,6 +69,6 @@ describe('package pack', () => {
     )
     expect(packed.scripts.prepack).toBeUndefined()
     expect(packed.scripts.postpack).toBeUndefined()
-    expect(packed.packedFiles.includes('README.md')).toBe(true)
+    expect(packed.packedFiles).toContain('README.md')
   })
 })

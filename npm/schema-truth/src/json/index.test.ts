@@ -5,7 +5,7 @@ import { parseJson } from './index.js'
 
 describe('parseJson', () => {
   it('parses an object', async () => {
-    expect(await runGenerator(parseJson('{"a":1}'))).toStrictEqual({ a: 1 })
+    await expect(runGenerator(parseJson('{"a":1}'))).resolves.toStrictEqual({ a: 1 })
   })
 
   it('fails on invalid JSON', async () => {

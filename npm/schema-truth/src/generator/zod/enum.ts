@@ -25,6 +25,7 @@ function lit(v: unknown, isBigint: boolean) {
   if (typeof v === 'string') return `'${v.replaceAll("'", "\\'")}'`
   if (typeof v === 'number' && isBigint) return `${v}n`
   if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- JSON.stringify returns undefined for undefined, a function or a symbol; lib.d.ts types it as string
   return JSON.stringify(v) ?? 'null'
 }
 
@@ -46,7 +47,7 @@ export function _enum(schema: JSONSchema) {
     if (Array.isArray(v)) return `z.tuple([${v.map(valueSchema).join(',')}])`
     if (isPlainObject(v)) {
       const entries = Object.entries(v)
-      return `z.strictObject({${entries.map(([k, val]) => `${makeSafeKey(k)}:${valueSchema(val)}`).join(',')}})`
+      return `z.strictObject({${entries.map(([k, member]) => `${makeSafeKey(k)}:${valueSchema(member)}`).join(',')}})`
     }
     return `z.literal(${lit(v, isBigint)})`
   }
@@ -60,10 +61,11 @@ export function _enum(schema: JSONSchema) {
   // Inner tuple — used inside a z.union of multiple tuples; the outer
   // union's errorArg covers this tuple too, so neither the tuple wrapper
   // nor its inner literals receive errorArg.
-  const innerTuple = (arr: readonly unknown[]) => `z.tuple([${arr.map(innerLit).join(',')}])`
+  const innerTuple = (members: readonly unknown[]) =>
+    `z.tuple([${members.map(innerLit).join(',')}])`
   // Outer tuple — used when a single tuple is the entire schema output.
-  const outerTuple = (arr: readonly unknown[]) =>
-    `z.tuple([${arr.map(innerLit).join(',')}]${errorArg})`
+  const outerTuple = (members: readonly unknown[]) =>
+    `z.tuple([${members.map(innerLit).join(',')}]${errorArg})`
   if (hasType(schema, 'number') || hasType(schema, 'integer') || hasType(schema, 'boolean')) {
     return schema.enum.length > 1
       ? `z.union([${schema.enum.map(innerLit).join(',')}]${errorArg})`

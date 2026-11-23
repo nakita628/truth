@@ -25,7 +25,7 @@ export function joinDeclarations(
   },
 ) {
   if (declarations.length === 0) return ''
-  const body = declarations.map((d) => d.code).join(';')
+  const body = declarations.map((declaration) => declaration.code).join(';')
   const text = options?.trailingNewline === true ? `${body}\n` : body
   const importLine =
     typeof options?.importLine === 'function' ? options.importLine(body) : options?.importLine

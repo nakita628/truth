@@ -74,7 +74,7 @@ export function zodWrap(zodStr: string, schema: JSONSchema, options?: ZodWrapOpt
   const withPipe = pipe ? `${withTransform}${pipe}` : withTransform
 
   const examples = examplesOf(schema)
-  const metaObj: Record<string, unknown> = {}
+  const metaObj: { [key: string]: unknown } = {}
   if (schema.description !== undefined) metaObj.description = schema.description
   if (examples !== undefined) metaObj.examples = examples
   if (schema.deprecated !== undefined) metaObj.deprecated = schema.deprecated

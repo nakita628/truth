@@ -54,6 +54,7 @@ export function evaluatedProperties(
   }
   const next = schema.$ref === undefined ? reading : new Set([...reading, schema.$ref])
   for (const member of members) {
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- the document is parsed JSON, never checked against the type: a null can sit where the type says a schema
     if (typeof member !== 'object' || member === null) continue
     const evaluated = evaluatedProperties(member, definitions, next)
     if (evaluated === undefined) return undefined

@@ -48,18 +48,17 @@ function rewriteBracedHex(pattern: string) {
     if (char === '\\' && pattern.startsWith('x{', index + 1)) {
       const close = pattern.indexOf('}', index + 3)
       const hex = close > index + 3 ? pattern.slice(index + 3, close) : ''
-      if (/^[0-9A-Fa-f]+$/u.test(hex)) {
-        const codePoint = Number.parseInt(hex, 16)
-        if (codePoint <= 1_114_111) {
-          if (codePoint > 65_535) {
-            unicode = true
-            out += `\\u{${hex}}`
-          } else {
-            out += `\\u${hex.padStart(4, '0')}`
-          }
-          index = close
-          continue
+      // Not hex digits: NaN, which no comparison below admits.
+      const codePoint = /^[0-9A-Fa-f]+$/u.test(hex) ? Number.parseInt(hex, 16) : Number.NaN
+      if (codePoint <= 1_114_111) {
+        if (codePoint > 65_535) {
+          unicode = true
+          out += `\\u{${hex}}`
+        } else {
+          out += `\\u${hex.padStart(4, '0')}`
         }
+        index = close
+        continue
       }
     }
     out += char

@@ -134,7 +134,7 @@ function conform(shape: Shape, value: unknown): unknown {
     case 'type': {
       if (typeof value === 'string') return value
       if (!Array.isArray(value)) return undefined
-      const types = value.filter((t) => typeof t === 'string')
+      const types = value.filter((member) => typeof member === 'string')
       return types.length > 0 ? types : undefined
     }
     case 'stringList':

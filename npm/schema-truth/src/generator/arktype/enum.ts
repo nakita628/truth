@@ -8,6 +8,7 @@ function lit(v: unknown, isBigint: boolean) {
   if (typeof v === 'string') return `'${v}'`
   if (typeof v === 'number' && isBigint) return `${v}n`
   if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- JSON.stringify returns undefined for undefined, a function or a symbol; lib.d.ts types it as string
   return JSON.stringify(v) ?? 'null'
 }
 

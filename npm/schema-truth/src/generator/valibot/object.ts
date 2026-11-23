@@ -197,7 +197,7 @@ export function object(
       : ''
   const dependentRequiredChecks: readonly string[] = schema.dependentRequired
     ? Object.entries(schema.dependentRequired).map(([key, deps]) => {
-        const depsCheck = deps.map((d) => `'${d}' in input`).join('&&')
+        const depsCheck = deps.map((dependency) => `'${dependency}' in input`).join('&&')
         return `v.check((input)=>!('${key}' in input)||(${depsCheck})${depReqErrorArg})`
       })
     : []

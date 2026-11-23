@@ -342,7 +342,8 @@ export function typebox(
       ...patternOpt,
       ...(unevaluated === false
         ? ['unevaluatedProperties:false']
-        : typeof unevaluated === 'object' && unevaluated !== null
+        : // oxlint-disable-next-line typescript/no-unnecessary-condition -- the document is parsed JSON, never checked against the type: a null can sit where the type says a schema
+          typeof unevaluated === 'object' && unevaluated !== null
           ? [`unevaluatedProperties:${typebox(unevaluated, rootName, isTypebox, childOptions)}`]
           : []),
     ]
@@ -359,7 +360,10 @@ export function typebox(
     }
     const defaultOpt = typeboxDefaultOpt(withMergedDefault, false, definitions)
     const baseResult =
-      schemas.length === 1 && unevaluatedOpt.length === 0 && defaultOpt.length === 0
+      schemas.length === 1 &&
+      schemas[0] !== undefined &&
+      unevaluatedOpt.length === 0 &&
+      defaultOpt.length === 0
         ? schemas[0]
         : tbComp(
             'Type.Intersect',
@@ -379,8 +383,9 @@ export function typebox(
     // constraints; a bare `not` falls back to a permissive `Type.Any()`.
     // `x-not-message` rides through `errorMessage` for ajv-compatible
     // downstreams; TypeBox's own `Value.Check` will not surface it.
+    // oxlint-disable-next-line no-unused-vars -- the binding is how the rest pattern leaves `not` out
     const { not: dropped, ...withoutNot } = schema
-    if (dropped !== undefined && withoutNot.type !== undefined) {
+    if (withoutNot.type !== undefined) {
       return typebox(withoutNot, rootName, isTypebox, options)
     }
     return typeboxWrap(
@@ -451,7 +456,7 @@ export function typebox(
   }
 
   if (types.includes('array')) {
-    if (schema.prefixItems?.length) {
+    if (schema.prefixItems !== undefined && schema.prefixItems.length > 0) {
       const items = schema.prefixItems.map((s) => typebox(s, rootName, isTypebox, childOptions))
       const prefixItemsMessage = schema['x-prefixItems-message']
       const tupleOpts = prefixItemsMessage

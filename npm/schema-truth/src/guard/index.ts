@@ -114,7 +114,7 @@ export function isDeepLocalPointer($ref: string) {
   if (!$ref.startsWith('#/')) return false
   const fragment = $ref.slice(2)
   const containers = ['components/schemas/', 'definitions/', '$defs/']
-  const matched = containers.find((c) => fragment.startsWith(c))
+  const matched = containers.find((container) => fragment.startsWith(container))
   return matched ? fragment.slice(matched.length).includes('/') : false
 }
 

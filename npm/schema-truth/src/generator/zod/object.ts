@@ -180,7 +180,7 @@ export function object(
   const dependentRequired = schema.dependentRequired
     ? Object.entries(schema.dependentRequired)
         .map(([key, deps]) => {
-          const depsCheck = deps.map((d) => `'${d}' in val`).join('&&')
+          const depsCheck = deps.map((dependency) => `'${dependency}' in val`).join('&&')
           return `.refine((val)=>!('${key}' in val)||(${depsCheck})${depReqErrorArg})`
         })
         .join('')

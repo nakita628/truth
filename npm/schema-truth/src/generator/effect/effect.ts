@@ -294,7 +294,8 @@ function node(
       isKeywordOnlyMember(s) ? keywordConstraint(s) : effect(s, rootName, isEffect, options),
     )
     if (schemas.length === 0) return effectWrap('Schema.Unknown', { ...schema, nullable })
-    const intersected = schemas.length === 1 ? schemas[0] : intersect(schemas)
+    const intersected =
+      schemas.length === 1 && schemas[0] !== undefined ? schemas[0] : intersect(schemas)
     const allOfMessage = schema['x-allOf-message']
     const messaged = allOfMessage ? wholeValueMessage(intersected, allOfMessage) : intersected
     const baseResult = objectKeysCheck(messaged, schema, rootName, isEffect, options)
@@ -311,6 +312,7 @@ function node(
 
   if (schema.not) {
     const { not: inner, ...withoutNot } = schema
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- the document is parsed JSON, never checked against the type: a null can sit where the type says a schema
     if (typeof inner !== 'object' || inner === null) return effectWrap('Schema.Unknown', schema)
     const notMessage = schema['x-not-message']
     const filterOpts = effectErrorPart(notMessage)
@@ -369,11 +371,11 @@ function node(
   if (schema.properties) return effectWrap(object(schema, rootName, isEffect, options), schema)
 
   const types = normalizeTypes(schema.type)
-  const primitive = (t: string) => {
-    if (t === 'string') return string(schema)
-    if (t === 'number') return number(schema, { wire: isWireCoerced })
-    if (t === 'integer') return integer(schema, { wire: isWireCoerced })
-    if (t !== 'boolean') return undefined
+  const primitive = (primitiveType: string) => {
+    if (primitiveType === 'string') return string(schema)
+    if (primitiveType === 'number') return number(schema, { wire: isWireCoerced })
+    if (primitiveType === 'integer') return integer(schema, { wire: isWireCoerced })
+    if (primitiveType !== 'boolean') return undefined
     const errorMessage = schema['x-error-message']
     const base = isWireCoerced ? stringbool() : 'Schema.Boolean'
     return errorMessage ? `${base}.annotate(${effectError(errorMessage)})` : base
@@ -384,23 +386,23 @@ function node(
       .filter((m) => m !== undefined)
     return effectWrap(`Schema.Union([${members.join(',')}])`, schema)
   }
-  for (const t of ['string', 'number', 'integer', 'boolean']) {
-    if (!types.includes(t)) continue
-    const expression = primitive(t)
+  for (const primitiveType of ['string', 'number', 'integer', 'boolean']) {
+    if (!types.includes(primitiveType)) continue
+    const expression = primitive(primitiveType)
     if (expression !== undefined) return effectWrap(expression, schema)
   }
 
   if (types.includes('array')) {
     const elementMessageWrap = wholeValueMessage
-    if (schema.prefixItems?.length) {
+    if (schema.prefixItems !== undefined && schema.prefixItems.length > 0) {
       const items = schema.prefixItems.map((s) => effect(s, rootName, isEffect, options))
       // JSON Schema 2020-12 §11.3: unevaluatedItems applies to elements beyond
       // prefixItems. `false` → fixed tuple (the default already rejects
       // extras); a schema → `Schema.TupleWithRest(tuple, [rest])`.
-      const u = schema.unevaluatedItems
+      const unevaluatedItems = schema.unevaluatedItems
       const tuple = `Schema.Tuple([${items.join(',')}])`
-      const tupleExpr = isSchemaObject(u)
-        ? `Schema.TupleWithRest(${tuple},[${effect(u, rootName, isEffect, options)}])`
+      const tupleExpr = isSchemaObject(unevaluatedItems)
+        ? `Schema.TupleWithRest(${tuple},[${effect(unevaluatedItems, rootName, isEffect, options)}])`
         : tuple
       const prefixItemsMessage = schema['x-prefixItems-message']
       const wrapped = prefixItemsMessage
@@ -426,9 +428,9 @@ function node(
     const uniqueArg = effectErrorPart(uniqueItemsMessage)
     // v3.0: contains / minContains / maxContains as separate filters
     const containsChecks = (() => {
-      const c = schema.contains
-      if (!c) return []
-      const containsSchema = effect(c, rootName, isEffect, options)
+      const contains = schema.contains
+      if (!contains) return []
+      const containsSchema = effect(contains, rootName, isEffect, options)
       const minC = schema.minContains
       const maxC = schema.maxContains
       const errorMessage = schema['x-error-message']
