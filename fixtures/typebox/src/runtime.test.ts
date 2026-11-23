@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test'
 import { User as DefsUser } from '../$defs/output.ts'
 import { Config as AdditionalConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
+import { Amount } from '../bigint-bounds/output.ts'
 import { Metadata } from '../pattern-hex/output.ts'
 import { Combined as AllofCombined } from '../allof/output.ts'
 import { StringOrNumber as AnyofStringOrNumber } from '../anyof/output.ts'
@@ -793,5 +794,22 @@ describe('circular (mutually recursive Type.Cyclic)', () => {
 
   it('rejects a non-object deeper in the chain', () => {
     expect(Value.Check(CircularA, { b: { a: 1 } })).toBe(false)
+  })
+})
+
+describe('bigint-bounds', () => {
+  it('honors a fractional minimum, an exclusive maximum and a fractional multipleOf', () => {
+    expect([0n, 5n, 10n, 95n, 100n, 4n].map((value) => Value.Check(Amount, value))).toStrictEqual([
+      false,
+      true,
+      true,
+      true,
+      false,
+      false,
+    ])
+  })
+
+  it('stays serializable', () => {
+    expect(() => JSON.stringify(Amount)).not.toThrow()
   })
 })

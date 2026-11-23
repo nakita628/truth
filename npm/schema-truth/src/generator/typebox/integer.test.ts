@@ -36,12 +36,12 @@ describe('typebox integer', () => {
         maximum: 100,
         exclusiveMaximum: true,
       },
-      'Type.BigInt({exclusiveMinimum:0n,exclusiveMaximum:100n})',
+      'Type.BigInt({exclusiveMinimum:0,exclusiveMaximum:100})',
     ],
     [{ type: 'integer', format: 'bigint' }, 'Type.BigInt()'],
     [
       { type: 'integer', format: 'bigint', exclusiveMinimum: 0, exclusiveMaximum: 100 },
-      'Type.BigInt({exclusiveMinimum:0n,exclusiveMaximum:100n})',
+      'Type.BigInt({exclusiveMinimum:0,exclusiveMaximum:100})',
     ],
     [
       {
@@ -50,18 +50,18 @@ describe('typebox integer', () => {
         exclusiveMinimum: 0,
         'x-exclusiveMinimum-message': 'm',
       },
-      'Type.BigInt({exclusiveMinimum:0n,errorMessage:{exclusiveMinimum:"m"}})',
+      'Type.BigInt({exclusiveMinimum:0,errorMessage:{exclusiveMinimum:"m"}})',
     ],
-    [{ type: 'integer', format: 'bigint', multipleOf: 5 }, 'Type.BigInt({multipleOf:5n})'],
+    [{ type: 'integer', format: 'bigint', multipleOf: 5 }, 'Type.BigInt({multipleOf:5})'],
     // A fractional divisor p/q reduces to p: a bigint is a multiple of 5/2 exactly when it
     // is a multiple of 5.
-    [{ type: 'integer', format: 'bigint', multipleOf: 2.5 }, 'Type.BigInt({multipleOf:5n})'],
-    [{ type: 'integer', format: 'bigint', multipleOf: 0.5 }, 'Type.BigInt({multipleOf:1n})'],
-    [{ type: 'integer', format: 'bigint', multipleOf: 0.75 }, 'Type.BigInt({multipleOf:3n})'],
-    [{ type: 'integer', format: 'bigint', multipleOf: 1.5e-7 }, 'Type.BigInt({multipleOf:3n})'],
+    [{ type: 'integer', format: 'bigint', multipleOf: 2.5 }, 'Type.BigInt({multipleOf:5})'],
+    [{ type: 'integer', format: 'bigint', multipleOf: 0.5 }, 'Type.BigInt({multipleOf:1})'],
+    [{ type: 'integer', format: 'bigint', multipleOf: 0.75 }, 'Type.BigInt({multipleOf:3})'],
+    [{ type: 'integer', format: 'bigint', multipleOf: 1.5e-7 }, 'Type.BigInt({multipleOf:3})'],
     [
       { type: 'integer', format: 'bigint', multipleOf: 1e21 },
-      'Type.BigInt({multipleOf:1000000000000000000000n})',
+      'Type.BigInt({multipleOf:1000000000000000000000})',
     ],
     // `value % BigInt(0)` throws, so a zero or negative divisor is left out with its message.
     [
@@ -69,18 +69,15 @@ describe('typebox integer', () => {
       'Type.BigInt()',
     ],
     [{ type: 'integer', format: 'bigint', multipleOf: -5 }, 'Type.BigInt()'],
-    // A fractional bound rounds to the integer that admits the same bigints.
+    // A bound stays a number: TypeBox compares a bigint with it directly, so a fraction
+    // needs no rounding and the schema stays serializable.
     [
       { type: 'integer', format: 'bigint', minimum: 0.5, maximum: 9.5 },
-      'Type.BigInt({minimum:1n,maximum:9n})',
-    ],
-    [
-      { type: 'integer', format: 'bigint', minimum: -0.5, maximum: -0.5 },
-      'Type.BigInt({minimum:0n,maximum:-1n})',
+      'Type.BigInt({minimum:0.5,maximum:9.5})',
     ],
     [
       { type: 'integer', format: 'bigint', exclusiveMinimum: 0.5, exclusiveMaximum: 9.5 },
-      'Type.BigInt({exclusiveMinimum:0n,exclusiveMaximum:10n})',
+      'Type.BigInt({exclusiveMinimum:0.5,exclusiveMaximum:9.5})',
     ],
     [
       {
@@ -91,16 +88,15 @@ describe('typebox integer', () => {
         maximum: 9.5,
         exclusiveMaximum: true,
       },
-      'Type.BigInt({exclusiveMinimum:0n,exclusiveMaximum:10n})',
+      'Type.BigInt({exclusiveMinimum:0.5,exclusiveMaximum:9.5})',
     ],
-    // The digits are spelled out: a template literal would write 1e+21.
     [
       { type: 'integer', format: 'bigint', minimum: -1e21, maximum: 1e21 },
-      'Type.BigInt({minimum:-1000000000000000000000n,maximum:1000000000000000000000n})',
+      'Type.BigInt({minimum:-1e+21,maximum:1e+21})',
     ],
     [
       { type: 'integer', format: 'bigint', minimum: 0, maximum: 100 },
-      'Type.BigInt({minimum:0n,maximum:100n})',
+      'Type.BigInt({minimum:0,maximum:100})',
     ],
     // A non-finite bound (a YAML `.inf`) has no bigint and is left out.
     [
@@ -166,7 +162,7 @@ describe('typebox integer', () => {
           minimum: 0,
           'x-error-message': 'Invalid bigint',
         },
-        'Type.BigInt({minimum:0n,errorMessage:"Invalid bigint"})',
+        'Type.BigInt({minimum:0,errorMessage:"Invalid bigint"})',
       ],
     ])('integer(%o) → %s', (input, expected) => {
       expect(integer(input)).toBe(expected)

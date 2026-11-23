@@ -1,23 +1,19 @@
 import { typeboxDefaultOpt, typeboxMetaOpts, typeboxRefOpt } from '../../helper/meta.js'
 import type { JSONSchema } from '../../parser/index.js'
 
-// A bound of a bigint is written as a bigint literal. A fractional bound is rounded to
-// the integer that admits the same bigints: an inclusive minimum and an exclusive maximum
-// round up, an inclusive maximum and an exclusive minimum round down. `BigInt(n)` spells
-// the digits out, where a template literal would write `1e+21`; a bound past 2^53 is only
-// as exact as the double the parser read it into. A non-finite bound (a YAML `.inf`) has
-// no bigint, so the keyword is left out rather than crashing generation.
-function bigintBound(keyword: string, value: unknown, round: 'ceil' | 'floor') {
-  return typeof value === 'number' && Number.isFinite(value)
-    ? `${keyword}:${BigInt(Math[round](value))}n`
-    : undefined
+// `Type.BigInt` takes its bounds as numbers: TypeBox compares a bigint with a number
+// bound directly, so a fractional bound needs no rounding, and the schema stays
+// serializable, where a bigint literal makes `JSON.stringify` throw. A non-finite bound
+// (a YAML `.inf`) is left out; `sanitizeSchema` drops it before the generator anyway.
+function bigintBound(keyword: string, value: unknown) {
+  return typeof value === 'number' && Number.isFinite(value) ? `${keyword}:${value}` : undefined
 }
 
-// TypeBox checks a bigint with `value % BigInt(multipleOf)`, so the divisor has to be a
-// positive integer. A bigint `x` is a multiple of `p / q` (in lowest terms) exactly when
-// it is a multiple of `p`, so a fraction reduces to its numerator: 2.5 is 5/2 and becomes
-// `5n`. The fraction is read from the number's shortest decimal spelling. Zero, a
-// negative or a non-finite divisor has no such integer and is left out.
+// TypeBox checks a bigint with `BigInt(value) % BigInt(multipleOf)`, so the divisor has
+// to be a positive integer. A bigint `x` is a multiple of `p / q` (in lowest terms)
+// exactly when it is a multiple of `p`, so a fraction reduces to its numerator: 2.5 is
+// 5/2 and becomes `5`. The fraction is read from the number's shortest decimal spelling.
+// Zero, a negative or a non-finite divisor has no such integer and is left out.
 function bigintDivisor(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined
   const match = /^(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/.exec(String(value))
@@ -91,11 +87,11 @@ export function integer(schema: JSONSchema, ref?: string) {
   if (schema.format === 'bigint') {
     const opts = [
       ...typeboxRefOpt(ref),
-      bigintBound(minimumKeyword, schema.minimum, minimumKeyword === 'minimum' ? 'ceil' : 'floor'),
-      bigintBound('exclusiveMinimum', schema.exclusiveMinimum, 'floor'),
-      bigintBound(maximumKeyword, schema.maximum, maximumKeyword === 'maximum' ? 'floor' : 'ceil'),
-      bigintBound('exclusiveMaximum', schema.exclusiveMaximum, 'ceil'),
-      bigintMultipleOf !== undefined ? `multipleOf:${bigintMultipleOf}n` : undefined,
+      bigintBound(minimumKeyword, schema.minimum),
+      bigintBound('exclusiveMinimum', schema.exclusiveMinimum),
+      bigintBound(maximumKeyword, schema.maximum),
+      bigintBound('exclusiveMaximum', schema.exclusiveMaximum),
+      bigintMultipleOf !== undefined ? `multipleOf:${bigintMultipleOf}` : undefined,
       errorMessageField,
       ...metaOpts,
     ].filter((v) => v !== undefined)
