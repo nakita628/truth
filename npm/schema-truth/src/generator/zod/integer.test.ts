@@ -264,3 +264,43 @@ describe('integer', () => {
     })
   })
 })
+
+describe('zod integer: bigint bounds and divisors a bigint can take', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'integer', format: 'bigint', minimum: 0.5, maximum: 2.5 },
+      'z.bigint().min(BigInt(1)).max(BigInt(2))',
+    ],
+    [
+      { type: 'integer', format: 'bigint', exclusiveMinimum: 0.5, exclusiveMaximum: 2.5 },
+      'z.bigint().gt(BigInt(0)).lt(BigInt(3))',
+    ],
+    [{ type: 'integer', format: 'bigint', multipleOf: 0.5 }, 'z.bigint().multipleOf(BigInt(1))'],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 0, 'x-multipleOf-message': 'm' },
+      'z.bigint()',
+    ],
+    [
+      { type: 'integer', format: 'int64', minimum: 0.5, multipleOf: 2.5 },
+      String.raw`z.union([z.bigint(),z.number().int(),z.string().regex(/^-?\d+$/)]).transform((val)=>BigInt(val)).pipe(z.int64().min(1n).multipleOf(5n))`,
+    ],
+    [
+      { type: 'integer', format: 'int64', maximum: 1e21 },
+      String.raw`z.union([z.bigint(),z.number().int(),z.string().regex(/^-?\d+$/)]).transform((val)=>BigInt(val)).pipe(z.int64().max(1000000000000000000000n))`,
+    ],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 2 ** 60 },
+      'z.bigint().multipleOf(BigInt(1152921504606847000))',
+    ],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 1.2345678901234567 },
+      'z.bigint().multipleOf(12345678901234567n)',
+    ],
+    [
+      { type: 'integer', format: 'int64', multipleOf: -2 },
+      String.raw`z.union([z.bigint(),z.number().int(),z.string().regex(/^-?\d+$/)]).transform((val)=>BigInt(val)).pipe(z.int64().multipleOf(2n))`,
+    ],
+  ])('integer(%o) -> %s', (schema, expected) => {
+    expect(integer(schema)).toBe(expected)
+  })
+})

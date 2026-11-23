@@ -66,12 +66,13 @@ describe('typebox integer', () => {
       { type: 'integer', format: 'bigint', multipleOf: 1e21 },
       'Type.BigInt({multipleOf:1000000000000000000000})',
     ],
-    // `value % BigInt(0)` throws, so a zero or negative divisor is left out with its message.
+    // `value % BigInt(0)` throws, so a zero divisor is left out with its message.
     [
       { type: 'integer', format: 'bigint', multipleOf: 0, 'x-multipleOf-message': 'm' },
       'Type.BigInt()',
     ],
-    [{ type: 'integer', format: 'bigint', multipleOf: -5 }, 'Type.BigInt()'],
+    // A negative divisor has the same multiples as its absolute value.
+    [{ type: 'integer', format: 'bigint', multipleOf: -5 }, 'Type.BigInt({multipleOf:5})'],
     // A fractional bound rounds to the integer that admits the same bigints, since
     // `Value.Create` runs `BigInt()` on it.
     [
@@ -174,5 +175,25 @@ describe('typebox integer', () => {
     ])('integer(%o) → %s', (input, expected) => {
       expect(integer(input)).toBe(expected)
     })
+  })
+})
+
+describe('typebox integer: bigint bounds and divisors a bigint can take', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'integer', format: 'bigint', minimum: 0.5, maximum: 2.5 },
+      'Type.BigInt({minimum:1,maximum:2})',
+    ],
+    [
+      { type: 'integer', format: 'bigint', exclusiveMinimum: 0.5, exclusiveMaximum: 2.5 },
+      'Type.BigInt({exclusiveMinimum:0,exclusiveMaximum:3})',
+    ],
+    [{ type: 'integer', format: 'bigint', multipleOf: 0.5 }, 'Type.BigInt({multipleOf:1})'],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 0, 'x-multipleOf-message': 'm' },
+      'Type.BigInt()',
+    ],
+  ])('integer(%o) -> %s', (schema, expected) => {
+    expect(integer(schema)).toBe(expected)
   })
 })

@@ -1,4 +1,5 @@
 import { INTEGER_TEXT_PATTERN } from '../../constants/index.js'
+import { bigintBounds, bigintCall, bigintLiteral } from '../../helper/bigint.js'
 import { regexSource } from '../../helper/format.js'
 import { integerWirePattern } from '../../helper/wire.js'
 import type { JSONSchema } from '../../parser/index.js'
@@ -46,7 +47,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
       ? valibotError(requiredMessage)
       : ''
   if (schema.format === 'bigint') {
-    const actions = numberActions(schema, (n) => `BigInt(${n})`)
+    const actions = numberActions(bigintBounds(schema), bigintCall)
     const base = `v.bigint(${baseErrorArg})`
     const items = isWire
       ? [
@@ -60,7 +61,10 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
     return `v.pipe(${[...items, ...actions].join(',')})`
   }
   if (isInt64(schema)) {
-    const actions = [...rangeActions(schema.format), ...numberActions(schema, (n) => `${n}n`)]
+    const actions = [
+      ...rangeActions(schema.format),
+      ...numberActions(bigintBounds(schema), bigintLiteral),
+    ]
     return `v.pipe(${[...int64Input(isWire, baseErrorArg), ...actions].join(',')})`
   }
   const integerAction = isWire

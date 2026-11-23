@@ -1,12 +1,13 @@
 import { NUMBER_RANGES } from '../../constants/index.js'
+import type { BigintSchema } from '../../helper/bigint.js'
 import { integerWirePattern, numberWirePattern } from '../../helper/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { effectError, effectErrorPart } from '../../utils/index.js'
 
 /** The bound and `multipleOf` checks of a numeric node. */
 export function numberChecks(
-  schema: JSONSchema,
-  lit: (n: number) => string = (n) => `${n}`,
+  schema: BigintSchema,
+  lit: (n: number | bigint) => string = (n) => `${n}`,
   suffix = '',
 ) {
   const minimumMessage = schema['x-minimum-message']

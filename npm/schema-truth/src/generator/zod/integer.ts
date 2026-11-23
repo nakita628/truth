@@ -1,3 +1,4 @@
+import { bigintBounds, bigintCall, bigintLiteral } from '../../helper/bigint.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { zodBaseError, zodError, zodErrorPart } from '../../utils/index.js'
 import { zodWireNumber } from './number.js'
@@ -23,7 +24,9 @@ export function int64Input(isWire: boolean, baseErrorArg = '') {
  * min/max/multipleOf constraints and `x-*-message` vendor extensions translated
  * to Zod v4 `{error: "msg"}` parameters.
  */
-export function integer(schema: JSONSchema, options?: { readonly wire?: boolean }) {
+export function integer(node: JSONSchema, options?: { readonly wire?: boolean }) {
+  // A bigint check takes integer bounds and a positive integer divisor.
+  const schema = node.format === 'bigint' || isInt64(node) ? bigintBounds(node) : node
   const isWire = options?.wire === true
   const errorMessage = schema['x-error-message']
   const requiredMessage = schema['x-required-message']
@@ -34,7 +37,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
   const baseErrorArg = zodBaseError(errorMessage, readsText ? undefined : requiredMessage)
   const isBigint = schema.format === 'bigint'
   const isInt32 = schema.format === 'int32' || schema.format === 'uint32'
-  const is64 = isInt64(schema)
+  const is64 = isInt64(node)
   const bigintBase = readsText && isBigint
   const numberPipe = isCoerce && isInt32
   const numberChain = isCoerce && !isBigint && !is64 && !isInt32
@@ -47,9 +50,9 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
         : isBigint
           ? `z.bigint(${baseErrorArg})`
           : `z.int(${baseErrorArg})`
-  const lit = (n: number) => {
-    if (schema.format === 'bigint') return `BigInt(${n})`
-    if (is64) return `${n}n`
+  const lit = (n: number | bigint) => {
+    if (isBigint) return bigintCall(n)
+    if (is64) return bigintLiteral(n)
     return `${n}`
   }
   const minimumMessage = schema['x-minimum-message'] ?? errorMessage
@@ -111,7 +114,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
   const multipleOfMessage = schema['x-multipleOf-message'] ?? errorMessage
   const multipleOfErrorArg = zodErrorPart(multipleOfMessage)
   const multipleOf =
-    typeof schema.multipleOf === 'number'
+    schema.multipleOf !== undefined
       ? `.multipleOf(${lit(schema.multipleOf)}${multipleOfErrorArg})`
       : undefined
   const constraints = [minimum, maximum, multipleOf].filter((v) => v !== undefined).join('')

@@ -1,4 +1,6 @@
 import { INTEGER_TEXT_PATTERN, NUMBER_RANGES } from '../../constants/index.js'
+import { bigintBounds, bigintCall, bigintLiteral } from '../../helper/bigint.js'
+import type { BigintSchema } from '../../helper/bigint.js'
 import { regexSource } from '../../helper/format.js'
 import type { JSONSchema } from '../../parser/index.js'
 import {
@@ -33,7 +35,7 @@ export function bigintMorph(isWire: boolean) {
  * The `.narrow(...)` chain holding a bigint within its bounds: ArkType's DSL has no
  * bigint comparators, so each is a predicate with `ctx.mustBe`.
  */
-function bigintNarrows(schema: JSONSchema, lit: (n: number) => string) {
+function bigintNarrows(schema: BigintSchema, lit: (n: number | bigint) => string) {
   const range = schema.format === undefined ? undefined : NUMBER_RANGES[schema.format]
   const narrows = [
     range === undefined
@@ -42,22 +44,22 @@ function bigintNarrows(schema: JSONSchema, lit: (n: number) => string) {
     schema.minimum === undefined
       ? undefined
       : schema.exclusiveMinimum === true
-        ? `.narrow((data, ctx) => data > ${lit(schema.minimum)} || ctx.mustBe(${JSON.stringify(`more than ${schema.minimum}`)}))`
-        : `.narrow((data, ctx) => data >= ${lit(schema.minimum)} || ctx.mustBe(${JSON.stringify(`at least ${schema.minimum}`)}))`,
+        ? `.narrow((data, ctx) => data > ${lit(schema.minimum)} || ctx.mustBe(${JSON.stringify(`more than ${BigInt(schema.minimum)}`)}))`
+        : `.narrow((data, ctx) => data >= ${lit(schema.minimum)} || ctx.mustBe(${JSON.stringify(`at least ${BigInt(schema.minimum)}`)}))`,
     typeof schema.exclusiveMinimum === 'number'
-      ? `.narrow((data, ctx) => data > ${lit(schema.exclusiveMinimum)} || ctx.mustBe(${JSON.stringify(`more than ${schema.exclusiveMinimum}`)}))`
+      ? `.narrow((data, ctx) => data > ${lit(schema.exclusiveMinimum)} || ctx.mustBe(${JSON.stringify(`more than ${BigInt(schema.exclusiveMinimum)}`)}))`
       : undefined,
     schema.maximum === undefined
       ? undefined
       : schema.exclusiveMaximum === true
-        ? `.narrow((data, ctx) => data < ${lit(schema.maximum)} || ctx.mustBe(${JSON.stringify(`less than ${schema.maximum}`)}))`
-        : `.narrow((data, ctx) => data <= ${lit(schema.maximum)} || ctx.mustBe(${JSON.stringify(`at most ${schema.maximum}`)}))`,
+        ? `.narrow((data, ctx) => data < ${lit(schema.maximum)} || ctx.mustBe(${JSON.stringify(`less than ${BigInt(schema.maximum)}`)}))`
+        : `.narrow((data, ctx) => data <= ${lit(schema.maximum)} || ctx.mustBe(${JSON.stringify(`at most ${BigInt(schema.maximum)}`)}))`,
     typeof schema.exclusiveMaximum === 'number'
-      ? `.narrow((data, ctx) => data < ${lit(schema.exclusiveMaximum)} || ctx.mustBe(${JSON.stringify(`less than ${schema.exclusiveMaximum}`)}))`
+      ? `.narrow((data, ctx) => data < ${lit(schema.exclusiveMaximum)} || ctx.mustBe(${JSON.stringify(`less than ${BigInt(schema.exclusiveMaximum)}`)}))`
       : undefined,
     schema.multipleOf === undefined
       ? undefined
-      : `.narrow((data, ctx) => data % ${lit(schema.multipleOf)} === 0n || ctx.mustBe(${JSON.stringify(`a multiple of ${schema.multipleOf}`)}))`,
+      : `.narrow((data, ctx) => data % ${lit(schema.multipleOf)} === 0n || ctx.mustBe(${JSON.stringify(`a multiple of ${BigInt(schema.multipleOf)}`)}))`,
   ].filter((v) => v !== undefined)
   return narrows.join('')
 }
@@ -72,7 +74,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
   const describe = errorMessage ? `.describe(${JSON.stringify(errorMessage)})` : ''
 
   if (schema.format === 'bigint') {
-    const narrows = bigintNarrows(schema, (n) => `BigInt(${n})`)
+    const narrows = bigintNarrows(bigintBounds(schema), bigintCall)
     const base =
       options?.wire === true
         ? bigintMorph(true)
@@ -82,7 +84,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
     return `${base}${narrows}${describe}`
   }
   if (isInt64(schema)) {
-    return `${bigintMorph(options?.wire === true)}${bigintNarrows(schema, (n) => `${n}n`)}${describe}`
+    return `${bigintMorph(options?.wire === true)}${bigintNarrows(bigintBounds(schema), bigintLiteral)}${describe}`
   }
 
   const range = rangeConstraints(schema.format)

@@ -46,3 +46,14 @@ describe('typebox enum', () => {
     })
   })
 })
+
+describe('typebox enum: a bigint default stays the literal it matches', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'integer', format: 'bigint', enum: [1, 2], default: 1 },
+      'Type.Union([Type.Literal(1),Type.Literal(2)],{default:1})',
+    ],
+  ])('_enum(%o) -> %s', (schema, expected) => {
+    expect(_enum(schema)).toBe(expected)
+  })
+})

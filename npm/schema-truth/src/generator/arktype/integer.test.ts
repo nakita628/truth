@@ -121,3 +121,31 @@ describe('arktype integer per-keyword message', () => {
     expect(integer(input)).toBe(expected)
   })
 })
+
+describe('arktype integer: bigint bounds and divisors a bigint can take', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'integer', format: 'bigint', minimum: 0.5, maximum: 2.5 },
+      'type("bigint").narrow((data, ctx) => data >= BigInt(1) || ctx.mustBe("at least 1")).narrow((data, ctx) => data <= BigInt(2) || ctx.mustBe("at most 2"))',
+    ],
+    [
+      { type: 'integer', format: 'bigint', exclusiveMinimum: 0.5, exclusiveMaximum: 2.5 },
+      'type("bigint").narrow((data, ctx) => data > BigInt(0) || ctx.mustBe("more than 0")).narrow((data, ctx) => data < BigInt(3) || ctx.mustBe("less than 3"))',
+    ],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 0.5 },
+      'type("bigint").narrow((data, ctx) => data % BigInt(1) === 0n || ctx.mustBe("a multiple of 1"))',
+    ],
+    [{ type: 'integer', format: 'bigint', multipleOf: 0, 'x-multipleOf-message': 'm' }, '"bigint"'],
+    [
+      { type: 'integer', format: 'int64', minimum: 0.5, multipleOf: 2.5 },
+      String.raw`type("bigint | number.integer").or(/^-?\d+$/).pipe((data) => BigInt(data)).narrow((data, ctx) => (data >= -9223372036854775808n && data <= 9223372036854775807n) || ctx.mustBe("an int64")).narrow((data, ctx) => data >= 1n || ctx.mustBe("at least 1")).narrow((data, ctx) => data % 5n === 0n || ctx.mustBe("a multiple of 5"))`,
+    ],
+    [
+      { type: 'integer', format: 'int64', maximum: 1e21 },
+      String.raw`type("bigint | number.integer").or(/^-?\d+$/).pipe((data) => BigInt(data)).narrow((data, ctx) => (data >= -9223372036854775808n && data <= 9223372036854775807n) || ctx.mustBe("an int64")).narrow((data, ctx) => data <= 1000000000000000000000n || ctx.mustBe("at most 1000000000000000000000"))`,
+    ],
+  ])('integer(%o) -> %s', (schema, expected) => {
+    expect(integer(schema)).toBe(expected)
+  })
+})
