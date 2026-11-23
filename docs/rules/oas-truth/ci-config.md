@@ -1,0 +1,128 @@
+# CI and configuration
+
+## The workflows
+
+- `.github/workflows/test.yml` (Test): the lint job runs `vp fmt --check` and `vp run lint`
+  (zizmor included, through the runner's pipx); the build job runs `vp run --filter './npm/*'
+  check` and `bazel test //...`. A new check is added to the root `package.json` scripts **and**
+  reached from this workflow, so local and CI cannot disagree about what "clean" means.
+- `.github/workflows/pr-title.yml` (PR title): the title is `type(scope): summary`, because it
+  becomes the squash commit on `main`.
+- `.github/workflows/release.yml` runs after Test succeeds on a push to `main`, and again when
+  it has merged the Version Packages pull request; see Releasing.
+- `.github/workflows/delete-closed-branch.yml` deletes the head branch of a pull request closed
+  without being merged.
+- **Verify a change to the scripts, the workflows or the build in a fresh clone**, the way CI
+  starts: `git clone . <tmp> && cd <tmp> && pnpm install --frozen-lockfile`, then the workflow's
+  steps in order. The working copy carries gitignored output (`dist`) that a checkout does not
+  have.
+- **Actions are pinned to a commit digest with the tag kept as a comment**:
+  `uses: actions/checkout@3d3c42e5… # v7.0.1`. A floating tag is a mutable dependency with access
+  to the job — never introduce one. Resolve a tag with
+  `git ls-remote https://github.com/<owner>/<repo> 'refs/tags/<tag>^{}'` (the peeled `^{}` line
+  is the commit of an annotated tag). Renovate keeps the digests current.
+- `permissions` is empty at the top and granted per job; checkout uses
+  `persist-credentials: false`, except the release `tag` job, which pushes with the checkout's
+  token (excused in `.github/zizmor.yml`).
+- Node comes from `node-version` in each workflow, pnpm from `packageManager` in the root
+  `package.json`; change that field to move pnpm, not the workflow.
+- actionlint runs from the `actionlint` npm package (`lint/actionlint.mjs`); zizmor runs at the
+  version `lint/zizmor.mjs` pins, through uvx or pipx, and Renovate tracks that line through a
+  `customManagers` entry in `renovate.json`. Both are part of `pnpm lint`, which is what CI runs.
+- A finding is excused next to the thing it is about, with the reason: an inline
+  `# zizmor: ignore[audit]` comment, or an entry in `.github/zizmor.yml` scoped to one line.
+  Never by dropping the check.
+
+## Editing the lint configuration
+
+`lint` in `npm/oas-truth/vite.config.ts` is the standard this repository holds itself to;
+its comments explain every choice.
+
+- Adding a rule: place it in the section it belongs to and, if the reason is not obvious from its
+  name, write the reason above it. Then run `pnpm check` and fix what it reports in the code — the
+  rule is not finished until the repository passes it.
+- A rule that does not fit this codebase is **left out of the list**, with a comment where it
+  would have gone saying why (as `unicorn/import-style` is). It is never set to `'off'` in
+  `rules`.
+- `'off'` appears only in `overrides`, scoped to the files it describes, with the reason.
+- `categories` (correctness / suspicious / perf) are errors, so rules in those categories are not
+  restated in `rules`. Only pedantic / style / restriction / nursery rules are listed.
+- `plugins` replaces oxlint's defaults, so the defaults are restated there — do not drop one while
+  adding another.
+- `typeAware` and `typeCheck` are on: `vp check` is also the type check. There is no separate
+  `tsc` step.
+
+## Formatting and the other linters
+
+- Formatting options live **only** in the root `vite.config.ts` (`fmt`). Vite+ merges it into the
+  package's config; the package declares only its own `ignorePatterns`.
+- `cspell.config.jsonc`, `.textlintrc.json` and `.markdownlint-cli2.jsonc` are covered by the docs
+  rule.
+
+## Dependencies
+
+- `pnpm-lock.yaml` is written by `pnpm install`. Never edit it by hand. CI installs with
+  `--frozen-lockfile`.
+- `vite-plus` is pinned exactly: it bundles vitest, oxlint and oxfmt, so a bump can change what
+  lint reports and how files are formatted. Bump it on its own and run the full definition of
+  done.
+- A package with a build script must be listed under `allowBuilds` in `pnpm-workspace.yaml`,
+  allowed or refused with the reason.
+- The package's runtime `dependencies` are what every user installs (today only
+  `schema-truth`). Adding one is a design decision — ask first. Tooling goes in
+  `devDependencies` of the workspace that uses it; the repository-wide linters are root
+  `devDependencies`.
+- A `peerDependencies` range must include the version in `devDependencies`, which is the one the
+  tests prove. Widening it to a new major is a change to test against, not a formality.
+- Renovate (`renovate.json`) proposes updates weekly after a 7-day release age, and pins
+  devDependencies (`:pinDevDependencies` in `config:best-practices`).
+- **TypeSpec moves as one release set.** Every `@typespec/*` package is updated in one PR, majors
+  included, because TypeSpec releases them together and they require each other as peers:
+  - the `@typespec/*` devDependencies are exact, so lockfile maintenance (automerged weekly)
+    cannot move one of them ahead of the rest. That includes `@typespec/openapi`, which
+    `@typespec/openapi3` needs as a peer: left implicit, it would be auto-installed and float;
+  - a TypeSpec package the tests need is declared in `devDependencies` at the release set's exact
+    version, never left for pnpm to auto-install as a peer;
+  - the `peerDependencies` ranges are widened in that same PR on a major, which the review has to
+    accept deliberately;
+  - the PR is never automerged: Renovate automerges a group only when every member would be,
+    and the `0.x` members (`rest`, `versioning`) never are.
+
+## The published package
+
+- `files: ["dist"]`, plus the `README.md` npm always includes — the real file in
+  `npm/oas-truth`, since the root one is a symlink and npm leaves symlinks out. `dist` is
+  never committed.
+- There are no lifecycle scripts: `npm publish` does not build, so the release workflow's publish
+  job runs `vp run oas-truth#build` right before it.
+- `exports` has one subpath, `.`, with `types` (`dist/index.d.ts`) and `import`
+  (`dist/index.js`). `pack.fixedExtension: false` keeps those extensions; adding a subpath means
+  an entry in `pack.entry` and in `exports` together.
+
+## Releasing
+
+Releases are CI's job, driven by changesets (`.changeset/*.md`), and need nobody to approve or
+merge anything. `release.yml` runs after Test passes on a push to `main`:
+
+1. **version** — while changesets are pending, opens or updates the Version Packages pull
+   request (versions, `CHANGELOG.md`, changesets deleted);
+2. **merge** — squash-merges it with the workflow's token and starts `release.yml` on `main`,
+   since GitHub starts no workflow for that merge;
+3. **test** — in the run started on `main` only, Test itself (`workflow_call`) on the merge;
+4. **publish** — for the public packages whose version npm does not have, builds and
+   `pnpm -r publish`es with npm trusted publishing (OIDC, `id-token: write`, environment
+   `release`), so no npm token is stored;
+5. **github-release** — tags `<name>@<version>` on the published commit and creates the GitHub
+   release with that version's changelog section.
+
+- **A pull request with a changeset is released when it merges.** Nothing else publishes, and
+  the Version Packages pull request is the workflow's to merge.
+- **Never `npm publish` by hand, and never create or move a tag by hand.**
+- Never reuse or roll back a published version; to fix a release, add a changeset and release
+  again.
+- If a job fails (an npm outage, a missing trusted publisher), fix the cause and re-run the
+  failed jobs, or start `release.yml` on `main` by hand; both publish and release skip what is
+  already done.
+- The repository settings this relies on (Actions may create pull requests, squash merging, no
+  required review or status check on `main`, the `release` environment limited to `main`) are
+  listed under Repository settings in the root `README.md`.

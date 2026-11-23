@@ -1,9 +1,4 @@
 {
-  "plugins": {
-    "@textlint/markdown": {
-      "extensions": [".mdc"]
-    }
-  },
   "filters": {
     "comments": true
   },

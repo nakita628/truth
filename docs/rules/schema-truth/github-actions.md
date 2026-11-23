@@ -1,0 +1,95 @@
+# GitHub Actions
+
+Two linters run over these files, both inside `pnpm lint`, the same task the `Lint the
+repository` job in `test.yml` runs, so a finding fails locally before it fails CI:
+
+| Tool                                              | Catches                                                                                                   | Where                                                                                      |
+| ------------------------------------------------- | --------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------ |
+| [actionlint](https://github.com/rhysd/actionlint) | invalid keys, broken `${{ }}` expressions, bad `needs` / `steps` references                               | `lint/actionlint.mjs`, the `actionlint` npm package (a WebAssembly build of the Go binary) |
+| [zizmor](https://docs.zizmor.sh/)                 | unpinned actions, credential persistence, over-broad permissions, missing concurrency, dangerous triggers | `lint/zizmor.mjs`, the version it pins, through `uvx` (or `pipx`, which the runners have)  |
+
+```bash
+pnpm lint:actions   # both; zizmor needs uv (or pipx) installed, and fails rather than skips without it
+```
+
+With `GH_TOKEN` set, zizmor also runs its online audits; CI passes the job's read-only token.
+shellcheck inside actionlint only runs where the binary is installed, so quote shell variables
+regardless (below).
+
+## What the linters expect here
+
+zizmor runs with `persona: pedantic`, its strictest setting, and the repository is clean
+at that level. Keep it that way:
+
+- **Every `uses:` is pinned to a full commit SHA** with the tag as a trailing comment
+  (`actions/checkout@fbc6f39… # v5`). Renovate's `config:best-practices` keeps the pins
+  and the comments current, so never downgrade one back to a tag.
+- **`permissions: {}` at the top of every workflow**, and the narrowest set each job
+  actually needs on the job itself. An elevated permission carries a **trailing comment
+  on its own line** saying what uses it — `contents: write # gh release create writes…`.
+  A comment on the line above does not count.
+- **Every job has a `name:`, a `timeout-minutes:` and a workflow-level `concurrency:`
+  group.** Test cancels superseded runs; the publish chain never cancels a run in
+  progress and keeps every waiting one (`queue: max`). A job that calls a reusable
+  workflow takes no `timeout-minutes:`; the jobs it calls carry their own.
+- **A local reusable workflow is called as `./.github/workflows/<file>`** with
+  `# zizmor: ignore[self-repository]`: the `$/` form zizmor asks for is one actionlint
+  rejects for a reusable workflow.
+- **`persist-credentials: false` on every checkout.** Nothing here pushes with the
+  checkout credentials: `release` tags and releases over the API with an explicit
+  `GH_TOKEN`, and the two jobs that only talk to that API check nothing out at all.
+- **Quote shell variables** — `>> "$GITHUB_OUTPUT"`, not `>> $GITHUB_OUTPUT`. shellcheck
+  runs inside actionlint on the runner even though it is absent locally.
+- **`${{ vars.* }}` is rejected outright.** `.github/actionlint.yml` declares
+  `config-variables: []`, so a configuration variable has to be added to that list before
+  it can be used — which is what turns a typo into an error instead of an empty string.
+- Bumping actionlint means changing **both** `ACTIONLINT_VERSION` and `ACTIONLINT_SHA256`
+  in `test.yml`, from the release page. `.github/actionlint-matcher.json` is the official
+  problem matcher and only needs replacing when actionlint changes its output format.
+
+## The release chain
+
+`Test` → `release`, wired with `workflow_run` so a release can only come from a commit
+whose tests already passed. zizmor flags `workflow_run` as a dangerous trigger by design;
+`release.yml` is listed in `.github/zizmor.yml` with the reason it is safe here (empty
+top-level permissions, an `if` on `conclusion == 'success'` and `event == 'push'` on every
+job, or on the `test` job's success in a run started on main, and the publish and release
+checkouts pinned to the commit Test passed on). Suppress a finding there, with a reason,
+never by widening a rule away.
+
+Nobody approves or merges the release. `merge` merges the Version Packages pull request
+with the workflow's token, and GitHub starts no workflow for what that token does except a
+`workflow_dispatch`: the merge starts no Test run, and a Test run the token started would
+not start `release` when it ended. So `merge` ends with `gh workflow run release.yml --ref
+main`, and a run started that way calls `test.yml` (`workflow_call`) in its `test` job before
+`publish`. `queue: max` on the concurrency group, a key newer than actionlint's schema (which
+`lint/actionlint.mjs` ignores), keeps a run that queues up behind it from cancelling the one
+waiting to publish.
+
+`release.yml` is five jobs, each with only the permissions it needs:
+
+| Job              | Does                                                                                                                                                                                                                       | Permissions                                                 |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
+| `version`        | `changesets/action`: opens or updates the Version Packages pull request while changesets are pending                                                                                                                       | `contents: write`, `pull-requests: write`                   |
+| `merge`          | runs nothing but `gh`: merges that pull request (only the Actions bot's own, from `changeset-release/main` in this repository) and starts `release` on `main`, so the npm code `version` runs never holds `actions: write` | `actions: write`, `contents: write`, `pull-requests: write` |
+| `test`           | only in a run started on `main`: `test.yml`, on the commit about to be published                                                                                                                                           | `contents: read`                                            |
+| `publish`        | lists the public packages whose version npm lacks, builds them with Bazel and `pnpm -r publish`es them with provenance, from the `release` environment                                                                     | `contents: read`, `id-token: write`                         |
+| `github-release` | for each package `publish` released, `gh release create <name>@<version>` on that commit with its CHANGELOG section                                                                                                        | `contents: write`                                           |
+
+`test` is skipped after an ordinary Test run, so `publish` and `github-release` state their
+own `!cancelled()` condition: left to the default `success()`, they would be skipped with it.
+
+A registry or API query that _fails_ stops the run rather than being read as "not published
+yet" or "no release yet". Everything else is idempotent: `publish` skips versions already on
+npm and `github-release` skips releases that exist, so re-running the workflow, or starting
+it on `main` by hand, is safe. The repository settings the chain relies on are listed under
+Repository settings in `README.md`.
+
+## Branch cleanup
+
+`delete-closed-branch.yml` deletes the head branch of a pull request closed without being
+merged; "Automatically delete head branches" covers merged ones. It runs on
+`pull_request_target`, because `pull_request` does not run for a pull request with merge
+conflicts, checks nothing out, and leaves alone a fork's branch, the default branch, a branch
+another open pull request uses and a branch pushed to after the close. zizmor's
+`dangerous-triggers` finding is excused inline, with that reason.

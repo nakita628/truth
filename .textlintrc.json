@@ -1,9 +1,4 @@
 {
-  "plugins": {
-    "@textlint/markdown": {
-      "extensions": [".mdc"]
-    }
-  },
   "filters": {
     "comments": true
   },
@@ -22,8 +17,7 @@
         ["Open ?API", "OpenAPI"],
         "TypeSpec",
         "Bazel",
-        "Renovate",
-        "Cursor"
+        "Renovate"
       ],
       "exclude": ["readme(s)?", "regexp?(s)?", "re[- ]export(s|ing|ed)?"]
     },
