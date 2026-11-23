@@ -1,0 +1,31 @@
+name: PR title
+
+# Pull requests are squash-merged with their title as the commit message, so the title is what
+# `git log` shows on main. A title that is not `type(scope): summary` would land there as-is, so
+# it is checked here. The types are the ones .github/pull_request_template.md lists, plus
+# `revert`; the Version Packages pull request release.yml opens is `chore: version packages`.
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, synchronize]
+
+# Nothing is granted: the check reads the title from the event payload and nothing else.
+permissions: {}
+
+jobs:
+  pr-title:
+    name: Check the pull request title
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Check the title is type(scope) followed by a summary
+        env:
+          TITLE: ${{ github.event.pull_request.title }}
+        run: |
+          PATTERN='^(feat|fix|perf|refactor|docs|test|build|ci|chore|revert)(\([a-z0-9._/-]+\))?!?: [^ ].*[^.]$'
+          if printf '%s' "$TITLE" | grep -Eq "$PATTERN"; then
+            echo "ok: $TITLE"
+            exit 0
+          fi
+          echo "::error::The pull request title must be 'type(scope): summary' with no trailing period, e.g. 'fix(valibot): emit valid schemas for null and object enum members'. Got: $TITLE"
+          exit 1
