@@ -192,9 +192,9 @@ export function object(
     'key',
   )
   const unevaluatedKeysFilter = closed
-    ? `Schema.makeFilter((input)=>Object.keys(input).every((key)=>${isEvaluated})${effectErrorPart(strictExtrasMessage ?? errorMessage)})`
+    ? `Schema.makeFilter((input)=>${isEvaluated === undefined ? 'Object.keys(input).length===0' : `Object.keys(input).every((key)=>${isEvaluated})`}${effectErrorPart(strictExtrasMessage ?? errorMessage)})`
     : extraSchema !== undefined
-      ? `Schema.makeFilter((input)=>Object.entries(input).every(([key,value])=>${isEvaluated}||Schema.is(Schema.toEncoded(${effect(extraSchema, rootName, isEffect, options)}))(value))${effectErrorPart(extraMessage ?? errorMessage)})`
+      ? `Schema.makeFilter((input)=>${isEvaluated === undefined ? 'Object.values(input).every((value)=>' : `Object.entries(input).every(([key,value])=>${isEvaluated}||`}Schema.is(Schema.toEncoded(${effect(extraSchema, rootName, isEffect, options)}))(value))${effectErrorPart(extraMessage ?? errorMessage)})`
       : ''
 
   // v3.2: if/then/else conditional schema. Routed through a filter: when `if`

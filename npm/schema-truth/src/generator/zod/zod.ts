@@ -24,6 +24,7 @@ import {
   itemsSchemaOf,
   isBigintFormat,
   isEvaluatedKeyExpression,
+  unlessEvaluated,
   notPredicate,
   valueListLiteral,
   refTarget,
@@ -181,11 +182,12 @@ function objectKeysCheck(
   const unevaluatedCheck =
     evaluated === undefined
       ? ''
-      : `if(!(${isEvaluatedKeyExpression(evaluated, 'k')})){${
+      : unlessEvaluated(
+          isEvaluatedKeyExpression(evaluated, 'k'),
           unevaluatedSchema === undefined
             ? `ctx.issues.push({code:'custom',input:o,path:[k],message:${message === undefined ? '`Unrecognized key: "${k}"`' : JSON.stringify(message)}})`
-            : `const result=${zod(unevaluatedSchema, rootName, isZod, options)}.safeParse(v);if(!result.success){${forwardKeyIssues(message)}}`
-        }}`
+            : `const result=${zod(unevaluatedSchema, rootName, isZod, options)}.safeParse(v);if(!result.success){${forwardKeyIssues(message)}}`,
+        )
   return `(()=>{const Schema=${inner};return z.unknown().check((ctx)=>{const o=ctx.value;if(typeof o!=='object'||o===null||Array.isArray(o))return;for(const [k,v] of Object.entries(o)){${patternChecks}${unevaluatedCheck}}}).pipe(Schema)})()`
 }
 

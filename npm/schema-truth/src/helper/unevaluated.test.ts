@@ -39,4 +39,11 @@ describe('isEvaluatedKeyExpression', () => {
       '["a"].includes(k)||new RegExp("^x-").test(k)',
     )
   })
+
+  it('leaves out the lookup when no name is evaluated, as `[].includes(k)` does not type-check (#60)', () => {
+    expect(isEvaluatedKeyExpression({ names: [], patterns: ['^x-'] }, 'k')).toBe(
+      'new RegExp("^x-").test(k)',
+    )
+    expect(isEvaluatedKeyExpression({ names: [], patterns: [] }, 'k')).toBeUndefined()
+  })
 })

@@ -175,7 +175,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.entries(input).every(([key,value])=>!new RegExp("^id_").test(key)||v.safeParse(v.number(),value).success)),v.check((input)=>Object.entries(input).every(([key,value])=>[].includes(key)||new RegExp("^id_").test(key)||v.safeParse(v.string(),value).success)))',
+        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.entries(input).every(([key,value])=>!new RegExp("^id_").test(key)||v.safeParse(v.number(),value).success)),v.check((input)=>Object.entries(input).every(([key,value])=>new RegExp("^id_").test(key)||v.safeParse(v.string(),value).success)))',
       )
     })
   })
@@ -256,6 +256,21 @@ describe('object', () => {
       ).toBe(
         'v.pipe(v.unknown(),v.rawCheck(({dataset,addIssue})=>{if(!dataset.typed)return;const result=v.safeParse(v.object({a:v.string()}),dataset.value);if(!result.success){for(const issue of result.issues){if(issue.path&&issue.path.length>0){addIssue({message:((issue) => `bad ${issue.path[0].key}`)(issue),path:issue.path})}else{addIssue({message:issue.message})}}}}),v.object({a:v.string()}))',
       )
+    })
+  })
+
+  describe('no property named (#60)', () => {
+    it.each<[JSONSchema, string]>([
+      [
+        { type: 'object', patternProperties: {}, additionalProperties: false },
+        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.keys(input).length===0))',
+      ],
+      [
+        { type: 'object', properties: {}, additionalProperties: { type: 'string' } },
+        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.values(input).every((value)=>v.safeParse(v.string(),value).success)))',
+      ],
+    ])('reads no key it does not need: %j', (schema, expected) => {
+      expect(object(schema, 'Schema', false)).toBe(expected)
     })
   })
 })

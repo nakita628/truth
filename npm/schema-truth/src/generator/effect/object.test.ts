@@ -159,7 +159,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.entries(input).every(([key,value])=>!new RegExp("^id_").test(key)||Schema.is(Schema.toEncoded(Schema.Number))(value))),Schema.makeFilter((input)=>Object.entries(input).every(([key,value])=>[].includes(key)||new RegExp("^id_").test(key)||Schema.is(Schema.toEncoded(Schema.String))(value))))',
+        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.entries(input).every(([key,value])=>!new RegExp("^id_").test(key)||Schema.is(Schema.toEncoded(Schema.Number))(value))),Schema.makeFilter((input)=>Object.entries(input).every(([key,value])=>new RegExp("^id_").test(key)||Schema.is(Schema.toEncoded(Schema.String))(value))))',
       )
     })
   })
@@ -223,6 +223,37 @@ describe('object', () => {
       ).toBe(
         'Schema.Unknown.check(Schema.makeFilter((input)=>Schema.is(Schema.Struct({a:Schema.String}))(input),{message:"bad props"})).pipe(Schema.decodeTo(Schema.Struct({a:Schema.String})))',
       )
+    })
+  })
+
+  describe('closed object with no properties (#60)', () => {
+    it('checks there are no keys, as `[].includes(key)` does not type-check', () => {
+      expect(
+        object({ type: 'object', properties: {}, additionalProperties: false }, 'Schema', false),
+      ).toBe(
+        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).length===0))',
+      )
+    })
+
+    it('tests only the patterns when no property is named', () => {
+      expect(
+        object(
+          { type: 'object', patternProperties: { '^x-': {} }, additionalProperties: false },
+          'Schema',
+          false,
+        ),
+      ).toContain('Object.keys(input).every((key)=>new RegExp("^x-").test(key))')
+    })
+  })
+
+  describe('no property named (#60)', () => {
+    it.each<[JSONSchema, string]>([
+      [
+        { type: 'object', properties: {}, additionalProperties: { type: 'string' } },
+        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.values(input).every((value)=>Schema.is(Schema.toEncoded(Schema.String))(value))))',
+      ],
+    ])('reads no key it does not need: %j', (schema, expected) => {
+      expect(object(schema, 'Schema', false)).toBe(expected)
     })
   })
 })

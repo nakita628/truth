@@ -150,7 +150,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'type({}).narrow((data) => Object.entries(data).every(([key, value]) => !new RegExp("^id_").test(key) || type("number").allows(value))).narrow((data) => Object.entries(data).every(([key, value]) => [].includes(key)||new RegExp("^id_").test(key) || type("string").allows(value)))',
+        'type({}).narrow((data) => Object.entries(data).every(([key, value]) => !new RegExp("^id_").test(key) || type("number").allows(value))).narrow((data) => Object.entries(data).every(([key, value]) => new RegExp("^id_").test(key) || type("string").allows(value)))',
       )
     })
   })
@@ -393,5 +393,29 @@ describe('object dependent / unevaluated / conditional keywords', () => {
         true,
       ),
     ).toBe('[{a:"string"},"@","P"]')
+  })
+
+  describe('no property named (#60)', () => {
+    it.each<[JSONSchema, string]>([
+      [
+        { type: 'object', properties: {}, additionalProperties: { type: 'string' } },
+        'type({}).narrow((data) => Object.values(data).every((value) => type("string").allows(value)))',
+      ],
+      [
+        {
+          type: 'object',
+          properties: {},
+          additionalProperties: false,
+          'x-additionalProperties-message': 'm',
+        },
+        'type({"+":"reject"}).narrow((data, ctx) => Object.keys(data).length === 0 || ctx.mustBe("m"))',
+      ],
+      [
+        { type: 'object', properties: {}, unevaluatedProperties: false },
+        'type({}).narrow((data) => Object.keys(data).length === 0)',
+      ],
+    ])('reads no key it does not need: %j', (schema, expected) => {
+      expect(object(schema, 'Schema', false)).toBe(expected)
+    })
   })
 })

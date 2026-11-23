@@ -15,9 +15,7 @@ export const Extended = Schema.Unknown.check(
       typeof input !== 'object' ||
       input === null ||
       Array.isArray(input) ||
-      Object.entries(input).every(
-        ([k, v]) => ['a'].includes(k) || new RegExp('^x-').test(k) || false,
-      ),
+      Object.keys(input).every((k) => ['a'].includes(k) || new RegExp('^x-').test(k)),
   ),
 ).pipe(Schema.decodeTo(Schema.Struct({ a: Schema.optionalKey(Schema.String) })))
 
