@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.8.12
+
+### Patch Changes
+
+- [#61](https://github.com/nakita628/truth/pull/61) [`8e4d8c3`](https://github.com/nakita628/truth/commit/8e4d8c3e504febad405acf8ccb9a155d324f9914) Thanks [@nakita628](https://github.com/nakita628)! - Stop emitting `[].includes(key)`, which does not type-check, when an object's undeclared-key check has no property name to look up. When no property or pattern covers any key, every target now checks `Object.keys(…).length === 0` or holds each of `Object.values(…)` to the extra-key schema, so the Effect output for `{ "type": "object", "properties": {}, "additionalProperties": false }` type-checks.
+
 ## 0.8.11
 
 ### Patch Changes
