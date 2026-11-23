@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.8.9
+
+### Patch Changes
+
+- [#45](https://github.com/nakita628/truth/pull/45) [`d6ab264`](https://github.com/nakita628/truth/commit/d6ab2641fe905340c1eeaa3a6171a09939636a6d) Thanks [@nakita628](https://github.com/nakita628)! - TypeBox: honor a draft-04 boolean `exclusiveMinimum` / `exclusiveMaximum` outside a parameter. `{ minimum: 0, exclusiveMinimum: true }` now emits `Type.Integer({exclusiveMinimum:0})` instead of `Type.Integer({minimum:0})`, which accepted `0`. Its message is `x-exclusiveMinimum-message` / `x-exclusiveMaximum-message`, as in a parameter and in the other targets.
+
 ## 0.8.8
 
 ### Patch Changes
