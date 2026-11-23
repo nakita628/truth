@@ -1,6 +1,12 @@
 import { isNullable } from '../guard/index.js'
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault } from '../utils/index.js'
+import {
+  bigintFormatOf,
+  bigintValueLiteral,
+  isBigintSchema,
+  isWritableBigintDefault,
+} from './bigint.js'
 import { readCodeExtension } from './code-extensions.js'
 import type { CodeExtensionOptions } from './code-extensions.js'
 import { serializeJSValue } from './meta.js'
@@ -42,10 +48,10 @@ export function effectPreprocess(readers: readonly string[], inner: string) {
 }
 
 /** A default as the Effect literal of the schema's decoded type: a bigint for a 64-bit integer. */
-function defaultLiteral(schema: JSONSchema, value: unknown) {
+function defaultLiteral(format: string | undefined, value: unknown) {
   if (typeof value === 'number') {
-    if (schema.format === 'int64' || schema.format === 'uint64') return `${value}n`
-    if (schema.format === 'bigint') return `BigInt(${value})`
+    if (format === 'int64' || format === 'uint64') return bigintValueLiteral(value)
+    if (format === 'bigint') return `BigInt(${value})`
   }
   return jsLiteral(value)
 }
@@ -96,9 +102,15 @@ export function effectWrap(effectStr: string, schema: JSONSchema, options?: Effe
       : undefined
   const decodingDefault =
     options?.stringWire === true ? 'Schema.withDecodingDefaultType' : 'Schema.withDecodingDefault'
-  const withDefault = defaultResult?.keep
-    ? `${withCodeExts}.pipe(${decodingDefault}(Effect.succeed(${defaultLiteral(schema, defaultResult.value)})))`
-    : withCodeExts
+  // A `default` beside a `$ref` is the bigint its target holds; a fraction there is dropped.
+  const defaultFormat =
+    typeof defaultResult?.value === 'number'
+      ? bigintFormatOf(schema, options?.definitions, isBigintSchema)
+      : undefined
+  const withDefault =
+    defaultResult?.keep === true && isWritableBigintDefault(defaultResult.value, defaultFormat)
+      ? `${withCodeExts}.pipe(${decodingDefault}(Effect.succeed(${defaultLiteral(defaultFormat, defaultResult.value)})))`
+      : withCodeExts
 
   const examples = examplesOf(schema)
   const ann: { [key: string]: unknown } = {}

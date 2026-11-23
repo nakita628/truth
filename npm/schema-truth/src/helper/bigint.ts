@@ -1,4 +1,6 @@
 import type { JSONSchema } from '../parser/index.js'
+import { definitionOf } from '../utils/index.js'
+import type { DefaultSchema } from '../utils/index.js'
 
 /**
  * A schema whose `multipleOf` may be a bigint: a divisor above 2^53 that a number literal
@@ -11,6 +13,16 @@ export type BigintSchema = Omit<JSONSchema, 'multipleOf'> & {
 /** A bigint literal, `5n`, spelled in digits however the number prints. */
 export function bigintLiteral(n: number | bigint) {
   return `${BigInt(n)}n`
+}
+
+/**
+ * A schema value (a `default`, an `enum` member) as the literal of a bigint schema: `1e21`
+ * is `1000000000000000000000n`, not `1e+21n`, which does not parse. A fractional or
+ * non-finite number is no bigint (`BigInt(1.5)` throws) and stays a number literal, which
+ * no bigint equals.
+ */
+export function bigintValueLiteral(n: number) {
+  return Number.isInteger(n) ? bigintLiteral(n) : String(n)
 }
 
 /**
@@ -100,4 +112,61 @@ export function bigintBounds(schema: JSONSchema): BigintSchema {
     ...(divisor !== undefined &&
       multipleOfMessage !== undefined && { 'x-multipleOf-message': multipleOfMessage }),
   }
+}
+
+/**
+ * Whether a bigint-format node is emitted as bigints. An `enum` or `const` is spelled with
+ * bigint literals for `int64` / `uint64` and with number literals for `format: bigint`;
+ * any other node is a bigint schema only as an `integer` (a `number` with the format is a
+ * plain number schema).
+ */
+export function isBigintSchema(node: DefaultSchema) {
+  if (node.enum !== undefined || node.const !== undefined) return node.format !== 'bigint'
+  const types = node.type === undefined ? [] : [node.type].flat()
+  return types.includes('integer')
+}
+
+/**
+ * Whether a default can be written for a node of the given bigint format: a fraction has
+ * no bigint spelling, and `BigInt(1.5)` would throw as the generated module loads.
+ */
+export function isWritableBigintDefault(value: unknown, format: string | undefined) {
+  return typeof value !== 'number' || format === undefined || Number.isInteger(value)
+}
+
+/**
+ * The bigint `format` (`int64`, `uint64` or `bigint`) a node's values have: its own, or the
+ * one on the definition its `$ref` names, on an `allOf` member or on every non-null member
+ * of a union (the first one's), so a `default` beside a
+ * `$ref` is written as the bigint the target holds. `holdsBigint` narrows which nodes count,
+ * for a target that spells some of them (an `enum`) with numbers. A reference already being
+ * read ends the search, as a cycle does.
+ */
+export function bigintFormatOf(
+  schema: DefaultSchema,
+  definitions: { readonly [name: string]: DefaultSchema } | undefined,
+  holdsBigint: (node: DefaultSchema) => boolean = () => true,
+) {
+  const search = (node: DefaultSchema, reading: ReadonlySet<string>): string | undefined => {
+    const { format } = node
+    if ((format === 'int64' || format === 'uint64' || format === 'bigint') && holdsBigint(node)) {
+      return format
+    }
+    if (node.$ref !== undefined && !reading.has(node.$ref)) {
+      const target = definitionOf(node.$ref, definitions)
+      const found =
+        target === undefined ? undefined : search(target, new Set([...reading, node.$ref]))
+      if (found !== undefined) return found
+    }
+    for (const member of node.allOf ?? []) {
+      const found = search(member, reading)
+      if (found !== undefined) return found
+    }
+    // A union is a bigint when every member but `null` is one: the nullable
+    // `anyOf: [{ $ref }, { type: 'null' }]` of OpenAPI 3.1.
+    const members = (node.anyOf ?? node.oneOf ?? []).filter((member) => member.type !== 'null')
+    const [first, ...rest] = members.map((member) => search(member, reading))
+    return first !== undefined && rest.every((found) => found !== undefined) ? first : undefined
+  }
+  return search(schema, new Set())
 }

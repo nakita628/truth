@@ -129,3 +129,12 @@ describe('number', () => {
     })
   })
 })
+
+describe('number with both an inclusive and a numeric exclusive bound', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [{ type: 'number', minimum: 1, exclusiveMinimum: 5 }, 'z.number().min(1).gt(5)'],
+    [{ type: 'number', maximum: 10, exclusiveMaximum: 8 }, 'z.number().max(10).lt(8)'],
+  ])('number(%o) → %s', (input, expected) => {
+    expect(number(input)).toBe(expected)
+  })
+})

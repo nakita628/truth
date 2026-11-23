@@ -1595,3 +1595,11 @@ describe('a null member and a null enum value are emitted once (#16, #20)', () =
     expect(valibot(input)).toBe(expected)
   })
 })
+
+describe('valibot const of an int64 beyond 1e21', () => {
+  it('spells the literal in digits', () => {
+    expect(valibot({ type: 'integer', format: 'int64', const: 1e21 })).toBe(
+      String.raw`v.pipe(v.union([v.bigint(),v.pipe(v.number(),v.integer()),v.pipe(v.string(),v.regex(/^-?\d+$/))]),v.transform((input)=>BigInt(input)),v.literal(1000000000000000000000n))`,
+    )
+  })
+})

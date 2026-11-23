@@ -1,5 +1,6 @@
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault, makeSafeKey } from '../utils/index.js'
+import { bigintFormatOf, bigintLiteral, isBigintSchema } from './bigint.js'
 import { examplesOf } from './schema.js'
 import type { SchemaDefinitions } from './schema.js'
 
@@ -55,6 +56,17 @@ export function typeboxDefaultOpt(
   const result = coerceDefault(schema, schema.default, definitions)
   if (!result.keep) return []
   const value = stringWire ? String(result.value) : result.value
+  // `Type.BigInt` checks `typeof value === 'bigint'`, so the default `Value.Default` puts in
+  // has to be a bigint too, beside a `$ref` or `allOf` as much as on the node itself. A
+  // bigint is not JSON, so such a schema no longer goes through `JSON.stringify`: a default
+  // the schema rejects is the worse failure.
+  // A fraction there has no bigint spelling and is dropped.
+  if (
+    typeof value === 'number' &&
+    bigintFormatOf(schema, definitions, isBigintSchema) === 'bigint'
+  ) {
+    return Number.isInteger(value) ? [`default:${bigintLiteral(value)}`] : []
+  }
   const formatLiteral =
     typeof value === 'boolean' || typeof value === 'number' ? `${value}` : JSON.stringify(value)
   return [`default:${formatLiteral}`]

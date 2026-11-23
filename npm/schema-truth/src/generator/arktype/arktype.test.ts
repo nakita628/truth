@@ -1063,3 +1063,11 @@ describe('an unevaluatedItems rest that is an expression stays an expression (#5
     expect(arktype(input)).toBe(expected)
   })
 })
+
+describe('arktype const of an int64 beyond 1e21', () => {
+  it('spells the literal in digits', () => {
+    expect(arktype({ type: 'integer', format: 'int64', const: 1e21 })).toBe(
+      String.raw`type("bigint | number.integer").or(/^-?\d+$/).pipe((data) => BigInt(data)).to("1000000000000000000000n")`,
+    )
+  })
+})

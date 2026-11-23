@@ -94,6 +94,7 @@ export function normalizeTypes(types?: string | readonly string[]) {
 export type DefaultSchema = {
   readonly $ref?: string
   readonly type?: string | readonly string[]
+  readonly format?: string
   readonly nullable?: boolean
   readonly enum?: readonly unknown[]
   readonly const?: unknown
@@ -288,7 +289,7 @@ function readObject(
 }
 
 /** The definition a local `$ref` names, when `definitions` has it. */
-function definitionOf(
+export function definitionOf(
   ref: string,
   definitions: { readonly [name: string]: DefaultSchema } | undefined,
 ) {

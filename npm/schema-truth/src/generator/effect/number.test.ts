@@ -65,3 +65,18 @@ describe('effect number', () => {
     })
   })
 })
+
+describe('effect number with both an inclusive and a numeric exclusive bound', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'number', minimum: 1, exclusiveMinimum: 5 },
+      'Schema.Number.check(Schema.isGreaterThanOrEqualTo(1),Schema.isGreaterThan(5))',
+    ],
+    [
+      { type: 'number', maximum: 10, exclusiveMaximum: 8 },
+      'Schema.Number.check(Schema.isLessThanOrEqualTo(10),Schema.isLessThan(8))',
+    ],
+  ])('number(%o) → %s', (input, expected) => {
+    expect(number(input)).toBe(expected)
+  })
+})

@@ -26,27 +26,33 @@ export function numberActions(
         ? `v.gtValue(${lit(schema.minimum)}${exMinErrorPart})`
         : `v.minValue(${lit(schema.minimum)}${minErrorPart})`
     }
-    if (typeof schema.exclusiveMinimum === 'number') {
-      return `v.gtValue(${lit(schema.exclusiveMinimum)}${exMinErrorPart})`
-    }
     return undefined
   })()
+  // A 2020-12 numeric `exclusiveMinimum` is a bound of its own, checked beside `minimum`.
+  const exclusiveMinimum =
+    typeof schema.exclusiveMinimum === 'number'
+      ? `v.gtValue(${lit(schema.exclusiveMinimum)}${exMinErrorPart})`
+      : undefined
   const maximum = (() => {
     if (schema.maximum !== undefined) {
       return schema.exclusiveMaximum === true
         ? `v.ltValue(${lit(schema.maximum)}${exMaxErrorPart})`
         : `v.maxValue(${lit(schema.maximum)}${maxErrorPart})`
     }
-    if (typeof schema.exclusiveMaximum === 'number') {
-      return `v.ltValue(${lit(schema.exclusiveMaximum)}${exMaxErrorPart})`
-    }
     return undefined
   })()
+  // A 2020-12 numeric `exclusiveMaximum` is a bound of its own, checked beside `maximum`.
+  const exclusiveMaximum =
+    typeof schema.exclusiveMaximum === 'number'
+      ? `v.ltValue(${lit(schema.exclusiveMaximum)}${exMaxErrorPart})`
+      : undefined
   const multipleOf =
     schema.multipleOf !== undefined
       ? `v.multipleOf(${lit(schema.multipleOf)}${multipleOfErrorPart})`
       : undefined
-  return [minimum, maximum, multipleOf].filter((v) => v !== undefined)
+  return [minimum, exclusiveMinimum, maximum, exclusiveMaximum, multipleOf].filter(
+    (v) => v !== undefined,
+  )
 }
 
 /** The `v.minValue` / `v.maxValue` pair of a fixed-width numeric `format`, if it has one. */

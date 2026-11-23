@@ -14,6 +14,12 @@ export function zodWireNumber(kind: 'integer' | 'number', inner: string) {
   return `z.preprocess((val)=>typeof val==='string'&&${pattern}.test(val)?Number(val):val,${inner})`
 }
 
+/** Two chained checks as one, or `undefined` when neither is there. */
+export function joinChecks(first: string | undefined, second: string | undefined) {
+  if (first === undefined) return second
+  return second === undefined ? first : `${first}${second}`
+}
+
 /**
  * Generates a Zod schema for number types (number / float32 / float64), with
  * min/max/multipleOf constraints and `x-*-message` vendor extensions translated
@@ -43,7 +49,7 @@ export function number(schema: JSONSchema, options?: { readonly wire?: boolean }
   const minErrorPart = minErrorArg ? `,${minErrorArg}` : ''
   const exMinErrorArg = exclusiveMinMessage ? zodError(exclusiveMinMessage) : ''
   const exMinErrorPart = exMinErrorArg ? `,${exMinErrorArg}` : ''
-  const minimum = (() => {
+  const inclusiveMinimum = (() => {
     if (schema.minimum !== undefined) {
       if (schema.minimum === 0 && schema.exclusiveMinimum === true) {
         return `.positive(${exMinErrorArg})`
@@ -56,18 +62,21 @@ export function number(schema: JSONSchema, options?: { readonly wire?: boolean }
       }
       return `.min(${schema.minimum}${minErrorPart})`
     }
-    if (typeof schema.exclusiveMinimum === 'number') {
-      return `.gt(${schema.exclusiveMinimum}${exMinErrorPart})`
-    }
     return undefined
   })()
+  // A 2020-12 numeric `exclusiveMinimum` is a bound of its own, checked beside `minimum`.
+  const exclusiveMinimum =
+    typeof schema.exclusiveMinimum === 'number'
+      ? `.gt(${schema.exclusiveMinimum}${exMinErrorPart})`
+      : undefined
+  const minimum = joinChecks(inclusiveMinimum, exclusiveMinimum)
   const maximumMessage = schema['x-maximum-message']
   const exclusiveMaxMessage = schema['x-exclusiveMaximum-message']
   const maxErrorArg = maximumMessage ? zodError(maximumMessage) : ''
   const maxErrorPart = maxErrorArg ? `,${maxErrorArg}` : ''
   const exMaxErrorArg = exclusiveMaxMessage ? zodError(exclusiveMaxMessage) : ''
   const exMaxErrorPart = exMaxErrorArg ? `,${exMaxErrorArg}` : ''
-  const maximum = (() => {
+  const inclusiveMaximum = (() => {
     if (schema.maximum !== undefined) {
       if (schema.maximum === 0 && schema.exclusiveMaximum === true) {
         return `.negative(${exMaxErrorArg})`
@@ -80,11 +89,14 @@ export function number(schema: JSONSchema, options?: { readonly wire?: boolean }
       }
       return `.max(${schema.maximum}${maxErrorPart})`
     }
-    if (typeof schema.exclusiveMaximum === 'number') {
-      return `.lt(${schema.exclusiveMaximum}${exMaxErrorPart})`
-    }
     return undefined
   })()
+  // A 2020-12 numeric `exclusiveMaximum` is a bound of its own, checked beside `maximum`.
+  const exclusiveMaximum =
+    typeof schema.exclusiveMaximum === 'number'
+      ? `.lt(${schema.exclusiveMaximum}${exMaxErrorPart})`
+      : undefined
+  const maximum = joinChecks(inclusiveMaximum, exclusiveMaximum)
   const multipleOfMessage = schema['x-multipleOf-message']
   const multipleOfErrorArg = multipleOfMessage
     ? `,${zodError(multipleOfMessage)}`

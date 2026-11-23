@@ -304,3 +304,20 @@ describe('zod integer: bigint bounds and divisors a bigint can take', () => {
     expect(integer(schema)).toBe(expected)
   })
 })
+
+describe('integer with both an inclusive and a numeric exclusive bound', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [{ type: 'integer', minimum: 1, exclusiveMinimum: 5 }, 'z.int().min(1).gt(5)'],
+    [{ type: 'integer', maximum: 10, exclusiveMaximum: 8 }, 'z.int().max(10).lt(8)'],
+    [
+      { type: 'integer', format: 'bigint', minimum: 1, exclusiveMinimum: 5 },
+      'z.bigint().min(BigInt(1)).gt(BigInt(5))',
+    ],
+    [
+      { type: 'integer', format: 'int64', maximum: 10, exclusiveMaximum: 8 },
+      String.raw`z.union([z.bigint(),z.number().int(),z.string().regex(/^-?\d+$/)]).transform((val)=>BigInt(val)).pipe(z.int64().max(10n).lt(8n))`,
+    ],
+  ])('integer(%o) → %s', (input, expected) => {
+    expect(integer(input)).toBe(expected)
+  })
+})

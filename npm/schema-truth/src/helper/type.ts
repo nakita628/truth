@@ -8,6 +8,7 @@ import {
 } from '../guard/index.js'
 import type { JSONSchema } from '../parser/index.js'
 import { makeSafeKey, normalizeTypes, toPascalCase } from '../utils/index.js'
+import { bigintValueLiteral } from './bigint.js'
 import { itemsSchemaOf } from './schema.js'
 import { jsLiteral } from './value.js'
 
@@ -80,7 +81,7 @@ function nonNullType(schema: JSONSchema, flavour: TypeFlavour, rootName: string)
   // A JSON value spelled as a literal is also its own TypeScript literal type; an int64's
   // number is a bigint.
   const literal = (value: unknown) =>
-    typeof value === 'number' && isInt64(schema) ? `${value}n` : jsLiteral(value)
+    typeof value === 'number' && isInt64(schema) ? bigintValueLiteral(value) : jsLiteral(value)
 
   if (schema.const !== undefined) return literal(schema.const)
 

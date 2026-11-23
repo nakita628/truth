@@ -44,3 +44,12 @@ describe('arktype enum', () => {
     })
   })
 })
+
+describe('arktype enum of an int64 beyond 1e21', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [{ type: 'integer', format: 'int64', enum: [1e21, 2] }, '"1000000000000000000000n | 2n"'],
+    [{ type: 'integer', format: 'int64', enum: [1e21, 1.5] }, '"1000000000000000000000n | 1.5"'],
+  ])('_enum(%o) → %s', (input, expected) => {
+    expect(_enum(input)).toBe(expected)
+  })
+})

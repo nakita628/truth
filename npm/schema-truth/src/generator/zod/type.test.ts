@@ -331,3 +331,11 @@ describe('type', () => {
     })
   })
 })
+
+describe('type of an int64 enum beyond 1e21', () => {
+  it('spells each member as a bigint literal', () => {
+    expect(type({ type: 'integer', format: 'int64', enum: [1e21, 2] })).toBe(
+      '(1000000000000000000000n | 2n)',
+    )
+  })
+})

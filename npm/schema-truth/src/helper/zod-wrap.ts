@@ -1,6 +1,12 @@
 import { isNullable } from '../guard/index.js'
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault } from '../utils/index.js'
+import {
+  bigintFormatOf,
+  bigintValueLiteral,
+  isBigintSchema,
+  isWritableBigintDefault,
+} from './bigint.js'
 import { readCodeExtension } from './code-extensions.js'
 import type { CodeExtensionOptions } from './code-extensions.js'
 import { serializeJSValue } from './meta.js'
@@ -31,11 +37,14 @@ export type ZodWrapOptions = CodeExtensionOptions & {
  * @see https://zod.dev/metadata
  */
 export function zodWrap(zodStr: string, schema: JSONSchema, options?: ZodWrapOptions) {
+  // A `default` beside a `$ref` is the bigint its target holds. Read only for a number.
+  const bigintFormat = () => bigintFormatOf(schema, options?.definitions, isBigintSchema)
   const formatLiteral = (value: unknown) => {
     if (typeof value === 'boolean') return `${value}`
     if (typeof value === 'number') {
-      if (schema.format === 'int64' || schema.format === 'uint64') return `${value}n`
-      if (schema.format === 'bigint') return `BigInt(${value})`
+      const format = bigintFormat()
+      if (format === 'int64' || format === 'uint64') return bigintValueLiteral(value)
+      if (format === 'bigint') return `BigInt(${value})`
       return `${value}`
     }
     if (schema.type === 'date' && typeof value === 'string') {
@@ -51,9 +60,12 @@ export function zodWrap(zodStr: string, schema: JSONSchema, options?: ZodWrapOpt
   // the nullable type; for non-null defaults the order is behaviourally identical.
   const withNullable =
     isNullable(schema) && options?.nullSchema !== true ? `${zodStr}.nullable()` : zodStr
-  const withDefault = defaultResult?.keep
-    ? `${withNullable}.default(${formatLiteral(defaultResult.value)})`
-    : withNullable
+  const withDefault =
+    defaultResult?.keep === true &&
+    (typeof defaultResult.value !== 'number' ||
+      isWritableBigintDefault(defaultResult.value, bigintFormat()))
+      ? `${withNullable}.default(${formatLiteral(defaultResult.value)})`
+      : withNullable
   const withReadonly = schema['x-readonly'] === true ? `${withDefault}.readonly()` : withDefault
   const withPrefault =
     schema['x-prefault'] !== undefined

@@ -8,26 +8,33 @@ export type NumericBound = {
   readonly value: string
 }
 
-/** The comparators of a numeric node: `>= 1`, `< 5`, `% 2`. */
+/**
+ * The comparators of a numeric node: `>= 1`, `< 5`, `% 2`. A 2020-12 numeric
+ * `exclusiveMinimum` beside `minimum` is a bound of its own, and only the stricter of the
+ * two is emitted: it says as much as both, and ArkType throws on a definition whose
+ * bounds leave no value (`number >= 0 & number > 10 & number <= 5`) when it is loaded.
+ */
 export function numericConstraints(schema: JSONSchema) {
   const minimum =
-    schema.minimum !== undefined
-      ? ({
-          op: schema.exclusiveMinimum === true ? '>' : '>=',
-          value: String(schema.minimum),
-        } as const)
-      : typeof schema.exclusiveMinimum === 'number'
-        ? ({ op: '>', value: String(schema.exclusiveMinimum) } as const)
-        : undefined
+    typeof schema.exclusiveMinimum === 'number' &&
+    (schema.minimum === undefined || schema.exclusiveMinimum >= schema.minimum)
+      ? ({ op: '>', value: String(schema.exclusiveMinimum) } as const)
+      : schema.minimum === undefined
+        ? undefined
+        : ({
+            op: schema.exclusiveMinimum === true ? '>' : '>=',
+            value: String(schema.minimum),
+          } as const)
   const maximum =
-    schema.maximum !== undefined
-      ? ({
-          op: schema.exclusiveMaximum === true ? '<' : '<=',
-          value: String(schema.maximum),
-        } as const)
-      : typeof schema.exclusiveMaximum === 'number'
-        ? ({ op: '<', value: String(schema.exclusiveMaximum) } as const)
-        : undefined
+    typeof schema.exclusiveMaximum === 'number' &&
+    (schema.maximum === undefined || schema.exclusiveMaximum <= schema.maximum)
+      ? ({ op: '<', value: String(schema.exclusiveMaximum) } as const)
+      : schema.maximum === undefined
+        ? undefined
+        : ({
+            op: schema.exclusiveMaximum === true ? '<' : '<=',
+            value: String(schema.maximum),
+          } as const)
   const multipleOf =
     schema.multipleOf !== undefined
       ? ({ op: '%', value: String(schema.multipleOf) } as const)

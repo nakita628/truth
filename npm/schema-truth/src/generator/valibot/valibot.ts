@@ -9,6 +9,7 @@ import {
   isShapelessMember,
   isStringWireLocation,
 } from '../../guard/index.js'
+import { bigintValueLiteral } from '../../helper/bigint.js'
 import {
   enumWithoutWrappedNull,
   constraintMessage,
@@ -348,7 +349,7 @@ function node(
     if (value === null) return valibotWrap(`v.null(${msgArg})`, schema)
     const literal =
       typeof value === 'number' && isInt64(schema)
-        ? `v.literal(${value}n${errorPart})`
+        ? `v.literal(${bigintValueLiteral(value)}${errorPart})`
         : isPrimitive(value)
           ? `v.literal(${JSON.stringify(value)}${errorPart})`
           : `v.custom<${JSON.stringify(value)}>((input) => ${deepEqualExpression(value, 'input')}${errorPart})`

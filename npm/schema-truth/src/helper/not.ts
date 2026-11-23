@@ -1,5 +1,6 @@
 import type { JSONSchema } from '../parser/index.js'
 import { normalizeTypes } from '../utils/index.js'
+import { bigintLiteral } from './bigint.js'
 
 /** Whether the schema's values are bigints (`int64`, `uint64`, `bigint`). */
 export function isBigintFormat(schema: JSONSchema) {
@@ -8,7 +9,7 @@ export function isBigintFormat(schema: JSONSchema) {
 
 /** A value as a TypeScript literal. Numbers of a bigint schema are `0n`, not `0`. */
 function literal(value: unknown, bigint: boolean) {
-  if (bigint && typeof value === 'number' && Number.isFinite(value)) return `${value}n`
+  if (bigint && typeof value === 'number' && Number.isInteger(value)) return bigintLiteral(value)
   return JSON.stringify(value)
 }
 

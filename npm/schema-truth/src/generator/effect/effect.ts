@@ -9,6 +9,7 @@ import {
   isShapelessMember,
   isStringWireLocation,
 } from '../../guard/index.js'
+import { bigintValueLiteral } from '../../helper/bigint.js'
 import {
   enumWithoutWrappedNull,
   constraintMessage,
@@ -358,7 +359,7 @@ function node(
     const constMessage = schema['x-const-message'] ?? schema['x-error-message']
     const literalCode =
       typeof schema.const === 'number' && isInt64(schema)
-        ? `Schema.Literal(${schema.const}n)`
+        ? `Schema.Literal(${bigintValueLiteral(schema.const)})`
         : isComposite(schema.const)
           ? deepEqualSchema([schema.const])
           : `Schema.Literal(${JSON.stringify(schema.const)})`

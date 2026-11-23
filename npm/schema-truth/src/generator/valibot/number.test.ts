@@ -60,3 +60,18 @@ describe('valibot number', () => {
     })
   })
 })
+
+describe('valibot number with both an inclusive and a numeric exclusive bound', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'number', minimum: 1, exclusiveMinimum: 5 },
+      'v.pipe(v.number(),v.minValue(1),v.gtValue(5))',
+    ],
+    [
+      { type: 'number', maximum: 10, exclusiveMaximum: 8 },
+      'v.pipe(v.number(),v.maxValue(10),v.ltValue(8))',
+    ],
+  ])('number(%o) → %s', (input, expected) => {
+    expect(number(input)).toBe(expected)
+  })
+})

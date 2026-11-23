@@ -27,22 +27,26 @@ export function numberChecks(
         ? `Schema.isGreaterThan${suffix}(${lit(schema.minimum)}${exMinErrorPart})`
         : `Schema.isGreaterThanOrEqualTo${suffix}(${lit(schema.minimum)}${minErrorPart})`
     }
-    if (typeof schema.exclusiveMinimum === 'number') {
-      return `Schema.isGreaterThan${suffix}(${lit(schema.exclusiveMinimum)}${exMinErrorPart})`
-    }
     return undefined
   })()
+  // A 2020-12 numeric `exclusiveMinimum` is a bound of its own, checked beside `minimum`.
+  const exclusiveMinimum =
+    typeof schema.exclusiveMinimum === 'number'
+      ? `Schema.isGreaterThan${suffix}(${lit(schema.exclusiveMinimum)}${exMinErrorPart})`
+      : undefined
   const maximum = (() => {
     if (schema.maximum !== undefined) {
       return schema.exclusiveMaximum === true
         ? `Schema.isLessThan${suffix}(${lit(schema.maximum)}${exMaxErrorPart})`
         : `Schema.isLessThanOrEqualTo${suffix}(${lit(schema.maximum)}${maxErrorPart})`
     }
-    if (typeof schema.exclusiveMaximum === 'number') {
-      return `Schema.isLessThan${suffix}(${lit(schema.exclusiveMaximum)}${exMaxErrorPart})`
-    }
     return undefined
   })()
+  // A 2020-12 numeric `exclusiveMaximum` is a bound of its own, checked beside `maximum`.
+  const exclusiveMaximum =
+    typeof schema.exclusiveMaximum === 'number'
+      ? `Schema.isLessThan${suffix}(${lit(schema.exclusiveMaximum)}${exMaxErrorPart})`
+      : undefined
   // v4 has no `isMultipleOfBigInt`, so a bigint's `multipleOf` is a filter of its own.
   const multipleOf =
     schema.multipleOf === undefined
@@ -50,7 +54,9 @@ export function numberChecks(
       : suffix === 'BigInt'
         ? `Schema.makeFilter((input)=>input%${lit(schema.multipleOf)}===0n${multipleOfErrorPart})`
         : `Schema.isMultipleOf(${lit(schema.multipleOf)}${multipleOfErrorPart})`
-  return [minimum, maximum, multipleOf].filter((v) => v !== undefined)
+  return [minimum, exclusiveMinimum, maximum, exclusiveMaximum, multipleOf].filter(
+    (v) => v !== undefined,
+  )
 }
 
 /** The range check of a fixed-width numeric `format` that has one and no filter of its own. */

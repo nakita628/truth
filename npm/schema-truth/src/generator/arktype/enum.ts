@@ -1,5 +1,6 @@
 import { QUOTE_OR_BACKSLASH_PATTERN } from '../../constants/index.js'
 import { isComposite } from '../../guard/index.js'
+import { bigintValueLiteral } from '../../helper/bigint.js'
 import { arktypeUnionLimit } from '../../helper/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { isInt64 } from './integer.js'
@@ -7,7 +8,7 @@ import { isInt64 } from './integer.js'
 function lit(v: unknown, isBigint: boolean) {
   if (v === null) return 'null'
   if (typeof v === 'string') return `'${v}'`
-  if (typeof v === 'number' && isBigint) return `${v}n`
+  if (typeof v === 'number' && isBigint) return bigintValueLiteral(v)
   if (typeof v === 'number' || typeof v === 'boolean') return String(v)
   // oxlint-disable-next-line typescript/no-unnecessary-condition -- JSON.stringify returns undefined for undefined, a function or a symbol; lib.d.ts types it as string
   return JSON.stringify(v) ?? 'null'
