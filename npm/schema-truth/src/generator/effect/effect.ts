@@ -139,6 +139,18 @@ function objectKeysCheck(
   // The input is checked against each schema's encoded side, the side it is read from.
   const accepts = (s: JSONSchema) =>
     `Schema.is(Schema.toEncoded(${effect(s, rootName, isEffect, options)}))(v)`
+  // Every key is evaluated or its value is held to `unevaluatedProperties`; with no key
+  // evaluated, the keys are not read at all.
+  const unevaluatedEvery = (isEvaluated: string | undefined) => {
+    if (unevaluatedSchema === undefined) {
+      return isEvaluated === undefined
+        ? 'Object.keys(input).length===0'
+        : `Object.keys(input).every((k)=>${isEvaluated})`
+    }
+    return isEvaluated === undefined
+      ? `Object.values(input).every((v)=>${accepts(unevaluatedSchema)})`
+      : `Object.entries(input).every(([k,v])=>${isEvaluated}||${accepts(unevaluatedSchema)})`
+  }
   const filters = [
     ...patterns.map(
       ([pattern, propSchema]) =>
@@ -147,7 +159,7 @@ function objectKeysCheck(
     ...(evaluated === undefined
       ? []
       : [
-          `Schema.makeFilter((input)=>typeof input!=='object'||input===null||Array.isArray(input)||Object.entries(input).every(([k,v])=>${isEvaluatedKeyExpression(evaluated, 'k')}||${unevaluatedSchema === undefined ? 'false' : accepts(unevaluatedSchema)})${effectErrorPart(schema['x-unevaluatedProperties-message'])})`,
+          `Schema.makeFilter((input)=>typeof input!=='object'||input===null||Array.isArray(input)||${unevaluatedEvery(isEvaluatedKeyExpression(evaluated, 'k'))}${effectErrorPart(schema['x-unevaluatedProperties-message'])})`,
         ]),
   ]
   if (filters.length === 0) return inner

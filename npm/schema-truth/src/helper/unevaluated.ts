@@ -67,12 +67,24 @@ export function evaluatedProperties(
 /**
  * The emitted expression that tells whether `key` is evaluated: a lookup in the names
  * plus one `RegExp` test per pattern. With no names the lookup is left out, as `[]` is
- * typed `never[]` and `[].includes(key)` does not type-check; with neither it is `false`.
+ * typed `never[]` and `[].includes(key)` does not type-check; with neither, no key is
+ * evaluated and it is `undefined`, so the caller can skip reading the key at all.
  */
-export function isEvaluatedKeyExpression(evaluated: EvaluatedProperties, key: string) {
+export function isEvaluatedKeyExpression(
+  evaluated: EvaluatedProperties,
+  key: string,
+): string | undefined {
   const checks = [
     ...(evaluated.names.length > 0 ? [`${JSON.stringify(evaluated.names)}.includes(${key})`] : []),
     ...evaluated.patterns.map((pattern) => `new RegExp(${JSON.stringify(pattern)}).test(${key})`),
   ]
-  return checks.length > 0 ? checks.join('||') : 'false'
+  return checks.length > 0 ? checks.join('||') : undefined
+}
+
+/**
+ * The emitted loop body that runs `body` for a key `isEvaluated` does not cover: inside
+ * an `if` when some key is evaluated, as it is when none is.
+ */
+export function unlessEvaluated(isEvaluated: string | undefined, body: string) {
+  return isEvaluated === undefined ? body : `if(!(${isEvaluated})){${body}}`
 }

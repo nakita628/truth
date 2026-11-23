@@ -248,9 +248,9 @@ export function object(
     'key',
   )
   const unevaluatedKeysCheck = closedByCheck
-    ? `v.check((input)=>Object.keys(input).every((key)=>${isEvaluated})${valibotErrorPart(strictExtrasMessage ?? errorMessage)})`
+    ? `v.check((input)=>${isEvaluated === undefined ? 'Object.keys(input).length===0' : `Object.keys(input).every((key)=>${isEvaluated})`}${valibotErrorPart(strictExtrasMessage ?? errorMessage)})`
     : extraSchema !== undefined
-      ? `v.check((input)=>Object.entries(input).every(([key,value])=>${isEvaluated}||v.safeParse(${valibot(extraSchema, rootName, isValibot, options)},value).success)${valibotErrorPart(extraMessage ?? errorMessage)})`
+      ? `v.check((input)=>${isEvaluated === undefined ? 'Object.values(input).every((value)=>' : `Object.entries(input).every(([key,value])=>${isEvaluated}||`}v.safeParse(${valibot(extraSchema, rootName, isValibot, options)},value).success)${valibotErrorPart(extraMessage ?? errorMessage)})`
       : ''
   const actions = [
     minPropertiesCheck,

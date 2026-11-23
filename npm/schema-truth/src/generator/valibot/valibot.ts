@@ -38,6 +38,7 @@ import {
   withoutParameterSerialization,
   evaluatedProperties,
   isEvaluatedKeyExpression,
+  unlessEvaluated,
   discriminatedMembers,
 } from '../../helper/index.js'
 import type { ValibotWrapOptions } from '../../helper/index.js'
@@ -139,11 +140,12 @@ function objectKeysCheck(
   const unevaluatedCheck =
     evaluated === undefined
       ? ''
-      : `if(!(${isEvaluatedKeyExpression(evaluated, 'k')})){${
+      : unlessEvaluated(
+          isEvaluatedKeyExpression(evaluated, 'k'),
           unevaluatedSchema === undefined
             ? `addIssue({message:${message === undefined ? `'Unevaluated property: '+k` : JSON.stringify(message)}})`
-            : `const result=v.safeParse(${valibot(unevaluatedSchema, rootName, isValibot, options)},val);if(!result.success){${forwardKeyIssues(message)}}`
-        }}`
+            : `const result=v.safeParse(${valibot(unevaluatedSchema, rootName, isValibot, options)},val);if(!result.success){${forwardKeyIssues(message)}}`,
+        )
   return `v.pipe(v.unknown(),v.rawCheck(({dataset,addIssue})=>{if(!dataset.typed)return;const o=dataset.value;if(typeof o!=='object'||o===null||Array.isArray(o))return;for(const [k,val] of Object.entries(o)){${patternChecks}${unevaluatedCheck}}}),${inner})`
 }
 

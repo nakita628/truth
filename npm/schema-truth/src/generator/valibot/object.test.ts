@@ -258,4 +258,15 @@ describe('object', () => {
       )
     })
   })
+
+  describe('no property named (#60)', () => {
+    it.each<[JSONSchema, string]>([
+      [
+        { type: 'object', properties: {}, additionalProperties: { type: 'string' } },
+        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.values(input).every((value)=>v.safeParse(v.string(),value).success)))',
+      ],
+    ])('reads no key it does not need: %j', (schema, expected) => {
+      expect(object(schema, 'Schema', false)).toBe(expected)
+    })
+  })
 })

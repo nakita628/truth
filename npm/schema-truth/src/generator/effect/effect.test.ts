@@ -1477,4 +1477,14 @@ describe('a null member and a null enum value are emitted once (#16, #20)', () =
   ])('effect(%o) → %s', (input, expected) => {
     expect(effect(input)).toBe(expected)
   })
+
+  describe('unevaluatedProperties with no key evaluated (#60)', () => {
+    it('checks there are no keys instead of reading each one', () => {
+      expect(
+        effect({ allOf: [{ type: 'object' }], unevaluatedProperties: false }, 'Schema', false),
+      ).toBe(
+        "Schema.Unknown.check(Schema.makeFilter((input)=>typeof input!=='object'||input===null||Array.isArray(input)||Object.keys(input).length===0)).pipe(Schema.decodeTo(Schema.Struct({})))",
+      )
+    })
+  })
 })

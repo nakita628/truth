@@ -44,6 +44,6 @@ describe('isEvaluatedKeyExpression', () => {
     expect(isEvaluatedKeyExpression({ names: [], patterns: ['^x-'] }, 'k')).toBe(
       'new RegExp("^x-").test(k)',
     )
-    expect(isEvaluatedKeyExpression({ names: [], patterns: [] }, 'k')).toBe('false')
+    expect(isEvaluatedKeyExpression({ names: [], patterns: [] }, 'k')).toBeUndefined()
   })
 })

@@ -295,4 +295,15 @@ describe('object', () => {
   // Note: `.readonly()` is appended by the dispatcher (`zod.ts:readonly`),
   // not by `object()`. End-to-end readonly behavior is covered by zod.test.ts /
   // index.test.ts.
+
+  describe('no property named (#60)', () => {
+    it.each<[JSONSchema, string]>([
+      [
+        { type: 'object', properties: {}, additionalProperties: { type: 'string' } },
+        'z.looseObject({}).refine((val)=>Object.values(val).every((value)=>z.string().safeParse(value).success))',
+      ],
+    ])('reads no key it does not need: %j', (schema, expected) => {
+      expect(object(schema, 'Schema', false)).toBe(expected)
+    })
+  })
 })

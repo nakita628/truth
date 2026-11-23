@@ -232,9 +232,9 @@ export function object(
     'key',
   )
   const unevaluatedKeys = closedByCheck
-    ? `.refine((val)=>Object.keys(val).every((key)=>${isEvaluated})${zodErrorPart(strictMessage ?? errorMessage)})`
+    ? `.refine((val)=>${isEvaluated === undefined ? 'Object.keys(val).length===0' : `Object.keys(val).every((key)=>${isEvaluated})`}${zodErrorPart(strictMessage ?? errorMessage)})`
     : extraSchema !== undefined
-      ? `.refine((val)=>Object.entries(val).every(([key,value])=>${isEvaluated}||${zod(extraSchema, rootName, isZod, options)}.safeParse(value).success)${zodErrorPart(extraMessage ?? errorMessage)})`
+      ? `.refine((val)=>${isEvaluated === undefined ? 'Object.values(val).every((value)=>' : `Object.entries(val).every(([key,value])=>${isEvaluated}||`}${zod(extraSchema, rootName, isZod, options)}.safeParse(value).success)${zodErrorPart(extraMessage ?? errorMessage)})`
       : ''
   const objectExpr = `${partialBase}${minProperties}${maxProperties}${propertyNames}${patternProperties}${requiredPresent}${unevaluatedKeys}${dependentRequired}${dependentSchemas}${ifThenElse}`
   const hasInheritedName = Object.keys(properties).some(isObjectPrototypeProperty)

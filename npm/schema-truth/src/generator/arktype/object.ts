@@ -129,6 +129,10 @@ export function object(
     { names: Object.keys(properties), patterns: Object.keys(schema.patternProperties ?? {}) },
     'key',
   )
+  const onlyEvaluatedKeys =
+    isEvaluated === undefined
+      ? 'Object.keys(data).length === 0'
+      : `Object.keys(data).every((key) => ${isEvaluated})`
   // `"+": "reject"` refuses every undeclared key, a key a pattern allows included: with
   // patterns, the narrow below refuses the keys neither covers instead.
   const additionalMode =
@@ -192,7 +196,7 @@ export function object(
   const additionalPropertiesNarrow =
     schema.additionalProperties === false &&
     (addlPropsMessage !== undefined || schema.patternProperties !== undefined)
-      ? narrowPredicate(`Object.keys(data).every((key) => ${isEvaluated})`, addlPropsMessage)
+      ? narrowPredicate(onlyEvaluatedKeys, addlPropsMessage)
       : ''
   const unevaluatedPropertiesNarrow = (() => {
     // `additionalProperties` as a schema holds the keys no property or pattern covers, as
@@ -205,12 +209,14 @@ export function object(
     const message =
       typeof schema.additionalProperties === 'object' ? addlPropsMessage : unevalPropsRawMessage
     if (restSchema === false) {
-      return narrowPredicate(`Object.keys(data).every((key) => ${isEvaluated})`, message)
+      return narrowPredicate(onlyEvaluatedKeys, message)
     }
     if (typeof restSchema === 'object') {
       const s = callbackType(arktype(restSchema, rootName, isArktype, options), isArktype)
       return narrowPredicate(
-        `Object.entries(data).every(([key, value]) => ${isEvaluated} || ${s}.allows(value))`,
+        isEvaluated === undefined
+          ? `Object.values(data).every((value) => ${s}.allows(value))`
+          : `Object.entries(data).every(([key, value]) => ${isEvaluated} || ${s}.allows(value))`,
         message,
       )
     }
