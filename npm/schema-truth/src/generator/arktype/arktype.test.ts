@@ -999,7 +999,38 @@ describe('a union too long for the string DSL (#21)', () => {
           { type: 'string', format: 'email' },
         ],
       },
-      `type("'v0' | 'v1' | 'v2' | 'v3' | 'v4' | 'v5' | 'v6' | 'v7' | 'v8' | 'v9' | 'v10' | 'v11' | 'v12' | 'v13' | 'v14' | 'v15'").or("'v16' | string.email")`,
+      `type("'v0' | 'v1' | 'v2' | 'v3' | 'v4' | 'v5' | 'v6' | 'v7' | 'v8' | 'v9' | 'v10' | 'v11'").or("'v12' | 'v13' | 'v14' | 'v15' | 'v16' | string.email")`,
+    ],
+  ])('arktype(%o) → %s', (input, expected) => {
+    expect(arktype(input)).toBe(expected)
+  })
+})
+
+describe('a union with a member that is not a string literal is shorter in the string DSL (#58)', () => {
+  const values = Array.from({ length: 12 }, (_, i) => `v${i}`)
+  const literals = values.map((value) => `'${value}'`)
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: ['string', 'null'], enum: Array.from({ length: 11 }, (_, i) => `v${i}`) },
+      `"'v0' | 'v1' | 'v2' | 'v3' | 'v4' | 'v5' | 'v6' | 'v7' | 'v8' | 'v9' | 'v10' | null"`,
+    ],
+    [
+      { type: ['string', 'null'], enum: [...values, null] },
+      `type("${literals.join(' | ')}").or("null")`,
+    ],
+    [{ type: ['string', 'null'], enum: values }, `type("${literals.join(' | ')}").or("null")`],
+    [
+      { anyOf: [{ type: 'string', enum: values }, { type: 'null' }] },
+      `type.enumerated(${literals.join(',')},null)`,
+    ],
+    [
+      { anyOf: [{ type: 'string' }, { type: 'string', enum: values }, { type: 'null' }] },
+      `type("string | ${literals.slice(0, 11).join(' | ')}").or("'v11' | null")`,
+    ],
+    [{ enum: [...values, 1] }, `type.enumerated(${literals.join(',')},1)`],
+    [
+      { anyOf: [{ type: 'string', enum: ['a | b', 'c'] }, { type: 'null' }] },
+      `"'a | b' | 'c' | null"`,
     ],
   ])('arktype(%o) → %s', (input, expected) => {
     expect(arktype(input)).toBe(expected)

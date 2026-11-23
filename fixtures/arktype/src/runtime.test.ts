@@ -26,6 +26,7 @@ import { User as MetaUser } from '../meta/output.ts'
 import { Order as NestedOrder } from '../nested/output.ts'
 import { NotString } from '../not/output.ts'
 import { MaybeString } from '../nullable-default/output.ts'
+import { Schema as NullableLongEnum } from '../nullable-long-enum/output.ts'
 import { Shape as OneofShape } from '../oneof/output.ts'
 import { PatternBag } from '../pattern-properties/output.ts'
 import { Tuple } from '../prefix-items-unevaluated/output.ts'
@@ -690,6 +691,23 @@ describe('nullable-default', () => {
     expect(issues(result)).toStrictEqual([
       { path: [], code: 'predicate', message: 'must be a string or null (was a number)' },
     ])
+  })
+})
+
+describe('nullable-long-enum', () => {
+  const valid = { typeArray: 'v11', nullableType: null, anyOfNull: 'v0', anyOfStringNull: 'other' }
+
+  it('valid: a member, null and a string', () => {
+    expect(NullableLongEnum(valid)).toStrictEqual(valid)
+    expect(
+      NullableLongEnum({ typeArray: null, nullableType: 'v5', anyOfNull: null, anyOfStringNull: null }),
+    ).toStrictEqual({ typeArray: null, nullableType: 'v5', anyOfNull: null, anyOfStringNull: null })
+  })
+
+  it('invalid: a value outside the enum', () => {
+    expect(NullableLongEnum({ ...valid, typeArray: 'v12' })).toBeInstanceOf(type.errors)
+    expect(NullableLongEnum({ ...valid, nullableType: 'v12' })).toBeInstanceOf(type.errors)
+    expect(NullableLongEnum({ ...valid, anyOfNull: 'v12' })).toBeInstanceOf(type.errors)
   })
 })
 

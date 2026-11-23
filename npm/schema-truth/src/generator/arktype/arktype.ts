@@ -46,12 +46,14 @@ import {
   discriminatedMembers,
   callbackReturn,
   callbackType,
+  arktypeUnionLimit,
+  dslUnionMembers,
 } from '../../helper/index.js'
 import type { ArktypeWrapOptions } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { normalizeTypes, resolveOpenAPIRef } from '../../utils/index.js'
-import { _enum, ARKTYPE_STRING_UNION_LIMIT, isDslLiteralUnion } from './enum.js'
+import { _enum, isDslLiteralUnion } from './enum.js'
 import { bigintMorph, integer, isInt64 } from './integer.js'
 import { number, numberMorph } from './number.js'
 import { object } from './object.js'
@@ -80,16 +82,17 @@ function chunksOf<T>(items: readonly T[], size: number) {
 
 /**
  * A union of ArkType expressions. Quoted members join into one string-DSL union, unless
- * there are more than {@link ARKTYPE_STRING_UNION_LIMIT} of them: then literals become
+ * it has more members than {@link arktypeUnionLimit} allows: then literals become
  * `type.enumerated(...)` and anything else is joined in groups, so no single string is
  * long enough to exceed TypeScript's instantiation depth.
  */
 function unionStr(schemas: string[], inScope = false) {
   if (!schemas.every(isQuoted)) return schemas.reduce(combine('|', inScope))
-  const members = schemas.map((s) => s.slice(1, -1))
-  if (members.length <= ARKTYPE_STRING_UNION_LIMIT) return `"${members.join(' | ')}"`
+  const members = schemas.flatMap((s) => dslUnionMembers(s.slice(1, -1)))
+  const limit = arktypeUnionLimit(members)
+  if (members.length <= limit) return `"${members.join(' | ')}"`
   if (isDslLiteralUnion(members)) return `type.enumerated(${members.join(',')})`
-  return chunksOf(members, ARKTYPE_STRING_UNION_LIMIT)
+  return chunksOf(members, limit)
     .map((group) => `"${group.join(' | ')}"`)
     .reduce(combine('|', inScope))
 }
