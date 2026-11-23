@@ -13,6 +13,7 @@ import { schemaToTypebox } from '../generator/typebox/index.js'
 import { schemaToValibot } from '../generator/valibot/index.js'
 import { schemaToYup } from '../generator/yup/index.js'
 import { schemaToZod } from '../generator/zod/index.js'
+// oxlint-disable-next-line import/max-dependencies -- the CLI test drives every generator, one import each
 import { runCli } from './index.js'
 import type { Generator } from './index.js'
 
@@ -87,7 +88,7 @@ async function generate(
   return {
     ...result,
     output,
-    code: fs.existsSync(output) ? fs.readFileSync(output, 'utf-8') : undefined,
+    code: fs.existsSync(output) ? fs.readFileSync(output, 'utf8') : undefined,
   }
 }
 
@@ -919,8 +920,8 @@ describe('syntax validation', () => {
       const code = result.code ?? ''
       expect(code.length).toBeGreaterThan(0)
       expect(code.startsWith('import')).toBe(true)
-      expect(code.includes('export const')).toBe(true)
-      expect((code.match(/[({[]/g) ?? []).length).toBe((code.match(/[)}\]]/g) ?? []).length)
+      expect(code).toContain('export const')
+      expect(code.match(/[({[]/g) ?? []).toHaveLength((code.match(/[)}\]]/g) ?? []).length)
     },
   )
 })

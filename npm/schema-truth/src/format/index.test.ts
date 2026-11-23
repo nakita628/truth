@@ -5,15 +5,17 @@ import { fmt } from './index.js'
 
 describe('fmt', () => {
   it('formats TypeScript code', async () => {
-    expect(await runGenerator(fmt('const x=1'))).toBe('const x = 1\n')
+    await expect(runGenerator(fmt('const x=1'))).resolves.toBe('const x = 1\n')
   })
 
   it('formats with default options (no semi, single quote)', async () => {
-    expect(await runGenerator(fmt('const x = "hello";'))).toBe("const x = 'hello'\n")
+    await expect(runGenerator(fmt('const x = "hello";'))).resolves.toBe("const x = 'hello'\n")
   })
 
   it('formats multi-line code', async () => {
-    expect(await runGenerator(fmt('const a=1\nconst b=2'))).toBe('const a = 1\nconst b = 2\n')
+    await expect(runGenerator(fmt('const a=1\nconst b=2'))).resolves.toBe(
+      'const a = 1\nconst b = 2\n',
+    )
   })
 
   it('fails in the error channel for invalid code', async () => {
@@ -22,7 +24,7 @@ describe('fmt', () => {
   })
 
   it('formats with default printWidth (no wrap at 100)', async () => {
-    expect(await runGenerator(fmt('const obj = { aaaa: 1, bbbb: 2, cccc: 3 }'))).toBe(
+    await expect(runGenerator(fmt('const obj = { aaaa: 1, bbbb: 2, cccc: 3 }'))).resolves.toBe(
       'const obj = { aaaa: 1, bbbb: 2, cccc: 3 }\n',
     )
   })

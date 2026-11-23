@@ -1,8 +1,3 @@
----
-description: How a change lands — from an issue to a merged pull request: branch, title, the Why/What/Where/Who/When/How body, labels, and what has to be green first
-alwaysApply: true
----
-
 # Pull requests
 
 This repository is operated by an agent, not by hand. The issue, the diff and the pull
@@ -17,7 +12,7 @@ not in the conversation.
 2. Reproduce before fixing: a failing unit-test row or fixture case that shows the bug or
    the missing behaviour.
 3. Branch from `main`, named `type/topic` (`fix/valibot-enum`, `feat/x-brand`). Never commit
-   to `main`. The hourly Issue loop (Repository settings in `@README.md`) names its branch
+   to `main`. The hourly Issue loop (Repository settings in `README.md`) names its branch
    `issue-<number>` instead.
 4. One topic per pull request. A generator fix and a docs rewrite are two pull requests.
 
@@ -41,7 +36,7 @@ docs: point Effect Schema links at the v4 documentation
 What users read is the package's `CHANGELOG.md`, written from changesets. A pull request that
 changes what `schema-truth` or `oas-truth` ships adds one (`pnpm changeset`); its summary is
 the changelog line, so it says what changed for a user of the package. See
-`@.changeset/README.md`. Tests, fixtures, docs and CI need none.
+`.changeset/README.md`. Tests, fixtures, docs and CI need none.
 
 ## Body
 

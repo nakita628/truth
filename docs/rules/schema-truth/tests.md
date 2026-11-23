@@ -1,8 +1,3 @@
----
-globs: **/*.test.ts
-alwaysApply: false
----
-
 # Tests
 
 Vitest through Vite+: **import from `vite-plus/test`, never from `vitest`.**
@@ -28,7 +23,7 @@ describe('string', () => {
 })
 ```
 
-`@npm/schema-truth/src/generator/zod/string.test.ts` is the model. A new keyword
+`npm/schema-truth/src/generator/zod/string.test.ts` is the model. A new keyword
 or `x-*` extension gets a row per target library it affects.
 
 - Assert on **exact strings**. Substring matching hides a malformed expression that still

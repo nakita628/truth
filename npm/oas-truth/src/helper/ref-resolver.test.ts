@@ -81,7 +81,7 @@ describe('valueToCode $ref resolution', () => {
 
 describe('valueToCode critical edge cases', () => {
   it('breaks a self-referential object cycle instead of overflowing the stack', () => {
-    const o: Record<string, unknown> = { type: 'object' }
+    const o: { [key: string]: unknown } = { type: 'object' }
     o.self = o
     expect(() => valueToCode(o)).not.toThrow()
     expect(valueToCode(o)).toBe('{type:"object",self:null}')

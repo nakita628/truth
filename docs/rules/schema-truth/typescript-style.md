@@ -1,11 +1,6 @@
----
-globs: npm/schema-truth/**/*.ts
-alwaysApply: false
----
-
 # TypeScript conventions
 
-`@npm/schema-truth/vite.config.ts` is the enforced spec — oxlint runs type-aware
+`npm/schema-truth/vite.config.ts` is the enforced spec — oxlint runs type-aware
 with `denyWarnings`, so anything below is a build failure, not a preference. Run
 `vp check --fix` before handing work back. What follows is only what a linter message
 alone will not tell you.
@@ -21,6 +16,13 @@ alone will not tell you.
 - **Effect is returned, not run.** No `Effect.run*` outside the bin entries and test
   helpers that are exempted by path. No `Effect.fn` and no `Effect.flatMap`: write
   `Effect.gen(function* () { ... })` with `yield*` steps and early-return guards.
+- **An `Effect.gen` is the return value of a `function`** (`custom/effect-gen-return`):
+  `function name(input) { return Effect.gen(function* () { ... }) }`, optionally followed by
+  `.pipe(...)`. Not a curried arrow, not an inline argument.
+- **Bindings are camelCase, PascalCase or UPPER_SNAKE_CASE** (`custom/identifier-case`).
+- **`src` imports only what `package.json` declares** as a `dependency` or
+  `peerDependency` (`custom/no-undeclared-dependency`); a `devDependency` there fails at the
+  consumer's first import.
 
 ## Everything else worth knowing before you write
 
@@ -30,6 +32,16 @@ alone will not tell you.
 - **Relative imports keep the `.js` extension** (`./string.js`) — NodeNext resolution
   needs it at runtime and `tsc` will not tell you.
 - **No default exports**, and no `require`. ESM only, `node:` protocol for built-in modules.
+- **Names say what they hold** (`id-length`, `id-denylist`): one letter only for the
+  conventional ones (`k` / `v`, `a` / `b`, `s`, `i`, a type parameter), and no `data`,
+  `arr`, `fn`, `str`, `val`, `x` and the like. Tests are exempt.
+- **`noUncheckedIndexedAccess` is on**: `record[key]` and `list[0]` may be `undefined`, so
+  check before use (`list.length === 1 && list[0] !== undefined ? list[0] : ...`) or
+  destructure (`const [first] = list`).
+- **Conditions are booleans** (`strict-boolean-expressions`, `no-unnecessary-condition`):
+  compare a number (`list.length > 0`) instead of testing it. The document is parsed JSON
+  that nothing checks against `JSONSchema`, so a `null` can sit where the type says a schema;
+  a check for it stays, with an `oxlint-disable-next-line` saying so.
 - **No escape hatches**: no `any`, no non-null assertion, and `assertionStyle: 'never'` —
   `x as Y` does not compile here. Narrow with a type guard instead.
 - **Return types are inferred.** Leave the annotation off and let the body say it; give a
@@ -47,5 +59,5 @@ alone will not tell you.
 - **Suppressions live at the call site** as `oxlint-disable-next-line <rule>` with a
   reason comment — never as `'off'` in the config, and never as a bare disable. Unused
   disable directives are errors, so delete one the moment it stops applying.
-- The config's comments explain *why* a rule is on or deliberately absent. If a rule
+- The config's comments explain _why_ a rule is on or deliberately absent. If a rule
   fights you, read that comment before proposing a change to it.

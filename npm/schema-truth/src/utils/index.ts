@@ -76,15 +76,18 @@ export function toIdentifierPascalCase(name: string) {
   const result = parts.map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('')
   if (/^[0-9]/u.test(result)) {
     const prefixed = `_${result}`
-    return prefixed.replace(/([0-9])([a-z])/u, (_, d, c: string) => `${d}${c.toUpperCase()}`)
+    return prefixed.replace(
+      /([0-9])([a-z])/u,
+      (_, digit, letter: string) => `${digit}${letter.toUpperCase()}`,
+    )
   }
   return result
 }
 
-export function normalizeTypes(t?: string | readonly string[]) {
-  if (t === undefined) return []
-  if (typeof t === 'string') return [t]
-  return [...t]
+export function normalizeTypes(types?: string | readonly string[]) {
+  if (types === undefined) return []
+  if (typeof types === 'string') return [types]
+  return [...types]
 }
 
 /** The keywords of a schema node {@link coerceDefault} reads a `default` against. */
@@ -159,8 +162,8 @@ function conformDefault(
 ): DefaultResult {
   const drop: DefaultResult = { keep: false, value }
   const asIs: DefaultResult = { keep: true, value }
-  const conform = (s: DefaultSchema, v: unknown, r: ReadonlySet<string> = reading) =>
-    conformDefault(s, v, definitions, r)
+  const conform = (s: DefaultSchema, v: unknown, seen: ReadonlySet<string> = reading) =>
+    conformDefault(s, v, definitions, seen)
   if (schema.$ref !== undefined) {
     const target = reading.has(schema.$ref) ? undefined : definitionOf(schema.$ref, definitions)
     if (target === undefined) {
@@ -200,14 +203,14 @@ function conformDefault(
     // A `{ type: 'null' }` member only makes the node nullable, read above.
     const shaped = schema.allOf.filter((member) => {
       const memberTypes = normalizeTypes(member.type)
-      return memberTypes.length === 0 || memberTypes.some((t) => t !== 'null')
+      return memberTypes.length === 0 || memberTypes.some((memberType) => memberType !== 'null')
     })
     return shaped.reduce<DefaultResult>(
       (result, member) => (result.keep ? conform(member, result.value) : result),
       asIs,
     )
   }
-  const valueTypes = types.filter((t) => t !== 'null')
+  const valueTypes = types.filter((valueType) => valueType !== 'null')
   // `type: 'null'` takes nothing but the `null` read above.
   if (types.length > 0 && valueTypes.length === 0) return drop
   if (valueTypes.length === 0) {
@@ -256,7 +259,7 @@ function conformDefault(
   )
   return (
     (own === undefined ? undefined : read(own)) ??
-    valueTypes.map(read).find((r) => r !== undefined) ??
+    valueTypes.map(read).find((result) => result !== undefined) ??
     drop
   )
 }
@@ -275,8 +278,9 @@ function readObject(
   if ((schema.required ?? []).some((key) => !Object.hasOwn(value, key))) return undefined
   const kept: { [key: string]: unknown } = {}
   for (const [key, item] of Object.entries(value)) {
-    if (!Object.hasOwn(declared, key)) continue
-    const result = conform(declared[key], item)
+    const property = Object.hasOwn(declared, key) ? declared[key] : undefined
+    if (property === undefined) continue
+    const result = conform(property, item)
     if (!result.keep) return undefined
     kept[key] = result.value
   }

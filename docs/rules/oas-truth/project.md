@@ -1,8 +1,3 @@
----
-description: Repository map, commands, invariants and the definition of done (always applied)
-alwaysApply: true
----
-
 # oas-truth — how this repository is run
 
 Reads OpenAPI (`.json` / `.yaml`) or TypeSpec (`.tsp`) as the single source of truth and returns
@@ -30,8 +25,9 @@ npm/oas-truth/           the published package (the only npm artifact)
   tsconfig.json               NodeNext, strict, exactOptionalPropertyTypes; tests are excluded
 vite.config.ts                shared formatting style (printWidth 100, single quotes, no semicolons)
 lint/actionlint.mjs           runs actionlint (the npm WebAssembly build) over .github/workflows
-.github/workflows/test.yaml   CI (Test): build, test, `vp run check`
-.github/workflows/lint.yaml   CI (Lint): the repository linters, zizmor included
+lint/zizmor.mjs               runs zizmor, at the version it pins, over .github through uvx / pipx
+.github/workflows/test.yml    CI (Test): `pnpm lint`, format, `vp run check`, `bazel test //...`
+.github/workflows/pr-title.yml CI (PR title): the title is `type(scope): summary`
 .github/workflows/release.yml after Test on main: merges the Version Packages PR, npm publish, tag + release
 ```
 
@@ -39,15 +35,15 @@ lint/actionlint.mjs           runs actionlint (the npm WebAssembly build) over .
 
 Run these from the repository root.
 
-| Goal | Command |
-| --- | --- |
-| Install dependencies | `pnpm install --frozen-lockfile` |
-| Build `dist` | `vp run oas-truth#build` |
-| Unit tests | `pnpm test` |
-| One test file | `pnpm -F oas-truth test src/<path>.test.ts` |
-| Format check, lint and type check of the package, then the repository linters | `pnpm check` |
-| Autofix formatting, oxlint, markdownlint and textlint | `pnpm fix` |
-| Repository linters (markdownlint, textlint, cspell, secretlint, actionlint, zizmor) | `pnpm lint` |
+| Goal                                                                                | Command                                     |
+| ----------------------------------------------------------------------------------- | ------------------------------------------- |
+| Install dependencies                                                                | `pnpm install --frozen-lockfile`            |
+| Build `dist`                                                                        | `vp run oas-truth#build`                    |
+| Unit tests                                                                          | `pnpm test`                                 |
+| One test file                                                                       | `pnpm -F oas-truth test src/<path>.test.ts` |
+| Format check, lint and type check of the package, then the repository linters       | `pnpm check`                                |
+| Autofix formatting, oxlint, markdownlint and textlint                               | `pnpm fix`                                  |
+| Repository linters (markdownlint, textlint, cspell, secretlint, actionlint, zizmor) | `pnpm lint`                                 |
 
 - `pnpm check` does not run the tests; `pnpm test` does. CI runs both.
 - zizmor is not an npm package. `pnpm lint` skips it with a note when it is not on `PATH`
@@ -91,7 +87,7 @@ ran part of it, say which part.
 
 1. Read the rules in force for the files you are about to touch (`lint.rules` and
    `lint.overrides` in `npm/oas-truth/vite.config.ts`, and the matching
-   `.cursor/rules/*.mdc`).
+   `docs/rules/oas-truth/*.md`).
 2. Implement it the way the surrounding code is written. Do not introduce a second idiom.
 3. `pnpm fix`, then the definition of done.
 4. Commit and push (see Git policy).

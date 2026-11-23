@@ -9,6 +9,7 @@ function lit(v: unknown, isBigint: boolean) {
   if (typeof v === 'string') return `'${v.replaceAll("'", "\\'")}'`
   if (typeof v === 'number' && isBigint) return `${v}n`
   if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- JSON.stringify returns undefined for undefined, a function or a symbol; lib.d.ts types it as string
   return JSON.stringify(v) ?? 'null'
 }
 
@@ -47,9 +48,10 @@ export function _enum(schema: JSONSchema) {
   }
   const innerLit = (v: unknown) => litSchema(v, '')
   const outerLit = (v: unknown) => litSchema(v, errorArg)
-  const innerTuple = (arr: readonly unknown[]) => `v.tuple([${arr.map(innerLit).join(',')}])`
-  const outerTuple = (arr: readonly unknown[]) =>
-    `v.tuple([${arr.map(innerLit).join(',')}]${errorArg})`
+  const innerTuple = (members: readonly unknown[]) =>
+    `v.tuple([${members.map(innerLit).join(',')}])`
+  const outerTuple = (members: readonly unknown[]) =>
+    `v.tuple([${members.map(innerLit).join(',')}]${errorArg})`
   if (hasType(schema, 'number') || hasType(schema, 'integer') || hasType(schema, 'boolean')) {
     return schema.enum.length > 1
       ? `v.union([${schema.enum.map(innerLit).join(',')}]${errorArg})`

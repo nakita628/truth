@@ -1,9 +1,3 @@
----
-description: Prose, Markdown and spelling rules — the docs linters, what each one owns, and how to answer them when they fire
-globs: **/*.md,**/*.mdc
-alwaysApply: false
----
-
 # Writing documentation
 
 Five checks guard the text in this repository. One command runs them all, and it is part
@@ -20,13 +14,13 @@ ignore list: the registry answers `403` to anything that is not a browser, so fr
 every npm link looks dead. Add a host there only for that reason — a blanket refusal to
 serve automated requests — never to silence a link that is genuinely broken.
 
-| Tool | Owns | Config |
-| --- | --- | --- |
+| Tool                                                                 | Owns                                                                        | Config                     |
+| -------------------------------------------------------------------- | --------------------------------------------------------------------------- | -------------------------- |
 | [markdownlint-cli2](https://github.com/DavidAnson/markdownlint-cli2) | Markdown structure: headings, lists, fenced-code languages, table alignment | `.markdownlint-cli2.jsonc` |
-| [textlint](https://github.com/textlint/textlint) + `terminology` | how product names and technical terms are written | `.textlintrc.json` |
-| [cspell](https://github.com/streetsidesoftware/cspell) | spelling, in prose **and** in source comments and identifiers | `cspell.json` |
-| [secretlint](https://github.com/secretlint/secretlint) | credentials committed by accident | `.secretlintrc.json` |
-| textlint + `no-dead-link` | links that are dead or redirect somewhere else | `.textlintrc.links.json` |
+| [textlint](https://github.com/textlint/textlint) + `terminology`     | how product names and technical terms are written                           | `.textlintrc.json`         |
+| [cspell](https://github.com/streetsidesoftware/cspell)               | spelling, in prose **and** in source comments and identifiers               | `cspell.json`              |
+| [secretlint](https://github.com/secretlint/secretlint)               | credentials committed by accident                                           | `.secretlintrc.json`       |
+| textlint + `no-dead-link`                                            | links that are dead or redirect somewhere else                              | `.textlintrc.links.json`   |
 
 ## When a linter fires
 

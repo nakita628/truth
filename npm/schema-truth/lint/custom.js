@@ -23,10 +23,36 @@
 //                                 function that returns an Effect is a plain `function`
 //   custom/no-effect-flatmap      `Effect.flatMap` / `Effect.andThen` never appear —
 //                                 control flow is straight-line `Effect.gen`
+//   custom/effect-gen-return      every `Effect.gen` is written as
+//                                 `function name(...) { return Effect.gen(function* () { ... }) }`
+//                                 (a trailing `.pipe(...)` is allowed for scoping / recovery)
+//   custom/identifier-case        a variable, a parameter and a function are camelCase,
+//                                 PascalCase or UPPER_SNAKE_CASE: no snake_case and no stray
+//                                 underscores
+//   custom/no-undeclared-dependency a bare specifier in `src` names a `dependency` or a
+//                                 `peerDependency` of package.json. oxlint has no
+//                                 `import/no-extraneous-dependencies`; without this a
+//                                 `devDependency` reaching shipped code passes every check
+//                                 here and fails at the consumer's first import
 //
 // Tests are exempt from the structural rules: a test arranges and asserts imperatively
 // when that is the clearest way to spell a fixture out.
+import { builtinModules } from 'node:module'
+
+import MANIFEST from '../package.json' with { type: 'json' }
+
 const TEST_FILE = /\.test\.tsx?$/u
+const SHIPPED_FILE = /(^|\/)src\//u
+// camelCase, PascalCase or UPPER_SNAKE_CASE. A leading `_` marks a binding that is taken out
+// of a rest pattern and not read, and a leading `$` is how JSON Schema spells `$ref`.
+const IDENTIFIER_CASE =
+  /^[_$]?(?:[a-z][A-Za-z0-9]*|[A-Z][A-Za-z0-9]*|[A-Z][A-Z0-9]*(?:_[A-Z0-9]+)+)?$/u
+const DECLARED = new Set([
+  ...Object.keys(MANIFEST.dependencies),
+  ...Object.keys(MANIFEST.peerDependencies ?? {}),
+  ...Object.keys(MANIFEST.optionalDependencies ?? {}),
+])
+const BUILTINS = new Set(builtinModules)
 const TEST_HELPER = /[/\\]testing[/\\]/u
 const PREDICATE_PREFIX = /^(is|has|can)[A-Z]/u
 const PASCAL_CASE = /^[A-Z][A-Za-z0-9]*$/u
@@ -96,6 +122,53 @@ function isDynamicImport(node) {
     list.elements.length > 0 &&
     list.elements.every(isDynamicImport)
   )
+}
+
+/** The package a bare specifier names: `@scope/name/sub` is `@scope/name`, `name/sub` is `name`. */
+function packageOf(specifier) {
+  const segments = specifier.split('/')
+  return specifier.startsWith('@') ? segments.slice(0, 2).join('/') : segments[0]
+}
+
+function isBareSpecifier(specifier) {
+  return !specifier.startsWith('.') && !specifier.startsWith('/') && !specifier.startsWith('node:')
+}
+
+/** Every identifier a binding pattern declares. */
+function bindingsOf(pattern) {
+  if (!pattern) return []
+  if (pattern.type === 'Identifier') return [pattern]
+  if (pattern.type === 'AssignmentPattern') return bindingsOf(pattern.left)
+  if (pattern.type === 'RestElement') return bindingsOf(pattern.argument)
+  if (pattern.type === 'TSParameterProperty') return bindingsOf(pattern.parameter)
+  if (pattern.type === 'ArrayPattern') return pattern.elements.flatMap(bindingsOf)
+  if (pattern.type === 'ObjectPattern') {
+    return pattern.properties.flatMap((property) =>
+      bindingsOf(property.type === 'RestElement' ? property : property.value),
+    )
+  }
+  return []
+}
+
+function enclosingFunction(node) {
+  if (!node) return null
+  return FUNCTION_TYPES.has(node.type) ? node : enclosingFunction(node.parent)
+}
+
+// `Effect.gen(...)` may be followed by `.pipe(...)` calls; return the outermost call of that chain.
+function outermostPipe(node) {
+  const parent = node.parent
+  if (
+    parent?.type === 'MemberExpression' &&
+    parent.object === node &&
+    parent.property.type === 'Identifier' &&
+    parent.property.name === 'pipe' &&
+    parent.parent?.type === 'CallExpression' &&
+    parent.parent.callee === parent
+  ) {
+    return outermostPipe(parent.parent)
+  }
+  return node
 }
 
 function declarationOf(statement) {
@@ -254,6 +327,107 @@ export default {
                 message: `\`Effect.${name}\` buries the control flow one closure deep. Write the step as a plain \`yield*\` inside \`Effect.gen\`, with failures as early-return guards.`,
               })
             }
+          },
+        }
+      },
+    },
+    'effect-gen-return': {
+      meta: {
+        docs: {
+          description:
+            'Effect.gen is written as `function name() { return Effect.gen(function* () { ... }) }`',
+        },
+      },
+      create(context) {
+        if (isTestPath(filenameOf(context))) return {}
+        return {
+          CallExpression(node) {
+            if (effectMember(node.callee) !== 'gen') return
+            const body = node.arguments[0]
+            if (body?.type !== 'FunctionExpression' || !body.generator || body.id) {
+              context.report({
+                node,
+                message:
+                  'Write the generator inline and anonymous: `Effect.gen(function* () { ... })`.',
+              })
+              return
+            }
+            const outer = outermostPipe(node)
+            const owner =
+              outer.parent?.type === 'ReturnStatement' ? enclosingFunction(outer.parent) : null
+            if (
+              owner !== null &&
+              (owner.type === 'FunctionDeclaration' || owner.type === 'FunctionExpression')
+            ) {
+              return
+            }
+            context.report({
+              node,
+              message:
+                'An Effect program is the return value of a `function`: `export function name(input) { return Effect.gen(function* () { ... }) }`. Neither a const-bound arrow nor an inline argument — the declaration names the program, and the reader finds every step under one `return`.',
+            })
+          },
+        }
+      },
+    },
+    'identifier-case': {
+      meta: { docs: { description: 'bindings are camelCase, PascalCase or UPPER_SNAKE_CASE' } },
+      create(context) {
+        if (isTestPath(filenameOf(context))) return {}
+        function check(identifiers) {
+          for (const identifier of identifiers) {
+            if (IDENTIFIER_CASE.test(identifier.name)) continue
+            context.report({
+              node: identifier,
+              message: `Name \`${identifier.name}\` in camelCase (PascalCase for a schema or a class, UPPER_SNAKE_CASE for a module constant). An underscore inside a name is the casing of another language, and one at either end promises a privacy JavaScript does not keep.`,
+            })
+          }
+        }
+        function checkFunction(node) {
+          check([...(node.id ? [node.id] : []), ...node.params.flatMap(bindingsOf)])
+        }
+        return {
+          VariableDeclarator(node) {
+            check(bindingsOf(node.id))
+          },
+          FunctionDeclaration: checkFunction,
+          FunctionExpression: checkFunction,
+          ArrowFunctionExpression: checkFunction,
+          CatchClause(node) {
+            check(bindingsOf(node.param))
+          },
+        }
+      },
+    },
+    'no-undeclared-dependency': {
+      meta: { docs: { description: 'shipped code imports only declared dependencies' } },
+      create(context) {
+        const filename = filenameOf(context)
+        if (isTestPath(filename) || !SHIPPED_FILE.test(filename.replaceAll('\\', '/'))) return {}
+        function check(source) {
+          if (source?.type !== 'Literal' || typeof source.value !== 'string') return
+          if (!isBareSpecifier(source.value)) return
+          const name = packageOf(source.value)
+          if (DECLARED.has(name)) return
+          context.report({
+            node: source,
+            message: BUILTINS.has(name)
+              ? `Import the Node built-in as \`node:${source.value}\`.`
+              : `\`${name}\` is not a \`dependency\` or \`peerDependency\` of package.json, so it is not installed where this package is. Declare it, or keep the import out of \`src\`.`,
+          })
+        }
+        return {
+          ImportDeclaration(node) {
+            check(node.source)
+          },
+          ExportNamedDeclaration(node) {
+            check(node.source)
+          },
+          ExportAllDeclaration(node) {
+            check(node.source)
+          },
+          ImportExpression(node) {
+            check(node.source)
           },
         }
       },

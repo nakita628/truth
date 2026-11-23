@@ -13,9 +13,6 @@
         // Named by `.secretlintrc.json`, which secretlint loads by name; Knip has no secretlint
         // plugin to read it.
         "@secretlint/secretlint-rule-preset-recommend",
-        // The plugin `.textlintrc*.json` configures as `@textlint/markdown` ships with textlint
-        // itself; it is configured here, not installed separately.
-        "@textlint/textlint-plugin-markdown",
       ],
     },
     "npm/oas-truth": {

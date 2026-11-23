@@ -45,11 +45,16 @@ export function impliedWireType(schema: JSONSchema) {
  * reads text, so the string member is tried last.
  */
 export function unionPrimitiveTypes(types: readonly string[], isWire: boolean) {
-  const ordered = isWire ? WIRE_PRIMITIVE_ORDER.filter((t) => types.includes(t)) : types
+  const ordered = isWire
+    ? WIRE_PRIMITIVE_ORDER.filter((primitiveType) => types.includes(primitiveType))
+    : types
   return ordered.filter(
-    (t) =>
-      (t === 'string' || t === 'number' || t === 'boolean' || t === 'integer') &&
-      !(t === 'integer' && types.includes('number')),
+    (primitiveType) =>
+      (primitiveType === 'string' ||
+        primitiveType === 'number' ||
+        primitiveType === 'boolean' ||
+        primitiveType === 'integer') &&
+      !(primitiveType === 'integer' && types.includes('number')),
   )
 }
 

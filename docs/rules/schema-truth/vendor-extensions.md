@@ -1,20 +1,15 @@
----
-description: How x-* vendor extensions are declared, emitted and documented — read when adding or changing an x-*-message, behaviour or code extension
-alwaysApply: false
----
-
 # `x-*` vendor extensions
 
 Extensions on the input JSON Schema steer the generated code. Three layers, three homes:
 
-| Layer | Declared in | Examples |
-| --- | --- | --- |
-| Messages | `@npm/schema-truth/src/parser/x-ext/messages.ts` | `x-minLength-message`, `x-oneOf-message`, `x-error-message` |
-| Behaviour | `@npm/schema-truth/src/parser/x-ext/transform.ts` | `x-trim`, `x-coerce`, `x-brand`, `x-uuidVersion` |
-| Code (unsafe) | `@npm/schema-truth/src/parser/x-ext/code.ts` | `x-refine`, `x-check`, `x-narrow`, `x-pipe` |
+| Layer         | Declared in                                      | Examples                                                    |
+| ------------- | ------------------------------------------------ | ----------------------------------------------------------- |
+| Messages      | `npm/schema-truth/src/parser/x-ext/messages.ts`  | `x-minLength-message`, `x-oneOf-message`, `x-error-message` |
+| Behaviour     | `npm/schema-truth/src/parser/x-ext/transform.ts` | `x-trim`, `x-coerce`, `x-brand`, `x-uuidVersion`            |
+| Code (unsafe) | `npm/schema-truth/src/parser/x-ext/code.ts`      | `x-refine`, `x-check`, `x-narrow`, `x-pipe`                 |
 
 All three are merged into the public `JSONSchema` type in
-`@npm/schema-truth/src/parser/index.ts`. `ParamIn` (`x-ext/param.ts`) is the
+`npm/schema-truth/src/parser/index.ts`. `ParamIn` (`x-ext/param.ts`) is the
 related option that drives string-wire coercion for OpenAPI parameters.
 
 ## Conventions
@@ -35,7 +30,7 @@ related option that drives string-wire coercion for OpenAPI parameters.
 - honoured **only** through the programmatic API with `{ unsafeCodeExtensions: true }`,
   never from a CLI;
 - checked against the denylist in
-  `@npm/schema-truth/src/helper/code-extensions.ts` — a best-effort guard, not a
+  `npm/schema-truth/src/helper/code-extensions.ts` — a best-effort guard, not a
   sandbox;
 - marked in the output with `UNSAFE_GENERATED_MARKER`
   (`// @generated-with-unsafe-code-extensions`) so review can find the file.
@@ -48,9 +43,9 @@ denylist tests for the new cases.
 1. Declare it in the matching `x-ext/*.ts` type, with a doc comment saying which targets
    honour it.
 2. Emit it in each generator that has an equivalent; leave the others alone.
-3. Add unit-test rows per affected generator (`@.cursor/rules/tests.mdc`).
+3. Add unit-test rows per affected generator ([tests.md](./tests.md)).
 4. Add a fixture case under every target it affects, and regenerate
-   (`@.cursor/rules/fixtures.mdc`).
+   ([fixtures.md](./fixtures.md)).
 5. Document it where it lives: the doc comment on the `x-ext` type says what the
    extension does and which targets honour it. The README stays minimal — do not add an
    extension table to it.

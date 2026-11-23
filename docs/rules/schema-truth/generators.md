@@ -1,38 +1,33 @@
----
-globs: npm/schema-truth/src/generator/**/*.ts,npm/schema-truth/src/helper/**/*.ts,npm/schema-truth/src/utils/**/*.ts
-alwaysApply: false
----
-
 # Writing a generator
 
 Seven generators, one directory each, all with the same module shape. Read the Zod one
-first — `@npm/schema-truth/src/generator/zod` is the reference implementation
+first — `npm/schema-truth/src/generator/zod` is the reference implementation
 and the others mirror it. Ajv is a first slice (object / string / number / integer)
 that emits a reconstructed schema object plus `ajv.compile`, not a chain API. Yup is
 a first slice of the same shape and falls back to `yup.mixed()` for unsupported nodes.
 
-| Module | Role |
-| --- | --- |
-| `index.ts` | `schemaTo<Lib>(schema, options)` — a whole document to a whole file: imports, `$defs` in dependency order, type exports, cycle handling |
-| `<lib>.ts` | `<lib>(schema, ...)` — **one schema node to one expression**. The recursion entry point; every other emitter funnels back through it |
-| `type.ts` | the TypeScript type declaration that accompanies a recursive schema (`_Category`): a flavour of the shared `helper/type.ts`; ArkType has none — it emits a `scope` instead |
-| `object.ts` / `string.ts` / `number.ts` / `integer.ts` / `enum.ts` | per-type emitters, keyword by keyword |
+| Module                                                             | Role                                                                                                                                                                       |
+| ------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `index.ts`                                                         | `schemaTo<Lib>(schema, options)` — a whole document to a whole file: imports, `$defs` in dependency order, type exports, cycle handling                                    |
+| `<lib>.ts`                                                         | `<lib>(schema, ...)` — **one schema node to one expression**. The recursion entry point; every other emitter funnels back through it                                       |
+| `type.ts`                                                          | the TypeScript type declaration that accompanies a recursive schema (`_Category`): a flavour of the shared `helper/type.ts`; ArkType has none — it emits a `scope` instead |
+| `object.ts` / `string.ts` / `number.ts` / `integer.ts` / `enum.ts` | per-type emitters, keyword by keyword                                                                                                                                      |
 
 Shared code sits outside the generator directories:
 
-- `@npm/schema-truth/src/options` — `GenerateOptions` and `EmitOptions`, the
+- `npm/schema-truth/src/options` — `GenerateOptions` and `EmitOptions`, the
   options every `schemaTo<Lib>` accepts and threads through its emitters. They are public
   API, so they live in their own module and are imported from there, never reexported
   through `helper`.
 
-- `@npm/schema-truth/src/helper` — `cyclic`, `ref` (what a `$ref` names),
+- `npm/schema-truth/src/helper` — `cyclic`, `ref` (what a `$ref` names),
   `not` (the predicate a `not` schema refuses with), `type` (the TypeScript type beside a
   recursive schema), `wire` (what every target shares about a string-wire parameter),
   `format` (the regexes the targets check string formats with), `parameter` (a
   parameter's `style` / `explode` / `content` readers), `regex`, `meta`, `value`,
   `code-extensions`, and one `<lib>-wrap.ts` per target for the wrapping rules that
   library needs.
-- `@npm/schema-truth/src/utils` — naming (`toPascalCase`,
+- `npm/schema-truth/src/utils` — naming (`toPascalCase`,
   `toIdentifierPascalCase`, `makeSafeKey`), `normalizeTypes`, `coerceDefault`, the
   per-library error helpers (`zodError`, `valibotError`, `effectError`) and OpenAPI `$ref`
   resolution.
@@ -57,11 +52,11 @@ generator with an import reaching across.
   means either implementing it in the others or making it a documented no-op there.
   A target with no equivalent is a silent no-op, never a thrown error.
 - **Never break a message slot.** A keyword that accepts `x-<keyword>-message` must keep
-  honouring it — see `@.cursor/rules/vendor-extensions.mdc`.
+  honouring it — see [vendor-extensions.md](./vendor-extensions.md).
 - The `import/no-cycle` exception for `object.ts` ↔ `<lib>.ts` is deliberate (an object
   holds schemas, a schema may be an object). Do not add new cycles; do not "fix" that one.
 - Every emitted API must exist in the pinned target version — see
-  `@.cursor/rules/target-libraries.mdc`.
+  [target-libraries.md](./target-libraries.md).
 
 ## The loop for a generator change
 

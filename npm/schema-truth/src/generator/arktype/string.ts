@@ -83,7 +83,7 @@ export function string(schema: JSONSchema) {
     typeof schema['x-normalize'] === 'string'
       ? `string.normalize.${schema['x-normalize']}`
       : undefined,
-  ].filter((t) => t !== undefined)
+  ].filter((transform) => transform !== undefined)
   const format = formatDefinition(schema, transformFormat === undefined ? formatName : undefined)
   const hasMorph = transforms.length > 0
   // After a morph the checks apply to its output, so a pattern is validated with `.to()`
@@ -137,7 +137,7 @@ export function string(schema: JSONSchema) {
 
   // The morphs first, then the format they feed, then the pattern and the narrows.
   const morphed = transforms.reduce<string | undefined>(
-    (acc, t) => (acc === undefined ? `type("${t}")` : `${acc}.to("${t}")`),
+    (acc, transform) => (acc === undefined ? `type("${transform}")` : `${acc}.to("${transform}")`),
     undefined,
   )
   const based =

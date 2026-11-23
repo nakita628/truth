@@ -97,8 +97,8 @@ function zodNotPredicate(inner: JSONSchema, parent: JSONSchema) {
  */
 export function forwardIssue(message: string) {
   return ZOD_ISSUE_CODES.map(
-    (c, i) =>
-      `${i === 0 ? '' : 'else '}if(issue.code==='${c}'){ctx.issues.push({...issue,input:issue.input,message:${message}})}`,
+    (code, i) =>
+      `${i === 0 ? '' : 'else '}if(issue.code==='${code}'){ctx.issues.push({...issue,input:issue.input,message:${message}})}`,
   ).join('')
 }
 
@@ -295,7 +295,9 @@ function node(
     ).map((s) => (isKeywordOnlyMember(s) ? keywordConstraint(s) : zod(s, rootName, isZod, options)))
     if (schemas.length === 0) return zodWrap('z.any()', { ...schema, nullable })
     const intersected =
-      schemas.length === 1 ? schemas[0] : schemas.reduce((acc, s) => `z.intersection(${acc},${s})`)
+      schemas.length === 1 && schemas[0] !== undefined
+        ? schemas[0]
+        : schemas.reduce((acc, s) => `z.intersection(${acc},${s})`)
     const allOfMessage = schema['x-allOf-message']
     const baseResult = allOfMessage
       ? (() => {
@@ -320,6 +322,7 @@ function node(
     const notMessage = schema['x-not-message']
     const errorPart = zodErrorPart(notMessage)
     const { not: inner, ...withoutNot } = schema
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- the document is parsed JSON, never checked against the type: a null can sit where the type says a schema
     if (typeof inner !== 'object' || inner === null) return zodWrap('z.any()', schema)
     const predicate = inner.$ref
       ? `(val) => !${ref(inner, '', false)}.safeParse(val).success`
@@ -358,11 +361,11 @@ function node(
   if (schema.properties) return readonly(zodWrap(object(schema, rootName, isZod, options), schema))
 
   const types = normalizeTypes(schema.type)
-  const primitive = (t: string) => {
-    if (t === 'string') return string(schema)
-    if (t === 'number') return number(schema, { wire: isWireCoerced })
-    if (t === 'integer') return integer(schema, { wire: isWireCoerced })
-    if (t !== 'boolean') return undefined
+  const primitive = (primitiveType: string) => {
+    if (primitiveType === 'string') return string(schema)
+    if (primitiveType === 'number') return number(schema, { wire: isWireCoerced })
+    if (primitiveType === 'integer') return integer(schema, { wire: isWireCoerced })
+    if (primitiveType !== 'boolean') return undefined
     const errorMessage = schema['x-error-message']
     const errorArg = errorMessage ? zodError(errorMessage) : ''
     if (isStringWireParam) {
@@ -377,9 +380,9 @@ function node(
       .filter((m) => m !== undefined)
     return zodWrap(`z.union([${members.join(',')}])`, schema)
   }
-  for (const t of ['string', 'number', 'integer', 'boolean']) {
-    if (!types.includes(t)) continue
-    const expression = primitive(t)
+  for (const primitiveType of ['string', 'number', 'integer', 'boolean']) {
+    if (!types.includes(primitiveType)) continue
+    const expression = primitive(primitiveType)
     if (expression !== undefined) return zodWrap(expression, schema)
   }
 
@@ -395,17 +398,20 @@ function node(
     const fixedItemsError = zodErrorPart(fixedItemsMessage)
     const uniqueMessage = schema['x-uniqueItems-message']
     const uniqueError = zodErrorPart(uniqueMessage)
-    if (schema.prefixItems?.length) {
+    if (schema.prefixItems !== undefined && schema.prefixItems.length > 0) {
       const items = schema.prefixItems.map((s) => zod(s, rootName, isZod, options))
       // JSON Schema 2020-12 §11.3: unevaluatedItems applies to elements beyond
       // prefixItems. With `false` we keep the fixed tuple (default rejects extras);
       // with a schema we emit a rest argument (`z.tuple([...], rest)`).
-      const u = schema.unevaluatedItems
+      const unevaluatedItems = schema.unevaluatedItems
       const unevaluatedItemsMessage = schema['x-unevaluatedItems-message']
       const unevaluatedItemsError = zodErrorPart(unevaluatedItemsMessage)
-      const rest = isSchemaObject(u) ? zod(u, rootName, isZod, options) : undefined
+      const rest = isSchemaObject(unevaluatedItems)
+        ? zod(unevaluatedItems, rootName, isZod, options)
+        : undefined
       const tupleArgs = rest ? `[${items.join(',')}],${rest}` : `[${items.join(',')}]`
-      const tupleError = u === false && unevaluatedItemsMessage ? unevaluatedItemsError : baseError
+      const tupleError =
+        unevaluatedItems === false && unevaluatedItemsMessage ? unevaluatedItemsError : baseError
       const tupleExpr = `z.tuple(${tupleArgs}${tupleError})`
       const prefixItemsMessage = schema['x-prefixItems-message']
       const wrapped = prefixItemsMessage
@@ -426,9 +432,9 @@ function node(
     // v3.0: contains / minContains / maxContains as separate refines for
     // independent error messages (silent-bug fix).
     const containsChain = (() => {
-      const c = schema.contains
-      if (!c) return ''
-      const containsZod = zod(c, rootName, isZod, options)
+      const containsSchema = schema.contains
+      if (!containsSchema) return ''
+      const containsZod = zod(containsSchema, rootName, isZod, options)
       const minC = schema.minContains
       const maxC = schema.maxContains
       const fallback = schema['x-contains-message'] ?? errorMessage

@@ -1,9 +1,3 @@
----
-description: TypeScript conventions implied by the oxlint configuration
-globs: **/*.ts
-alwaysApply: false
----
-
 # TypeScript conventions
 
 The source of truth is `lint` in `npm/oas-truth/vite.config.ts`. What follows is what cannot
@@ -20,6 +14,19 @@ be worked around. `*.test.ts` relaxes some of it — see the testing rule.
 - An exhaustive choice over a union is a mapped-type lookup
   (`{ readonly [K in SchemaLib]: ... }`) or a `switch` that returns from every branch: a function
   must return a value on every path (`typescript/consistent-return`).
+
+## Naming and conditions
+
+- The custom plugin (`npm/oas-truth/lint/custom.js`) holds what a rule option cannot: a
+  `type` alias is PascalCase, a boolean predicate is named `is*` / `has*` / `can*`, a binding
+  is camelCase, PascalCase or UPPER_SNAKE_CASE, and `src` imports only declared
+  `dependencies` / `peerDependencies`.
+- Names say what they hold (`id-length`, `id-denylist`): one letter only for `k` / `v`,
+  `a` / `b`, `s`, `i` and type parameters; no `d`, `fn`, `str`, `data`. Tests are exempt.
+- `noUncheckedIndexedAccess` is on: an index read may be `undefined`; check it or
+  destructure. Conditions are booleans (`strict-boolean-expressions`,
+  `no-unnecessary-condition`): test a nullable value against `undefined`, a length against
+  `0`. A guard for input the types cannot vouch for (`isRecord(header.schema)`) is fine.
 
 ## Types
 
@@ -78,6 +85,6 @@ be worked around. `*.test.ts` relaxes some of it — see the testing rule.
 
 - Doc comments are TSDoc. **The type lives in the signature, never in the comment.**
 - No `@param` / `@returns` boilerplate. The house style is prose over a self-describing signature
-  that says *why*, not what the code already shows.
+  that says _why_, not what the code already shows.
 - Tags are real TSDoc tags (`jsdoc/check-tag-names`) and carry a description
   (`jsdoc/empty-tags`).

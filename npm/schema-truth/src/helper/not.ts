@@ -63,7 +63,7 @@ export function notPredicate(
   }
   if (Array.isArray(inner.type)) {
     const bodies = normalizeTypes(inner.type)
-      .map((t) => notTypeBody(t, param))
+      .map((typeName) => notTypeBody(typeName, param))
       .filter((body) => body !== undefined)
       .map((body) => `(${body})`)
     if (bodies.length > 0) return `(${parameter}) => ${bodies.join(' && ')}`

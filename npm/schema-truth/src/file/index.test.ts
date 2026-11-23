@@ -56,13 +56,13 @@ describe('file', () => {
     })
 
     it('reads a missing directory as empty', async () => {
-      expect(await runGenerator(readdir(path.join(TEST_DIR, 'missing')))).toStrictEqual([])
+      await expect(runGenerator(readdir(path.join(TEST_DIR, 'missing')))).resolves.toStrictEqual([])
     })
 
     it('lists an empty directory as empty', async () => {
       const emptyDir = path.join(TEST_DIR, 'empty')
       await fsp.mkdir(emptyDir, { recursive: true })
-      expect(await runGenerator(readdir(emptyDir))).toStrictEqual([])
+      await expect(runGenerator(readdir(emptyDir))).resolves.toStrictEqual([])
     })
   })
 
@@ -74,11 +74,11 @@ describe('file', () => {
     it('returns the contents of an existing file', async () => {
       const filePath = path.join(TEST_DIR, 'read.txt')
       await fsp.writeFile(filePath, 'hello world')
-      expect(await runGenerator(readFile(filePath))).toBe('hello world')
+      await expect(runGenerator(readFile(filePath))).resolves.toBe('hello world')
     })
 
     it('returns null when the file does not exist', async () => {
-      expect(await runGenerator(readFile(path.join(TEST_DIR, 'missing.txt')))).toBeNull()
+      await expect(runGenerator(readFile(path.join(TEST_DIR, 'missing.txt')))).resolves.toBeNull()
     })
 
     it('fails when the path is a directory', async () => {
@@ -114,7 +114,7 @@ describe('file', () => {
     it('writes a new file', async () => {
       const filePath = path.join(TEST_DIR, 'ok.txt')
       await expect(runGenerator(writeFile(filePath, 'hello'))).resolves.toBeUndefined()
-      expect(await fsp.readFile(filePath, 'utf8')).toBe('hello')
+      await expect(fsp.readFile(filePath, 'utf8')).resolves.toBe('hello')
     })
 
     it('skips the write when the contents already match', async () => {
@@ -133,7 +133,7 @@ describe('file', () => {
       const filePath = path.join(TEST_DIR, 'diff.txt')
       await fsp.writeFile(filePath, 'old')
       await expect(runGenerator(writeFile(filePath, 'new'))).resolves.toBeUndefined()
-      expect(await fsp.readFile(filePath, 'utf8')).toBe('new')
+      await expect(fsp.readFile(filePath, 'utf8')).resolves.toBe('new')
     })
   })
 })

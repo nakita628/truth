@@ -1,7 +1,7 @@
-export function toPascalCase(str: string) {
-  return str
-    .replaceAll(/[^a-zA-Z0-9]+(.)/gu, (_, c: string) => c.toUpperCase())
-    .replace(/^(.)/u, (_, c: string) => c.toUpperCase())
+export function toPascalCase(text: string) {
+  return text
+    .replaceAll(/[^a-zA-Z0-9]+(.)/gu, (_, letter: string) => letter.toUpperCase())
+    .replace(/^(.)/u, (_, letter: string) => letter.toUpperCase())
 }
 
 /**
@@ -56,7 +56,10 @@ export function toIdentifierPascalCase(name: string) {
   const result = parts.map((part) => part.charAt(0).toUpperCase() + part.slice(1)).join('')
   if (/^[0-9]/u.test(result)) {
     const prefixed = `_${result}`
-    return prefixed.replace(/([0-9])([a-z])/u, (_, d, c: string) => `${d}${c.toUpperCase()}`)
+    return prefixed.replace(
+      /([0-9])([a-z])/u,
+      (_, digit, letter: string) => `${digit}${letter.toUpperCase()}`,
+    )
   }
   return result
 }
@@ -94,7 +97,7 @@ export function declarationFileName(ident: string) {
  * the suffixed name (`User` → `User2Schema`).
  */
 export function makeSchemaVarName(ref: string, identifiers?: ReadonlyMap<string, string>) {
-  const match = ref.match(/^#\/components\/schemas\/(.+)$/u)
+  const match = /^#\/components\/schemas\/(.+)$/u.exec(ref)
   const name = match?.[1]
   if (name === undefined) return undefined
   const key = safeDecode(name)

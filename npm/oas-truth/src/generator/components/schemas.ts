@@ -82,9 +82,9 @@ function isSchema(value: unknown): value is Schema {
   return isRecord(value)
 }
 
-/** Rewrites a schema bottom-up with `fn`, following only subschemas (never example or default values). */
-function mapSchema(schema: Schema, fn: (node: Schema) => Schema) {
-  const map = (value: unknown): unknown => (isSchema(value) ? mapSchema(value, fn) : value)
+/** Rewrites a schema bottom-up with `rewrite`, following only subschemas (never example or default values). */
+function mapSchema(schema: Schema, rewrite: (node: Schema) => Schema) {
+  const map = (value: unknown): unknown => (isSchema(value) ? mapSchema(value, rewrite) : value)
   const node = Object.fromEntries(
     Object.entries(schema).map(([key, value]) => {
       if (SUBSCHEMA_KEYS.has(key)) return [key, Array.isArray(value) ? value.map(map) : map(value)]
@@ -94,7 +94,7 @@ function mapSchema(schema: Schema, fn: (node: Schema) => Schema) {
       return [key, value]
     }),
   )
-  return fn(isSchema(node) ? node : schema)
+  return rewrite(isSchema(node) ? node : schema)
 }
 
 /**
@@ -326,9 +326,10 @@ export function makeSchemasCode(
   const declarations = makeSchemaDeclarations(schemas, adapter, options)
   if (declarations.length === 0) return ''
   const cyclic = declarations.some(
-    (d) => d.importLine !== schemaImportLine(adapter, options, false, d.code),
+    (declaration) =>
+      declaration.importLine !== schemaImportLine(adapter, options, false, declaration.code),
   )
-  const code = declarations.map((d) => d.code).join(';')
+  const code = declarations.map((declaration) => declaration.code).join(';')
   const imports = schemaImportLine(adapter, options, cyclic, code)
   return `${imports}\n\n${code}\n`
 }

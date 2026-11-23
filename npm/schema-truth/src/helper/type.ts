@@ -1,5 +1,11 @@
 import { DEFAULT_ROOT_NAME, DEFINITION_REF_PREFIXES } from '../constants/index.js'
-import { isNullable, isNullTypeMember, isRootRef, isShapelessMember } from '../guard/index.js'
+import {
+  isNullable,
+  isNullTypeMember,
+  isPlainObject,
+  isRootRef,
+  isShapelessMember,
+} from '../guard/index.js'
 import type { JSONSchema } from '../parser/index.js'
 import { makeSafeKey, normalizeTypes, toPascalCase } from '../utils/index.js'
 import { itemsSchemaOf } from './schema.js'
@@ -63,8 +69,9 @@ function nonNullType(schema: JSONSchema, flavour: TypeFlavour, rootName: string)
 
   if (schema.allOf) {
     const members = schema.allOf.filter((s) => !isShapelessMember(s)).map(type)
-    if (members.length === 0) return 'unknown'
-    if (members.length === 1) return members[0]
+    const [member, ...others] = members
+    if (member === undefined) return 'unknown'
+    if (others.length === 0) return member
     return `(${members.join(' & ')})`
   }
 
@@ -85,15 +92,12 @@ function nonNullType(schema: JSONSchema, flavour: TypeFlavour, rootName: string)
   const readonly = flavour.readonly ? 'readonly ' : ''
   const object = () => {
     if (!schema.properties) {
-      if (schema.additionalProperties) {
-        if (typeof schema.additionalProperties === 'boolean') {
-          return schema.additionalProperties
-            ? '{ [key: string]: unknown }'
-            : '{ [key: string]: never }'
-        }
-        return `{ [key: string]: ${type(schema.additionalProperties)} }`
-      }
-      return '{ [key: string]: unknown }'
+      // `additionalProperties: false` without `properties` admits only `{}`, which the
+      // declaration has always left as an open record.
+      const additional = schema.additionalProperties
+      return isPlainObject(additional)
+        ? `{ [key: string]: ${type(additional)} }`
+        : '{ [key: string]: unknown }'
     }
     const required = new Set(schema.required)
     const properties = Object.entries(schema.properties).map(([key, propSchema]) => {
@@ -106,24 +110,25 @@ function nonNullType(schema: JSONSchema, flavour: TypeFlavour, rootName: string)
 
   if (schema.properties) return object()
 
-  const t = normalizeTypes(schema.type)
+  const types = normalizeTypes(schema.type)
   const integerType = isInt64(schema) || schema.format === 'bigint' ? 'bigint' : 'number'
   const primitives = [
-    t.includes('string') ? 'string' : undefined,
-    t.includes('number') ? 'number' : t.includes('integer') ? integerType : undefined,
-    t.includes('boolean') ? 'boolean' : undefined,
+    types.includes('string') ? 'string' : undefined,
+    types.includes('number') ? 'number' : types.includes('integer') ? integerType : undefined,
+    types.includes('boolean') ? 'boolean' : undefined,
   ].filter((p) => p !== undefined)
-  if (primitives.length > 1 && !t.includes('array') && !t.includes('object')) {
+  if (primitives.length > 1 && !types.includes('array') && !types.includes('object')) {
     return `(${primitives.join(' | ')})`
   }
-  if (primitives.length > 0) return primitives[0]
-  if (t.includes('array')) {
+  const [primitive] = primitives
+  if (primitive !== undefined) return primitive
+  if (types.includes('array')) {
     const items = itemsSchemaOf(schema.items)
     return items ? `${readonly}${type(items)}[]` : `${readonly}unknown[]`
   }
-  if (t.includes('object')) return object()
-  if (t.includes('date')) return 'Date'
-  if (t.length === 1 && t[0] === 'null') return 'null'
+  if (types.includes('object')) return object()
+  if (types.includes('date')) return 'Date'
+  if (types.length === 1 && types[0] === 'null') return 'null'
 
   return 'unknown'
 }

@@ -16,6 +16,16 @@
     "automerge": true,
     "schedule": ["* * * * 6"]
   },
+  "customManagers": [
+    {
+      "description": "zizmor runs from PyPI through uvx / pipx at the version lint/zizmor.mjs pins; Renovate sees no PyPI dependency there without this.",
+      "customType": "regex",
+      "managerFilePatterns": ["/^lint/zizmor\\.mjs$/"],
+      "matchStrings": ["const ZIZMOR_VERSION = '(?<currentValue>[^']+)'"],
+      "depNameTemplate": "zizmor",
+      "datasourceTemplate": "pypi"
+    }
+  ],
   "packageRules": [
     {
       "matchDatasources": ["npm", "github-actions"],

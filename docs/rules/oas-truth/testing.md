@@ -1,9 +1,3 @@
----
-description: Test conventions for the vitest suite run by vite-plus
-globs: **/*.test.ts
-alwaysApply: false
----
-
 # Tests
 
 Tests run on **vitest through vite-plus** and live next to what they cover

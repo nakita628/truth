@@ -1,6 +1,6 @@
 import type { ComponentAdapter } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
-import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.js'
+import { declarationFileName, isRecord, toIdentifierPascalCase } from '../../utils/index.js'
 import type { ComponentCodeOptions } from './declaration.js'
 import { joinDeclarations } from './declaration.js'
 
@@ -13,7 +13,7 @@ export function makeMediaTypesDeclarations(
   if (!mediaTypes) return []
   return Object.entries(mediaTypes).flatMap(([name, media]) => {
     if ('$ref' in media && media.$ref) return []
-    if (!('schema' in media) || !media.schema) return []
+    if (!('schema' in media) || !isRecord(media.schema)) return []
     const ident = toIdentifierPascalCase(name)
     const varName = `${ident}MediaTypeSchema`
     const raw = adapter.toExpression(media.schema)

@@ -1,19 +1,13 @@
----
-description: Workflows, dependency pinning, and editing the lint, format and build configuration
-globs: .github/**,**/package.json,**/vite.config.ts,**/tsconfig*.json,pnpm-workspace.yaml,renovate.json,lint/**,cspell.config.jsonc,.cspell/**,.textlintrc.json,.markdownlint-cli2.jsonc,.secretlintrc.json,.gitignore
-alwaysApply: false
----
-
 # CI and configuration
 
 ## The workflows
 
-- `.github/workflows/test.yaml` (Test): install with `--frozen-lockfile` → `vp run
-  oas-truth#build` → `vp run test` → `vp run check`. A new check is added to the root
-  `package.json` scripts **and** reached from this workflow, so local and CI cannot disagree about
-  what "clean" means.
-- `.github/workflows/lint.yaml` (Lint): installs zizmor with pipx, sets `LINT_ACTIONS_REQUIRED`
-  and runs `vp run lint`, so zizmor cannot be skipped there.
+- `.github/workflows/test.yml` (Test): the lint job runs `vp fmt --check` and `vp run lint`
+  (zizmor included, through the runner's pipx); the build job runs `vp run --filter './npm/*'
+  check` and `bazel test //...`. A new check is added to the root `package.json` scripts **and**
+  reached from this workflow, so local and CI cannot disagree about what "clean" means.
+- `.github/workflows/pr-title.yml` (PR title): the title is `type(scope): summary`, because it
+  becomes the squash commit on `main`.
 - `.github/workflows/release.yml` runs after Test succeeds on a push to `main`, and again when
   it has merged the Version Packages pull request; see Releasing.
 - `.github/workflows/delete-closed-branch.yml` deletes the head branch of a pull request closed
@@ -32,8 +26,9 @@ alwaysApply: false
   token (excused in `.github/zizmor.yml`).
 - Node comes from `node-version` in each workflow, pnpm from `packageManager` in the root
   `package.json`; change that field to move pnpm, not the workflow.
-- actionlint runs from the `actionlint` npm package (`lint/actionlint.mjs`); zizmor's version is
-  pinned by hand in `lint.yaml`, because Renovate does not see PyPI tools there.
+- actionlint runs from the `actionlint` npm package (`lint/actionlint.mjs`); zizmor runs at the
+  version `lint/zizmor.mjs` pins, through uvx or pipx, and Renovate tracks that line through a
+  `customManagers` entry in `renovate.json`. Both are part of `pnpm lint`, which is what CI runs.
 - A finding is excused next to the thing it is about, with the reason: an inline
   `# zizmor: ignore[audit]` comment, or an entry in `.github/zizmor.yml` scoped to one line.
   Never by dropping the check.

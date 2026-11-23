@@ -1,7 +1,3 @@
----
-alwaysApply: true
----
-
 # schema-truth
 
 A code generator: a JSON Schema / OpenAPI document in, **TypeScript source text** for a
@@ -13,15 +9,15 @@ generated files against the real library.
 
 ## Layout
 
-| Path | What it is |
-| --- | --- |
-| `npm/schema-truth` | the published npm package: parser, generators, seven CLIs |
-| `npm/schema-truth/src/generator/<lib>` | one directory per target library |
-| `fixtures/<lib>/<case>/{input.json,output.ts}` | golden files — `output.ts` is generated and committed |
-| `fixtures/validation`, `fixtures/elysia` | runtime tests: the emitted schemas must actually accept/reject data |
-| `apps/generated` | end-to-end smoke: runs the built CLIs over `apps/generated/schema/*` and type-checks the result |
+| Path                                           | What it is                                                                                      |
+| ---------------------------------------------- | ----------------------------------------------------------------------------------------------- |
+| `npm/schema-truth`                             | the published npm package: parser, generators, seven CLIs                                       |
+| `npm/schema-truth/src/generator/<lib>`         | one directory per target library                                                                |
+| `fixtures/<lib>/<case>/{input.json,output.ts}` | golden files — `output.ts` is generated and committed                                           |
+| `fixtures/validation`, `fixtures/elysia`       | runtime tests: the emitted schemas must actually accept/reject data                             |
+| `apps/generated`                               | end-to-end smoke: runs the built CLIs over `apps/generated/schema/*` and type-checks the result |
 
-`README.md` at the repository root is a symlink to `@npm/schema-truth/README.md`;
+`README.md` at the repository root is a symlink to `npm/schema-truth/README.md`;
 there is one README, and it is what npm shows. It is deliberately minimal — what the tool
 is, how to install it, the commands, one worked example — and it stays that way.
 
@@ -50,10 +46,10 @@ vp run lint                        # Markdown, terminology, spelling, secrets, l
   regenerate, and read the `output.ts` diff before claiming the change works.
 - **New emitted API must type-check against the real library** (`vp run -r typecheck`).
   Guessing at an API that the pinned version does not have is the most common failure
-  here — see `@.cursor/rules/target-libraries.mdc`.
+  here — see [target-libraries.md](./target-libraries.md).
 - **Document behaviour where it lives, not in the README.** A new `x-*` extension is
   documented by the doc comment on its type in `src/parser/x-ext/` and by the fixture that
   exercises it. Only installation, the commands and the one example belong in the README.
 - **No new runtime dependencies** in `npm/schema-truth` without being asked.
 - **Work on a branch and land it through a pull request**, with a changeset when it changes
-  what the package ships. See `@.cursor/rules/pull-requests.mdc`.
+  what the package ships. See [pull-requests.md](./pull-requests.md).

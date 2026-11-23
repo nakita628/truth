@@ -6,11 +6,12 @@
     "rootDir": "./src",
     "outDir": "./dist",
     "strict": true,
+    "noUncheckedIndexedAccess": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
     "types": ["node"],
     "declaration": true,
     "exactOptionalPropertyTypes": true
   },
-  "exclude": ["**/src/**/*.test.ts", "vite.config.ts", "dist"]
+  "exclude": ["**/src/**/*.test.ts", "vite.config.ts", "lint", "dist"]
 }

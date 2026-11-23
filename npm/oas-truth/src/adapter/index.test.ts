@@ -172,7 +172,7 @@ describe('toExpression for an enum schema (per library)', () => {
 
 describe('wrapSchema', () => {
   it('is undefined by default (host-agnostic)', () => {
-    expect(makeAdapter('zod').wrapSchema).toBe(undefined)
+    expect(makeAdapter('zod').wrapSchema).toBeUndefined()
   })
 })
 
@@ -181,7 +181,7 @@ describe('cycle helpers', () => {
     const adapter = makeAdapter('zod')
     expect(adapter.wrapLazy?.('NodeSchema')).toBe('z.lazy(() => NodeSchema)')
     expect(adapter.cyclicAnnotation?.('NodeType')).toBe('z.ZodType<NodeType>')
-    expect(adapter.cyclicTypeStyle).toBe(undefined)
+    expect(adapter.cyclicTypeStyle).toBeUndefined()
   })
 
   it('valibot wraps a lazy reference and annotates TS7022', () => {
@@ -216,8 +216,8 @@ describe('cycle helpers', () => {
   })
 
   it('typebox has no lazy wrapper (cycles use Type.Cyclic)', () => {
-    expect(makeAdapter('typebox').wrapLazy).toBe(undefined)
-    expect(makeAdapter('typebox').renderCyclic).toBe(undefined)
+    expect(makeAdapter('typebox').wrapLazy).toBeUndefined()
+    expect(makeAdapter('typebox').renderCyclic).toBeUndefined()
     expect(makeAdapter('typebox').reservedTypeNames).toStrictEqual([
       'Type',
       'Static',
@@ -257,7 +257,7 @@ describe('cycle helpers', () => {
     expect(makeAdapter('effect').withRef?.('Schema.String', 'Tag')).toBe(
       'Schema.String.annotate({identifier:"Tag"})',
     )
-    expect(makeAdapter('typebox').withRef).toBe(undefined)
+    expect(makeAdapter('typebox').withRef).toBeUndefined()
   })
 })
 

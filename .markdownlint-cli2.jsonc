@@ -5,7 +5,7 @@
   // `vp fmt` (oxfmt) owns Markdown whitespace — it re-pads tables, which is what keeps MD060
   // satisfied — but it never re-wraps prose. Wrapping therefore stays a human judgement and MD013
   // is off; structure is this linter's job.
-  "globs": ["**/*.md", "**/*.mdc"],
+  "globs": ["**/*.md"],
   "ignores": ["**/node_modules/**", "**/dist/**", "**/bazel-*/**"],
   "config": {
     "default": true,

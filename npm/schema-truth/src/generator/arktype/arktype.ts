@@ -145,6 +145,7 @@ function formatConst(value: unknown, isBigint: boolean) {
   if (typeof value === 'number' && isBigint) return `"${value}n"`
   if (typeof value === 'number' || typeof value === 'boolean') return `"${String(value)}"`
   if (value !== null && typeof value === 'object') return '"unknown"'
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- JSON.stringify returns undefined for undefined, a function or a symbol; lib.d.ts types it as string
   return `"${JSON.stringify(value) ?? 'null'}"`
 }
 
@@ -184,6 +185,7 @@ function objectKeysMembers(
       `{${indexKey(pattern)}:${arktype(propSchema, rootName, isArktype, options)}}`,
   )
   const unevaluated = schema.unevaluatedProperties
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- the document is parsed JSON, never checked against the type: a null can sit where the type says a schema
   if (unevaluated !== false && (typeof unevaluated !== 'object' || unevaluated === null)) {
     return patternMembers
   }
@@ -354,12 +356,12 @@ function node(
       const merged = definitions.every(isQuoted)
         ? (() => {
             const parts = definitions
-              .map((d) => d.slice(1, -1))
-              .filter((d) => d !== 'number' && d !== 'number.integer')
+              .map((definition) => definition.slice(1, -1))
+              .filter((definition) => definition !== 'number' && definition !== 'number.integer')
             if (parts.length === 0) return isInteger ? '"number.integer"' : '"number"'
             return `"${parts.join(' & ')}"`
           })()
-        : definitions.length === 1
+        : definitions.length === 1 && definitions[0] !== undefined
           ? definitions[0]
           : intersectionStr(definitions, isArktype)
       return arktypeWrap(wireNumeric(morph, merged), { ...schema, nullable })
@@ -370,12 +372,15 @@ function node(
     if (schemas.length === 0) return arktypeWrap('"unknown"', { ...schema, nullable })
     const intersected = [...schemas, ...objectKeysMembers(schema, rootName, isArktype, options)]
     const baseResult =
-      intersected.length === 1 ? intersected[0] : intersectionStr(intersected, isArktype)
+      intersected.length === 1 && intersected[0] !== undefined
+        ? intersected[0]
+        : intersectionStr(intersected, isArktype)
     return arktypeWrap(baseResult, { ...schema, nullable })
   }
 
   if (schema.not) {
     const { not: inner, ...withoutNot } = schema
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- the document is parsed JSON, never checked against the type: a null can sit where the type says a schema
     if (typeof inner !== 'object' || inner === null) return arktypeWrap('"unknown"', schema)
     const notMessage = schema['x-not-message']
     const predicate = (() => {
@@ -436,15 +441,15 @@ function node(
   }
 
   const types = normalizeTypes(schema.type)
-  const primitive = (t: string) => {
-    if (t === 'string') return string(schema)
-    if (t === 'number') {
+  const primitive = (primitiveType: string) => {
+    if (primitiveType === 'string') return string(schema)
+    if (primitiveType === 'number') {
       const definition = number(schema)
       return isWireCoerced
         ? wireNumeric(numberMorph('isFinite', 'a number'), definition)
         : definition
     }
-    if (t === 'integer') {
+    if (primitiveType === 'integer') {
       if (isInt64(schema) || schema.format === 'bigint') {
         return integer(schema, { wire: isWireCoerced })
       }
@@ -453,7 +458,7 @@ function node(
         ? wireNumeric(numberMorph('isSafeInteger', 'an integer'), definition)
         : definition
     }
-    if (t !== 'boolean') return undefined
+    if (primitiveType !== 'boolean') return undefined
     return isWireCoerced ? stringbool() : '"boolean"'
   }
   if (isPrimitiveUnion(types, isWireCoerced)) {
@@ -462,22 +467,22 @@ function node(
       .filter((m) => m !== undefined)
     return arktypeWrap(unionOf(members, undefined), schema)
   }
-  for (const t of ['string', 'number', 'integer', 'boolean']) {
-    if (!types.includes(t)) continue
-    const expression = primitive(t)
+  for (const primitiveType of ['string', 'number', 'integer', 'boolean']) {
+    if (!types.includes(primitiveType)) continue
+    const expression = primitive(primitiveType)
     if (expression !== undefined) return arktypeWrap(expression, schema)
   }
 
   if (types.includes('array')) {
-    if (schema.prefixItems?.length) {
+    if (schema.prefixItems !== undefined && schema.prefixItems.length > 0) {
       const items = schema.prefixItems.map((s) => arktype(s, rootName, isArktype, options))
       // JSON Schema 2020-12 §11.3: unevaluatedItems applies to elements beyond
       // prefixItems. ArkType tuples reject extras by default; `unevaluatedItems`
       // as a schema is represented as a trailing variadic `...rest[]`.
-      const u = schema.unevaluatedItems
-      const tupleExpr = isSchemaObject(u)
+      const unevaluatedItems = schema.unevaluatedItems
+      const tupleExpr = isSchemaObject(unevaluatedItems)
         ? (() => {
-            const rest = arktype(u, rootName, isArktype, options)
+            const rest = arktype(unevaluatedItems, rootName, isArktype, options)
             const restInner = isQuoted(rest) ? rest.slice(1, -1) : rest
             return `type([${items.join(',')},"...","${restInner}[]"])`
           })()
@@ -487,7 +492,7 @@ function node(
         schema,
       )
       const unevalItemsMessage = schema['x-unevaluatedItems-message']
-      return u === false && unevalItemsMessage
+      return unevaluatedItems === false && unevalItemsMessage
         ? `${baseTuple}.describe(${JSON.stringify(unevalItemsMessage)})`
         : baseTuple
     }
@@ -521,10 +526,10 @@ function node(
     // stay in definition syntax; the global `type(...)` cannot resolve it.
     const andWith = (a: string, b: string) =>
       isArktype && isArktypeDefinition(a) ? `[${a},"&",${b}]` : `type(${a}).and(type(${b}))`
-    const narrowWith = (a: string, fn: string) =>
+    const narrowWith = (a: string, narrowing: string) =>
       isArktype && isArktypeDefinition(a)
-        ? `[${a},":",${fn}]`
-        : `${isArktypeDefinition(a) ? `type(${a})` : a}.narrow(${fn})`
+        ? `[${a},":",${narrowing}]`
+        : `${isArktypeDefinition(a) ? `type(${a})` : a}.narrow(${narrowing})`
 
     const lengthExpr = isFixedLength
       ? hasArrayMessage

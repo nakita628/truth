@@ -98,25 +98,24 @@ function platformCause(error: unknown) {
  * `mapError` at the end is where all of it turns into rendered CLI output. The
  * `FileSystem` it writes through comes from the environment the caller provides.
  */
-function generate(generator: Generator) {
-  return (args: Command.Command.Config.Infer<typeof commandLine>) =>
-    Effect.gen(function* () {
-      const schema = yield* parseSchemaFile(args.input)
-      const source = yield* fmt(
-        generator(schema, { exportType: args.exportType, readonly: args.readonly }),
-      )
-      yield* mkdir(path.dirname(args.output))
-      yield* writeFile(args.output, source)
-      return yield* Console.log(`Generated: ${args.output}`)
-    }).pipe(
-      // A `CliError` is already something the runner knows how to render. Everything else
-      // is a parser, generator or filesystem failure that only carries a sentence.
-      Effect.mapError((error) =>
-        CliError.isCliError(error)
-          ? error
-          : new CliError.UserError({ cause: error, userMessage: describeFailure(error) }),
-      ),
+function generate(generator: Generator, args: Command.Command.Config.Infer<typeof commandLine>) {
+  return Effect.gen(function* () {
+    const schema = yield* parseSchemaFile(args.input)
+    const source = yield* fmt(
+      generator(schema, { exportType: args.exportType, readonly: args.readonly }),
     )
+    yield* mkdir(path.dirname(args.output))
+    yield* writeFile(args.output, source)
+    return yield* Console.log(`Generated: ${args.output}`)
+  }).pipe(
+    // A `CliError` is already something the runner knows how to render. Everything else
+    // is a parser, generator or filesystem failure that only carries a sentence.
+    Effect.mapError((error) =>
+      CliError.isCliError(error)
+        ? error
+        : new CliError.UserError({ cause: error, userMessage: describeFailure(error) }),
+    ),
+  )
 }
 
 /** What a `schema-truth-*` binary has to say about itself. */
@@ -135,7 +134,7 @@ export type CliOptions<Name extends string> = {
  * from one definition rather than one copy per target that can drift apart.
  */
 function makeCli<Name extends string>(options: CliOptions<Name>) {
-  return Command.make(options.name, commandLine, generate(options.generator)).pipe(
+  return Command.make(options.name, commandLine, (args) => generate(options.generator, args)).pipe(
     Command.withDescription(options.description),
     Command.withExamples([
       {

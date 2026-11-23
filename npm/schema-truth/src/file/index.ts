@@ -51,11 +51,11 @@ export function readFile(path: string) {
  * Skipping the identical write keeps a no-op generation from changing mtime. An
  * unreadable existing file falls through to the write rather than failing here.
  */
-export function writeFile(path: string, data: string) {
+export function writeFile(path: string, content: string) {
   return Effect.gen(function* () {
     const fs = yield* FileSystem.FileSystem
     const existing = yield* fs.readFileString(path).pipe(Effect.orElseSucceed(() => null))
-    if (existing === data) return
-    yield* fs.writeFileString(path, data)
+    if (existing === content) return
+    yield* fs.writeFileString(path, content)
   })
 }

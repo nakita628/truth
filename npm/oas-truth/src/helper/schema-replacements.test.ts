@@ -127,7 +127,7 @@ describe('makeSchemaReplacements critical edge cases', () => {
       toExpression: () => 'EXPR',
       renderTypeInfer: () => '',
     }
-    const node: Record<string, unknown> = { description: 'x' }
+    const node: { [key: string]: unknown } = { description: 'x' }
     node.self = node
     expect(() => makeSchemaReplacements(node, adapter)).not.toThrow()
     expect(makeSchemaReplacements(node, adapter).size).toBe(0)

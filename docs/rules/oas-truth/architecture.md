@@ -1,9 +1,3 @@
----
-description: src layering, dependency direction, per-directory responsibilities and the public API
-globs: npm/oas-truth/src/**/*.ts
-alwaysApply: false
----
-
 # Layering
 
 Dependencies run **one way**. The order is enforced by the `no-restricted-imports` overrides in
@@ -24,13 +18,13 @@ and to the code second. A new `src/` directory gets its override and a line in t
 
 ## Responsibilities
 
-| Directory | Owns | Never does |
-| --- | --- | --- |
-| `openapi/` | the OpenAPI model types (`OpenAPI`, `Components`, `Schema`, ...) and `parseOpenAPI` (OpenAPI through swagger-parser's `bundle`, TypeSpec through `@typespec/compiler` then `bundle`) | generate code |
-| `utils/` | string and identifier helpers (`toIdentifierPascalCase`, `makeSafeKey`, `schemaRefToName`), `isRecord` | know about a validator library |
-| `adapter/` | `ComponentAdapter` and `makeAdapter(lib)`: one adapter per validator library over schema-truth | know about a component kind |
-| `helper/` | `valueToCode` (a value as source, `$ref` → schema variable) and `makeSchemaReplacements` (inline schemas → validator expressions) | emit a whole component |
-| `generator/components/` | one `make<Kind>Code(components, ...)` per Components Object key: pure data in, source string out | touch the filesystem, format the output |
+| Directory               | Owns                                                                                                                                                                                 | Never does                              |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------- |
+| `openapi/`              | the OpenAPI model types (`OpenAPI`, `Components`, `Schema`, ...) and `parseOpenAPI` (OpenAPI through swagger-parser's `bundle`, TypeSpec through `@typespec/compiler` then `bundle`) | generate code                           |
+| `utils/`                | string and identifier helpers (`toIdentifierPascalCase`, `makeSafeKey`, `schemaRefToName`), `isRecord`                                                                               | know about a validator library          |
+| `adapter/`              | `ComponentAdapter` and `makeAdapter(lib)`: one adapter per validator library over schema-truth                                                                                       | know about a component kind             |
+| `helper/`               | `valueToCode` (a value as source, `$ref` → schema variable) and `makeSchemaReplacements` (inline schemas → validator expressions)                                                    | emit a whole component                  |
+| `generator/components/` | one `make<Kind>Code(components, ...)` per Components Object key: pure data in, source string out                                                                                     | touch the filesystem, format the output |
 
 ## What the code builders return
 

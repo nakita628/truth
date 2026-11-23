@@ -47,7 +47,11 @@ describe('constants', () => {
       ALL_CODE_EXTENSION_KEYS[i],
       key,
     ])
-    expect(pairs.every(([before, after]) => before !== undefined && before < after)).toBe(true)
+    expect(
+      pairs.every(
+        ([before, after]) => before !== undefined && after !== undefined && before < after,
+      ),
+    ).toBe(true)
     expect(new Set(ALL_CODE_EXTENSION_KEYS).size).toBe(ALL_CODE_EXTENSION_KEYS.length)
   })
 

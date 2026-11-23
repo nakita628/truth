@@ -191,7 +191,7 @@ function extractParts(code: string, stripRefs: (expr: string) => string = (s) =>
   const head = firstCode === -1 ? lines : lines.slice(0, firstCode)
   const comments = head.filter((line) => line.startsWith('//'))
   const joined = (firstCode === -1 ? [] : lines.slice(firstCode)).join('\n').trim()
-  const match = joined.match(/^export const \w+ = (.+)$/su)
+  const match = /^export const \w+ = (.+)$/su.exec(joined)
   const expr = match?.[1]
   const expression = stripRefs(expr === undefined ? joined : expr.replace(/;?\s*$/u, ''))
   return { expression, comments }
@@ -263,7 +263,7 @@ function stripEffectSuspend(code: string) {
  * references that leave the cycle.
  */
 function renderArktypeCyclic(varName: string, containerExpr: string, externals: readonly string[]) {
-  const body = containerExpr.match(/scope\(\{([\s\S]*)\}\)\.export\(\)/u)?.[1]
+  const body = /scope\(\{([\s\S]*)\}\)\.export\(\)/u.exec(containerExpr)?.[1]
   if (body === undefined) return containerExpr
   return `scope({${[...externals.map((ref) => `${ref}:${ref}`), body].join(',')}}).export().${varName}`
 }

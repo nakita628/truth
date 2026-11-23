@@ -15,7 +15,7 @@ export function makeCallbacksDeclarations(
   if (!callbacks) return []
   const asConst = options?.readonly === true ? ' as const' : ''
   return Object.entries(callbacks).flatMap(([name, callback]) => {
-    if ('$ref' in callback && callback.$ref) return []
+    if ('$ref' in callback && typeof callback.$ref === 'string') return []
     const ident = toIdentifierPascalCase(name)
     const varName = `${ident}Callback`
     const replacements = makeSchemaReplacements(callback, adapter, {

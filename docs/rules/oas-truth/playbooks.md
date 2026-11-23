@@ -1,8 +1,3 @@
----
-description: Step-by-step playbooks for the recurring tasks here — adding a component builder, supporting a validator library, fixing generated output, bumping schema-truth or TypeSpec, clearing a lint failure, adding a lint rule, and releasing. Read this when starting any of those.
-alwaysApply: false
----
-
 # Playbooks
 
 Every playbook ends the same way: `pnpm fix`, then `vp run oas-truth#build`, `pnpm test` and

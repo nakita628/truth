@@ -1,9 +1,3 @@
----
-description: Markdown and prose rules enforced by markdownlint, textlint and cspell
-globs: **/*.md
-alwaysApply: false
----
-
 # Documentation
 
 Three linters split the work and never overlap: **markdownlint** owns the document structure,

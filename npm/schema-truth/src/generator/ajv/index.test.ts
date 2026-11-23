@@ -193,8 +193,8 @@ export const validate = ajv.compile(schema)`
     const without = schemaToAjv(schema)
     const withFlag = schemaToAjv(schema, { exportType: true })
     expect(withFlag).toBe(without)
-    expect(withFlag.includes('JSONSchemaType')).toBe(false)
-    expect(withFlag.includes('export type')).toBe(false)
+    expect(withFlag).not.toContain('JSONSchemaType')
+    expect(withFlag).not.toContain('export type')
   })
 
   it('should emit import and export const for an empty document', () => {

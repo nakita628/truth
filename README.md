@@ -31,7 +31,7 @@ bazel test //...               # build, test and type-check every package
 bazel build //npm/schema-truth:build   # one package's dist, under bazel-bin/
 pnpm check                     # format check (vp fmt), per-package vp check, repository linters
 pnpm fix                       # the autofixable part of the above
-pnpm lint                      # markdownlint, textlint, cspell, secretlint, actionlint, knip, dead links
+pnpm lint                      # markdownlint, textlint, cspell, secretlint, actionlint, zizmor, knip, dead links
 pnpm knip                      # unused files, dependencies and exports across every workspace
 ```
 
@@ -84,7 +84,7 @@ gh label create claude -R nakita628/truth --description "Hand this issue to the 
 
 ## Contributing
 
-Pull requests follow [the template](./.github/pull_request_template.md). CI is `pnpm check` plus `bazel test //...`; both must pass. The conventions the linters enforce, and the reasons behind them, are in [AGENTS.md](./AGENTS.md) and the per-package rule files under `.cursor/rules/`.
+Pull requests follow [the template](./.github/pull_request_template.md). CI is `pnpm check` plus `bazel test //...`; both must pass. The conventions the linters enforce, and the reasons behind them, are in [AGENTS.md](./AGENTS.md) and the per-package rule files under [`docs/rules/`](./docs/rules).
 
 ## License
 

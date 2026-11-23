@@ -1,8 +1,3 @@
----
-globs: fixtures/**,apps/generated/**
-alwaysApply: false
----
-
 # Fixtures
 
 `fixtures/<lib>/<case>/` holds `input.json` (hand-written) and `output.ts` (**generated,
@@ -35,7 +30,7 @@ Three layers, each catching something different:
    `READONLY_FIXTURES` for `{ readonly: true }`, `REF_FIXTURES` (TypeBox) for
    `{ ref: name }`. The two lists drifting apart is a silent failure: the file is
    generated one way and asserted another.
-5. Add runtime assertions to `src/runtime.test.ts` when the case is about *behaviour*
+5. Add runtime assertions to `src/runtime.test.ts` when the case is about _behaviour_
    (a message, a refinement, a coercion) rather than shape.
 
 ## Regenerating
@@ -54,7 +49,7 @@ tests fail.
 
 ## apps/generated
 
-The end-to-end check: `@apps/generated/src/index.ts` runs the **built CLI binaries** over
+The end-to-end check: `apps/generated/src/index.ts` runs the **built CLI binaries** over
 `apps/generated/schema/*` and writes `apps/generated/generated/<lib>/*.ts`, which are then
 type-checked. It is the only place the CLI argument handling, file writing and directory
 creation are exercised together. Those outputs are generated too — regenerate, never edit.
