@@ -96,15 +96,15 @@ const SHAPES: { readonly [keyword: string]: Shape } = {
 }
 
 /** A schema position holds an object or a boolean schema. */
-function isSchemaValue(value: unknown): boolean {
+function isSchemaValue(value: unknown) {
   return typeof value === 'boolean' || isPlainObject(value)
 }
 
-function sanitizeNode(node: unknown): unknown {
+function sanitizeNode(node: unknown) {
   return isPlainObject(node) ? sanitizeObject(node) : node
 }
 
-function stringMap(value: unknown): { [k: string]: string } | undefined {
+function stringMap(value: unknown) {
   if (!isPlainObject(value)) return undefined
   return Object.fromEntries(
     Object.entries(value).flatMap(([k, v]) => (typeof v === 'string' ? [[k, v]] : [])),
@@ -204,7 +204,7 @@ function conform(shape: Shape, value: unknown): unknown {
   }
 }
 
-function sanitizeObject(schema: { readonly [k: string]: unknown }): { [k: string]: unknown } {
+function sanitizeObject(schema: { readonly [k: string]: unknown }) {
   const out: { [k: string]: unknown } = {}
   for (const [key, value] of Object.entries(schema)) {
     const shape = Object.hasOwn(SHAPES, key) ? SHAPES[key] : undefined
@@ -223,6 +223,6 @@ function sanitizeObject(schema: { readonly [k: string]: unknown }): { [k: string
  * at every schema position. Data keywords (`const`, `default`, `enum` members, `example`)
  * and extensions are kept as they are.
  */
-export function sanitizeSchema(schema: JSONSchema): JSONSchema {
+export function sanitizeSchema(schema: JSONSchema) {
   return isPlainObject(schema) ? sanitizeObject(schema) : schema
 }

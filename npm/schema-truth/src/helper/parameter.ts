@@ -21,7 +21,7 @@ const LABEL_PREFIX = String.raw`/^\./u`
 const MATRIX_PREFIX = '/^;[^=]*=?/u'
 
 /** Whether the options carry any of a parameter's serialization fields. */
-export function hasParameterSerialization(options: EmitOptions | undefined): boolean {
+export function hasParameterSerialization(options: EmitOptions | undefined) {
   return (
     options?.style !== undefined ||
     options?.explode !== undefined ||
@@ -34,7 +34,7 @@ export function hasParameterSerialization(options: EmitOptions | undefined): boo
  * The options the nodes under a parameter's root are emitted with: no serialization, and
  * no string wire either when the parameter's text is a JSON document.
  */
-export function withoutParameterSerialization(options: EmitOptions | undefined): EmitOptions {
+export function withoutParameterSerialization(options: EmitOptions | undefined) {
   const isJson = isJsonMediaType(options?.contentType)
   return {
     ...(options?.openapi !== undefined && { openapi: options.openapi }),
@@ -58,7 +58,7 @@ export function propertyEmitOptions(
   key: string,
   property: JSONSchema,
   options: EmitOptions | undefined,
-): EmitOptions | undefined {
+) {
   if (options?.paramIn === undefined) return undefined
   const named = options.properties?.[key]
   const style = named?.style ?? property['x-style']
@@ -79,54 +79,54 @@ export function propertyEmitOptions(
   }
 }
 
-function isJsonMediaType(contentType: string | undefined): boolean {
+function isJsonMediaType(contentType: string | undefined) {
   return contentType !== undefined && JSON_MEDIA_TYPE_PATTERN.test(contentType)
 }
 
 /** The `style` a parameter has when its Parameter Object names none. */
-function defaultStyle(paramIn: ParamIn | undefined): ParamStyle | undefined {
+function defaultStyle(paramIn: ParamIn | undefined) {
   if (paramIn === 'path' || paramIn === 'header') return 'simple'
   if (paramIn === undefined) return undefined
   return 'form'
 }
 
 /** `text`, a string expression, split on `separator` — none for an empty text. */
-function split(text: string, separator: string): string {
+function split(text: string, separator: string) {
   return `(${text}===''?[]:${text}.split(${JSON.stringify(separator)}))`
 }
 
 /** An array of `[name, value, name, value, ...]` read into an object. */
-function pairs(parts: string): string {
+function pairs(parts: string) {
   return `${parts}.reduce<{[k:string]:string}>((acc,part,i,all)=>i%2===1?{...acc,[all[i-1]??'']:part}:acc,{})`
 }
 
 /** An array of `name=value` read into an object. */
-function entries(parts: string): string {
+function entries(parts: string) {
   return `${parts}.reduce<{[k:string]:string}>((acc,part)=>{const i=part.indexOf('=');return i<0?{...acc,[part]:''}:{...acc,[part.slice(0,i)]:part.slice(i+1)}},{})`
 }
 
 /** An empty value stands for an absent parameter, so its default applies. */
-function emptyValueReader(param: string): string {
+function emptyValueReader(param: string) {
   return `(${param})=>(${param}===''?undefined:${param})`
 }
 
 /** The text of a `content: application/json` parameter, read as the JSON document it holds. */
-function jsonReader(param: string): string {
+function jsonReader(param: string) {
   return `(${param})=>{if(typeof ${param}!=='string')return ${param};try{return JSON.parse(${param})}catch{return ${param}}}`
 }
 
 /** `deep[age]=5&deep[name]=bob`, gathered into the one object `{ age, name }`. */
-function deepObjectReader(param: string): string {
+function deepObjectReader(param: string) {
   return String.raw`(${param})=>{if(typeof ${param}!=='object'||${param}===null||Array.isArray(${param}))return ${param};const out=Object.entries(${param}).reduce<{[k:string]:unknown}>((acc,[key,value])=>{const name=/^[^[\]]+\[([^\]]+)\]$/u.exec(key)?.[1];return name===undefined?acc:{...acc,[name]:value}},{});return Object.keys(out).length>0?out:${param}}`
 }
 
 /** A reader of a string value: `body` maps `text`, the value with `prefix` removed. */
-function textReader(param: string, body: string, prefix?: string): string {
+function textReader(param: string, body: string, prefix?: string) {
   const text = prefix === undefined ? param : `${param}.replace(${prefix},'')`
   return `(${param})=>{if(typeof ${param}!=='string')return ${param};const text=${text};return ${body}}`
 }
 
-function arrayReader(param: string, style: ParamStyle, explode: boolean): string | undefined {
+function arrayReader(param: string, style: ParamStyle, explode: boolean) {
   if (style === 'simple') return textReader(param, split('text', ','))
   if (style === 'label') return textReader(param, split('text', explode ? '.' : ','), LABEL_PREFIX)
   if (style === 'matrix') {
@@ -143,7 +143,7 @@ function arrayReader(param: string, style: ParamStyle, explode: boolean): string
   return textReader(param, split('text', separator))
 }
 
-function objectReader(param: string, style: ParamStyle, explode: boolean): string | undefined {
+function objectReader(param: string, style: ParamStyle, explode: boolean) {
   if (style === 'deepObject') return deepObjectReader(param)
   if (style === 'simple') return textReader(param, (explode ? entries : pairs)(split('text', ',')))
   if (style === 'label') {
@@ -164,19 +164,14 @@ function objectReader(param: string, style: ParamStyle, explode: boolean): strin
   return textReader(param, pairs(split('text', separator)))
 }
 
-function primitiveReader(param: string, style: ParamStyle): string | undefined {
+function primitiveReader(param: string, style: ParamStyle) {
   if (style === 'label') return textReader(param, 'text', LABEL_PREFIX)
   if (style === 'matrix') return textReader(param, 'text', MATRIX_PREFIX)
   return undefined
 }
 
 /** What reads a parameter's text in `style` into the value its schema describes. */
-function styleReader(
-  param: string,
-  schema: JSONSchema,
-  style: ParamStyle,
-  explode: boolean,
-): string | undefined {
+function styleReader(param: string, schema: JSONSchema, style: ParamStyle, explode: boolean) {
   if (hasType(schema, 'array') || schema.items !== undefined || schema.prefixItems !== undefined) {
     return arrayReader(param, style, explode)
   }
@@ -196,7 +191,7 @@ export function parameterReaders(
   schema: JSONSchema,
   options: EmitOptions | undefined,
   param: string,
-): readonly string[] {
+) {
   const style = options?.style ?? defaultStyle(options?.paramIn)
   const reader = isJsonMediaType(options?.contentType)
     ? jsonReader(param)

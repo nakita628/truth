@@ -9,7 +9,7 @@ import type { CodeExtensionOptions } from './code-extensions.js'
  * it may name; the global `type(...)` cannot. An expression that already evaluates to a
  * `Type` is used as it is.
  */
-export function callbackType(source: string, scopeMode: boolean): string {
+export function callbackType(source: string, scopeMode: boolean) {
   if (scopeMode) return isArktypeDefinition(source) ? `$.type(${source})` : source
   return isQuoted(source) ? `type(${source})` : source
 }
@@ -19,7 +19,7 @@ export function callbackType(source: string, scopeMode: boolean): string {
  * `$` is still being declared where the callback is written and TypeScript would
  * otherwise infer the scope's type from itself.
  */
-export function callbackReturn(params: string, body: string): string {
+export function callbackReturn(params: string, body: string) {
   return `${params}${body.includes('$.type(') ? ': boolean' : ''} => ${body}`
 }
 
@@ -50,7 +50,7 @@ export function arktypePreprocess(
   readers: readonly string[],
   inner: string,
   input: 'unknown' | 'object' = 'unknown',
-): string {
+) {
   if (readers.length === 0) return inner
   if (isArktypeDefinition(inner)) {
     return `type("${input}").pipe(${readers.join(',')}).to(${inner})`
@@ -74,11 +74,7 @@ export function arktypePreprocess(
  *
  * @see https://arktype.io/docs/configuration
  */
-export function arktypeWrap(
-  arktypeStr: string,
-  schema: JSONSchema,
-  options?: ArktypeWrapOptions,
-): string {
+export function arktypeWrap(arktypeStr: string, schema: JSONSchema, options?: ArktypeWrapOptions) {
   const inScope = options?.scopeMode === true
   const isDefinition = isArktypeDefinition
   // A quoted definition takes the string-union shortcut instead of `.or`.

@@ -32,7 +32,7 @@ export type ValibotWrapOptions = CodeExtensionOptions & {
 }
 
 /** A default as the Valibot literal of the schema's input: a bigint for a 64-bit integer. */
-function defaultLiteral(schema: JSONSchema, value: unknown, stringWire: boolean): string {
+function defaultLiteral(schema: JSONSchema, value: unknown, stringWire: boolean) {
   if (stringWire) return jsLiteral(wireDefaultValue(value))
   if (typeof value === 'number') {
     if (schema.format === 'int64' || schema.format === 'uint64') return `${value}n`
@@ -59,11 +59,7 @@ function defaultLiteral(schema: JSONSchema, value: unknown, stringWire: boolean)
  * @see https://valibot.dev/api/metadata/
  * @see https://valibot.dev/api/description/
  */
-export function valibotWrap(
-  valibotStr: string,
-  schema: JSONSchema,
-  options?: ValibotWrapOptions,
-): string {
+export function valibotWrap(valibotStr: string, schema: JSONSchema, options?: ValibotWrapOptions) {
   const nullText = options?.nullText === true
   const nullable =
     (isNullable(schema) && options?.nullSchema !== true) ||

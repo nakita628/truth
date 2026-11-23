@@ -2,7 +2,7 @@ import { DATE_PATTERN_SOURCE, FORMAT_PATTERNS, OFFSET_PATTERN_SOURCE } from '../
 import type { JSONSchema } from '../parser/index.js'
 
 /** A regular expression as the literal that reproduces it in generated source. */
-export function regexSource(pattern: RegExp): string {
+export function regexSource(pattern: RegExp) {
   return `/${pattern.source}/${pattern.flags}`
 }
 
@@ -11,7 +11,7 @@ export function regexSource(pattern: RegExp): string {
  * minutes only, `0` whole seconds, `n` exactly `n` fraction digits, and `undefined` any
  * number of them — with the seconds themselves optional unless `seconds` says otherwise.
  */
-function timeSource(precision: number | undefined, seconds: boolean): string {
+function timeSource(precision: number | undefined, seconds: boolean) {
   const hhmm = String.raw`(?:[01]\d|2[0-3]):[0-5]\d`
   if (precision === undefined) {
     return seconds
@@ -24,7 +24,7 @@ function timeSource(precision: number | undefined, seconds: boolean): string {
 }
 
 /** The regex literal of an RFC 3339 `full-date` that is a real calendar date. */
-function datePattern(): string {
+function datePattern() {
   return `/^${DATE_PATTERN_SOURCE}$/`
 }
 
@@ -32,7 +32,7 @@ function datePattern(): string {
  * The regex literal of an RFC 3339 time: a `partial-time`, with the offset optional
  * unless `offset` is `false`, in which case none is accepted.
  */
-export function timePattern(precision: number | undefined, offset: boolean): string {
+export function timePattern(precision: number | undefined, offset: boolean) {
   const tail = offset ? `${OFFSET_PATTERN_SOURCE}?` : ''
   return `/^${timeSource(precision, false)}${tail}$/`
 }
@@ -46,7 +46,7 @@ function datetimePattern(options: {
   readonly precision: number | undefined
   readonly offset: boolean
   readonly local: boolean
-}): string {
+}) {
   const suffixes = ['Z', ...(options.offset ? [String.raw`([+-](?:[01]\d|2[0-3]):[0-5]\d)`] : [])]
   // RFC 3339 mandates the seconds wherever a `Z` or an offset follows; only the local
   // form may leave them out.
@@ -59,7 +59,7 @@ function datetimePattern(options: {
  * The regex literal of an RFC 9562 UUID of `version`, or of any version — the nil and
  * max UUIDs included — when none is given.
  */
-function uuidPattern(version: number | undefined): string {
+function uuidPattern(version: number | undefined) {
   if (version === undefined) {
     return '/^([0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[1-8][0-9a-fA-F]{3}-[89abAB][0-9a-fA-F]{3}-[0-9a-fA-F]{12}|00000000-0000-0000-0000-000000000000|ffffffff-ffff-ffff-ffff-ffffffffffff)$/'
   }
@@ -67,7 +67,7 @@ function uuidPattern(version: number | undefined): string {
 }
 
 /** The UUID version a format or an `x-uuidVersion` pins, or `undefined` for any. */
-function uuidVersionOf(schema: JSONSchema, format: string): number | undefined {
+function uuidVersionOf(schema: JSONSchema, format: string) {
   const named = /^uuidv(?<version>[1-8])$/u.exec(format)?.groups?.version
   if (named !== undefined) return Number(named)
   const extension = /^v(?<version>[1-8])$/u.exec(schema['x-uuidVersion'] ?? '')?.groups?.version
@@ -75,7 +75,7 @@ function uuidVersionOf(schema: JSONSchema, format: string): number | undefined {
 }
 
 /** The precision an `x-isoPrecision` pins, or `undefined` for any. */
-function isoPrecisionOf(schema: JSONSchema): number | undefined {
+function isoPrecisionOf(schema: JSONSchema) {
   const precision = schema['x-isoPrecision']
   return typeof precision === 'number' ? precision : undefined
 }
@@ -85,7 +85,7 @@ function isoPrecisionOf(schema: JSONSchema): number | undefined {
  * its own for it, honouring `x-isoPrecision` / `x-isoOffset` / `x-isoLocal` on the ISO
  * formats and `x-uuidVersion` on `uuid`. `undefined` for a format with no pattern here.
  */
-export function formatPattern(schema: JSONSchema, format: string): string | undefined {
+export function formatPattern(schema: JSONSchema, format: string) {
   if (format === 'date') return datePattern()
   if (format === 'time') return timePattern(isoPrecisionOf(schema), schema['x-isoOffset'] !== false)
   if (format === 'date-time') {

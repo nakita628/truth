@@ -54,7 +54,7 @@ import { string } from './string.js'
  * shipped a `Schema.BooleanFromString` for `true` / `false`; v4 has no such schema, so
  * the transformation is spelled out.
  */
-function stringbool(): string {
+function stringbool() {
   return (
     `Schema.String.check(Schema.isPattern(${stringboolPattern()})).pipe(Schema.decodeTo(Schema.Boolean,` +
     `SchemaTransformation.transform({decode:(input)=>${stringboolTruthyPattern()}.test(input),` +
@@ -67,7 +67,7 @@ function stringbool(): string {
  * followed by `.check(...)` / `.annotate(...)` chains — the shapes whose
  * `.fields` property survives (v4 rebuilds a struct as a struct).
  */
-function isStructExpr(code: string): boolean {
+function isStructExpr(code: string) {
   return code.startsWith('Schema.Struct({')
 }
 
@@ -80,7 +80,7 @@ function isStructExpr(code: string): boolean {
  * becomes the base and each remaining member is enforced as a filter, which
  * validates correctly but types the result as the base member alone.
  */
-function intersect(schemas: readonly string[]): string {
+function intersect(schemas: readonly string[]) {
   const [first, ...rest] = schemas
   if (first === undefined) return 'Schema.Unknown'
   if (schemas.every(isStructExpr)) {
@@ -112,7 +112,7 @@ function intersect(schemas: readonly string[]): string {
  * collapsing any failure into the given message, and `decodeTo` carries the
  * inner schema's type through.
  */
-export function wholeValueMessage(inner: string, message: string): string {
+export function wholeValueMessage(inner: string, message: string) {
   return `Schema.Unknown.check(Schema.makeFilter((input)=>Schema.is(${inner})(input),${effectError(message)})).pipe(Schema.decodeTo(${inner}))`
 }
 
@@ -128,7 +128,7 @@ function objectKeysCheck(
   rootName: string,
   isEffect: boolean,
   options: EmitOptions | undefined,
-): string {
+) {
   const patterns = Object.entries(schema.patternProperties ?? {})
   const unevaluated = schema.unevaluatedProperties
   const unevaluatedSchema = typeof unevaluated === 'object' ? unevaluated : undefined
@@ -178,7 +178,7 @@ export function effect(
 }
 
 /** A keyword-only `allOf` member: the keywords apply when the value has their type. */
-function keywordConstraint(schema: JSONSchema): string {
+function keywordConstraint(schema: JSONSchema) {
   const body = constraintPredicate(schema, 'input')
   return `Schema.Unknown.check(Schema.makeFilter((input) => ${body}${effectErrorPart(constraintMessage(schema))}))`
 }
@@ -188,14 +188,14 @@ function node(
   rootName: string,
   isEffect: boolean,
   options: EmitOptions | undefined,
-): string {
+) {
   const isStringWireParam = isStringWireLocation(options?.paramIn)
   const isWireCoerced = isStringWireParam && schema['x-coerce'] !== false
   const codeExtOpts: EffectWrapOptions =
     options?.unsafeCodeExtensions === true ? { unsafeCodeExtensions: true } : {}
   // On the wire every node's encoded side is text, so its default lands on the decoded
   // side, and the text `null` is read ahead of a node that takes `null` but no string.
-  const wireOptions = (s: JSONSchema): EffectWrapOptions => {
+  const wireOptions = (s: JSONSchema) => {
     if (!isStringWireParam || s['x-coerce'] === false) return {}
     return { stringWire: true, ...(isNullTextRead(s) && { nullText: true }) }
   }
@@ -203,7 +203,7 @@ function node(
     effectStr: string,
     s: JSONSchema,
     extra?: { readonly nullSchema?: boolean },
-  ): string =>
+  ) =>
     _effectWrap(effectStr, s, {
       ...extra,
       ...codeExtOpts,
@@ -214,7 +214,7 @@ function node(
     isStringWireParam ? effectPreprocess([wireArrayOnce('input')], v) : v
   // What reads a literal's input into the literal's type: on the wire the text is coerced,
   // and a 64-bit integer is a bigint wherever it comes from.
-  const literalInput = (values: readonly unknown[]): string | undefined => {
+  const literalInput = (values: readonly unknown[]) => {
     if (values.every((v) => typeof v === 'number')) {
       if (isInt64(schema)) return int64Input(isWireCoerced)
       if (isWireCoerced) return wireNumericInput(wireNumericKind(schema, values))
@@ -226,7 +226,7 @@ function node(
   if (schema.$ref) {
     // The expression a `$ref` names, bare: the caller wraps it once with what the node
     // itself carries, a `default` or `nullable` beside the `$ref` included.
-    const ref = (s: JSONSchema): string => {
+    const ref = (s: JSONSchema) => {
       if (s.$ref === undefined) return 'Schema.Unknown'
       const target = refTarget(s.$ref, rootName, isEffect, options?.openapi)
       if (target.kind === 'lazy') return `Schema.suspend(() => ${target.name})`
@@ -314,7 +314,7 @@ function node(
     if (typeof inner !== 'object' || inner === null) return effectWrap('Schema.Unknown', schema)
     const notMessage = schema['x-not-message']
     const filterOpts = effectErrorPart(notMessage)
-    const predicate = ((): string | undefined => {
+    const predicate = (() => {
       const bigint = isBigintFormat(withoutNot)
       const shared = notPredicate(inner, 'input', 'input', bigint)
       if (shared !== undefined) return shared
@@ -369,7 +369,7 @@ function node(
   if (schema.properties) return effectWrap(object(schema, rootName, isEffect, options), schema)
 
   const types = normalizeTypes(schema.type)
-  const primitive = (t: string): string | undefined => {
+  const primitive = (t: string) => {
     if (t === 'string') return string(schema)
     if (t === 'number') return number(schema, { wire: isWireCoerced })
     if (t === 'integer') return integer(schema, { wire: isWireCoerced })

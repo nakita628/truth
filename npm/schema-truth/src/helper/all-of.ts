@@ -34,7 +34,7 @@ const KEYWORD_ONLY_KEYS = new Set<string>([
 ])
 
 /** Whether every key of `schema` is a numeric or string keyword, its message, or an annotation. */
-export function isKeywordOnlyMember(schema: JSONSchema): boolean {
+export function isKeywordOnlyMember(schema: JSONSchema) {
   const keys = Object.keys(schema)
   if (keys.length === 0) return false
   if (!keys.every((key) => KEYWORD_ONLY_KEYS.has(key))) return false
@@ -42,7 +42,7 @@ export function isKeywordOnlyMember(schema: JSONSchema): boolean {
 }
 
 /** The message a keyword-only member should report, keyword messages falling back together. */
-export function constraintMessage(schema: JSONSchema): string | undefined {
+export function constraintMessage(schema: JSONSchema) {
   return (
     schema['x-error-message'] ??
     schema['x-minimum-message'] ??
@@ -62,7 +62,7 @@ export function constraintMessage(schema: JSONSchema): string | undefined {
  * A number that fails `minimum` is rejected; a string is not a number, so `minimum` does
  * not apply to it. `param` is the value name the caller already uses.
  */
-export function constraintPredicate(schema: JSONSchema, param: string): string {
+export function constraintPredicate(schema: JSONSchema, param: string) {
   const parts = [numericGuard(schema, param), stringGuard(schema, param)].filter(
     (part) => part !== '',
   )
@@ -80,10 +80,7 @@ type Bound = { readonly value: number; readonly exclusive: boolean }
  * the string wire a leftover is given the type its keywords imply, and one coercion
  * reads the text.
  */
-export function foldAllOfMembers(
-  members: readonly JSONSchema[],
-  isWire: boolean,
-): readonly JSONSchema[] {
+export function foldAllOfMembers(members: readonly JSONSchema[], isWire: boolean) {
   let numericAt = -1
   let stringAt = -1
   for (const [index, member] of members.entries()) {
@@ -123,7 +120,7 @@ export function foldAllOfMembers(
   ]
 }
 
-function isNumericHost(schema: JSONSchema): boolean {
+function isNumericHost(schema: JSONSchema) {
   if (schema.type !== 'number' && schema.type !== 'integer') return false
   if (schema.$ref !== undefined || hasCombinator(schema)) return false
   if (schema.properties !== undefined || schema.enum !== undefined || 'const' in schema) {
@@ -132,7 +129,7 @@ function isNumericHost(schema: JSONSchema): boolean {
   return true
 }
 
-function isStringHost(schema: JSONSchema): boolean {
+function isStringHost(schema: JSONSchema) {
   if (schema.type !== 'string') return false
   if (schema.$ref !== undefined || hasCombinator(schema)) return false
   if (schema.properties !== undefined || schema.enum !== undefined || 'const' in schema) {
@@ -141,7 +138,7 @@ function isStringHost(schema: JSONSchema): boolean {
   return true
 }
 
-function numericPart(schema: JSONSchema): JSONSchema | undefined {
+function numericPart(schema: JSONSchema) {
   if (!hasNumericKeyword(schema)) return undefined
   return {
     ...(schema.minimum !== undefined ? { minimum: schema.minimum } : {}),
@@ -167,7 +164,7 @@ function numericPart(schema: JSONSchema): JSONSchema | undefined {
   }
 }
 
-function stringPart(schema: JSONSchema): JSONSchema | undefined {
+function stringPart(schema: JSONSchema) {
   if (!hasStringKeyword(schema)) return undefined
   return {
     ...(schema.minLength !== undefined ? { minLength: schema.minLength } : {}),
@@ -185,12 +182,12 @@ function stringPart(schema: JSONSchema): JSONSchema | undefined {
   }
 }
 
-function tryAbsorbNumeric(host: JSONSchema, extra: JSONSchema): JSONSchema | undefined {
+function tryAbsorbNumeric(host: JSONSchema, extra: JSONSchema) {
   if (!canAbsorbMultipleOf(host, extra)) return undefined
   return absorbMultipleOf(absorbUpper(absorbLower(host, extra), extra), extra)
 }
 
-function tryAbsorbString(host: JSONSchema, extra: JSONSchema): JSONSchema | undefined {
+function tryAbsorbString(host: JSONSchema, extra: JSONSchema) {
   if (
     typeof extra.pattern === 'string' &&
     typeof host.pattern === 'string' &&
@@ -201,13 +198,13 @@ function tryAbsorbString(host: JSONSchema, extra: JSONSchema): JSONSchema | unde
   return absorbString(host, extra)
 }
 
-function canAbsorbMultipleOf(host: JSONSchema, extra: JSONSchema): boolean {
+function canAbsorbMultipleOf(host: JSONSchema, extra: JSONSchema) {
   if (typeof extra.multipleOf !== 'number' || typeof host.multipleOf !== 'number') return true
   if (host.multipleOf === extra.multipleOf) return true
   return leastCommonMultiple(host.multipleOf, extra.multipleOf) !== undefined
 }
 
-function absorbLower(host: JSONSchema, extra: JSONSchema): JSONSchema {
+function absorbLower(host: JSONSchema, extra: JSONSchema) {
   const extraBound = lowerBound(extra)
   if (extraBound === undefined) return host
   const hostBound = lowerBound(host)
@@ -215,7 +212,7 @@ function absorbLower(host: JSONSchema, extra: JSONSchema): JSONSchema {
   return withLower(host, extraBound, boundMessage(extra, extraBound, 'lower'))
 }
 
-function absorbUpper(host: JSONSchema, extra: JSONSchema): JSONSchema {
+function absorbUpper(host: JSONSchema, extra: JSONSchema) {
   const extraBound = upperBound(extra)
   if (extraBound === undefined) return host
   const hostBound = upperBound(host)
@@ -223,7 +220,7 @@ function absorbUpper(host: JSONSchema, extra: JSONSchema): JSONSchema {
   return withUpper(host, extraBound, boundMessage(extra, extraBound, 'upper'))
 }
 
-function absorbMultipleOf(host: JSONSchema, extra: JSONSchema): JSONSchema {
+function absorbMultipleOf(host: JSONSchema, extra: JSONSchema) {
   if (typeof extra.multipleOf !== 'number') return host
   if (typeof host.multipleOf !== 'number') {
     return {
@@ -242,7 +239,7 @@ function absorbMultipleOf(host: JSONSchema, extra: JSONSchema): JSONSchema {
   return { ...rest, multipleOf: multiple }
 }
 
-function absorbString(host: JSONSchema, extra: JSONSchema): JSONSchema {
+function absorbString(host: JSONSchema, extra: JSONSchema) {
   let next = host
   if (
     typeof extra.minLength === 'number' &&
@@ -280,11 +277,7 @@ function absorbString(host: JSONSchema, extra: JSONSchema): JSONSchema {
   return next
 }
 
-function collapse(
-  parts: readonly JSONSchema[],
-  kind: 'number' | 'string',
-  isWire: boolean,
-): readonly JSONSchema[] {
+function collapse(parts: readonly JSONSchema[], kind: 'number' | 'string', isWire: boolean) {
   const groups: JSONSchema[] = []
   for (const part of parts) {
     const last = groups.at(-1)
@@ -303,7 +296,7 @@ function collapse(
   return groups
 }
 
-function lowerBound(schema: JSONSchema): Bound | undefined {
+function lowerBound(schema: JSONSchema) {
   if (typeof schema.exclusiveMinimum === 'number') {
     return { value: schema.exclusiveMinimum, exclusive: true }
   }
@@ -313,7 +306,7 @@ function lowerBound(schema: JSONSchema): Bound | undefined {
   return undefined
 }
 
-function upperBound(schema: JSONSchema): Bound | undefined {
+function upperBound(schema: JSONSchema) {
   if (typeof schema.exclusiveMaximum === 'number') {
     return { value: schema.exclusiveMaximum, exclusive: true }
   }
@@ -323,25 +316,21 @@ function upperBound(schema: JSONSchema): Bound | undefined {
   return undefined
 }
 
-function isStricter(next: Bound, current: Bound, direction: 'lower' | 'upper'): boolean {
+function isStricter(next: Bound, current: Bound, direction: 'lower' | 'upper') {
   if (next.value !== current.value) {
     return direction === 'lower' ? next.value > current.value : next.value < current.value
   }
   return next.exclusive && !current.exclusive
 }
 
-function boundMessage(
-  schema: JSONSchema,
-  bound: Bound,
-  direction: 'lower' | 'upper',
-): string | undefined {
+function boundMessage(schema: JSONSchema, bound: Bound, direction: 'lower' | 'upper') {
   if (direction === 'lower') {
     return bound.exclusive ? schema['x-exclusiveMinimum-message'] : schema['x-minimum-message']
   }
   return bound.exclusive ? schema['x-exclusiveMaximum-message'] : schema['x-maximum-message']
 }
 
-function dropLower(schema: JSONSchema): JSONSchema {
+function dropLower(schema: JSONSchema) {
   const {
     minimum,
     exclusiveMinimum,
@@ -356,7 +345,7 @@ function dropLower(schema: JSONSchema): JSONSchema {
   return rest
 }
 
-function dropUpper(schema: JSONSchema): JSONSchema {
+function dropUpper(schema: JSONSchema) {
   const {
     maximum,
     exclusiveMaximum,
@@ -371,7 +360,7 @@ function dropUpper(schema: JSONSchema): JSONSchema {
   return rest
 }
 
-function withLower(schema: JSONSchema, bound: Bound, message: string | undefined): JSONSchema {
+function withLower(schema: JSONSchema, bound: Bound, message: string | undefined) {
   const base = dropLower(schema)
   if (bound.exclusive) {
     return {
@@ -387,7 +376,7 @@ function withLower(schema: JSONSchema, bound: Bound, message: string | undefined
   }
 }
 
-function withUpper(schema: JSONSchema, bound: Bound, message: string | undefined): JSONSchema {
+function withUpper(schema: JSONSchema, bound: Bound, message: string | undefined) {
   const base = dropUpper(schema)
   if (bound.exclusive) {
     return {
@@ -403,7 +392,7 @@ function withUpper(schema: JSONSchema, bound: Bound, message: string | undefined
   }
 }
 
-function leastCommonMultiple(left: number, right: number): number | undefined {
+function leastCommonMultiple(left: number, right: number) {
   if (!Number.isSafeInteger(left) || !Number.isSafeInteger(right) || left === 0 || right === 0) {
     return undefined
   }
@@ -413,7 +402,7 @@ function leastCommonMultiple(left: number, right: number): number | undefined {
   return multiple
 }
 
-function greatestCommonDivisor(left: number, right: number): number {
+function greatestCommonDivisor(left: number, right: number) {
   let x = left
   let y = right
   while (y !== 0) {
@@ -424,7 +413,7 @@ function greatestCommonDivisor(left: number, right: number): number {
   return x
 }
 
-function numericGuard(schema: JSONSchema, param: string): string {
+function numericGuard(schema: JSONSchema, param: string) {
   const checks: string[] = []
   if (typeof schema.minimum === 'number' && schema.exclusiveMinimum !== true) {
     checks.push(`${param} >= ${schema.minimum}`)
@@ -449,7 +438,7 @@ function numericGuard(schema: JSONSchema, param: string): string {
   return `(typeof ${param} !== 'number' || (${checks.join(' && ')}))`
 }
 
-function stringGuard(schema: JSONSchema, param: string): string {
+function stringGuard(schema: JSONSchema, param: string) {
   const checks: string[] = []
   if (typeof schema.minLength === 'number') checks.push(`${param}.length >= ${schema.minLength}`)
   if (typeof schema.maxLength === 'number') checks.push(`${param}.length <= ${schema.maxLength}`)

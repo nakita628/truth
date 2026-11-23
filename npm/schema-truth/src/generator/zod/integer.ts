@@ -3,7 +3,7 @@ import { zodBaseError, zodError, zodErrorPart } from '../../utils/index.js'
 import { zodWireNumber } from './number.js'
 
 /** Whether a node is a 64-bit integer: a value beyond 2^53 that Zod reads as a bigint. */
-export function isInt64(schema: JSONSchema): boolean {
+export function isInt64(schema: JSONSchema) {
   return schema.format === 'int64' || schema.format === 'uint64'
 }
 
@@ -12,7 +12,7 @@ export function isInt64(schema: JSONSchema): boolean {
  * is coerced; in a JSON body the value is a safe-integer number, or the string of digits
  * that is the only lossless way to carry a larger one, and nothing else.
  */
-export function int64Input(isWire: boolean, baseErrorArg = ''): string {
+export function int64Input(isWire: boolean, baseErrorArg = '') {
   if (isWire) return `z.coerce.bigint(${baseErrorArg})`
   const errorPart = baseErrorArg ? `,${baseErrorArg}` : ''
   return String.raw`z.union([z.bigint(),z.number().int(),z.string().regex(/^-?\d+$/)]${errorPart}).transform((val)=>BigInt(val))`
@@ -47,7 +47,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
         : isBigint
           ? `z.bigint(${baseErrorArg})`
           : `z.int(${baseErrorArg})`
-  const lit = (n: number): string => {
+  const lit = (n: number) => {
     if (schema.format === 'bigint') return `BigInt(${n})`
     if (is64) return `${n}n`
     return `${n}`

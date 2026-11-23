@@ -21,11 +21,7 @@ import { arktype } from './arktype.js'
  * An object definition with its narrows. Inside a scope they stay in definition syntax
  * (`[def, ":", fn]`), which the scope resolves; outside, they chain on `type(def)`.
  */
-function composeNarrows(
-  definition: string,
-  narrows: readonly string[],
-  scopeMode: boolean,
-): string {
+function composeNarrows(definition: string, narrows: readonly string[], scopeMode: boolean) {
   if (scopeMode) return narrows.reduce((acc, n) => `[${acc},":",${n}]`, definition)
   return narrows.reduce((acc, n) => `${acc}.narrow(${n})`, `type(${definition})`)
 }
@@ -35,7 +31,7 @@ function composeNarrows(
  * - With message: `(data, ctx) => predicate || ctx.mustBe("msg")`
  * - Without message: `(data) => predicate`
  */
-function narrowPredicate(predicate: string, message?: string): string {
+function narrowPredicate(predicate: string, message?: string) {
   return message
     ? callbackReturn('(data, ctx)', `${predicate} || ctx.mustBe(${JSON.stringify(message)})`)
     : callbackReturn('(data)', predicate)
@@ -72,7 +68,7 @@ export function object(
   const addlPropsMessage = schema['x-additionalProperties-message']
   const unevalPropsRawMessage = schema['x-unevaluatedProperties-message']
 
-  const propertyNamesNarrow = (): string => {
+  const propertyNamesNarrow = () => {
     if (schema.propertyNames?.pattern) {
       return narrowPredicate(
         `Object.keys(data).every((key) => new RegExp(${JSON.stringify(schema.propertyNames.pattern)}).test(key))`,
@@ -88,7 +84,7 @@ export function object(
     return ''
   }
 
-  const patternPropertiesNarrows = (): readonly string[] =>
+  const patternPropertiesNarrows = () =>
     schema.patternProperties
       ? Object.entries(schema.patternProperties).map(([pattern, propSchema]) => {
           const s = callbackType(arktype(propSchema, rootName, isArktype, options), isArktype)

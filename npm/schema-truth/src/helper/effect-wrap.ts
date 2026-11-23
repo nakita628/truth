@@ -32,7 +32,7 @@ export type EffectWrapOptions = CodeExtensionOptions & {
 }
 
 /** `inner` read after `reader`, a `(input) => ...` arrow over the raw value. */
-export function effectPreprocess(readers: readonly string[], inner: string): string {
+export function effectPreprocess(readers: readonly string[], inner: string) {
   if (readers.length === 0) return inner
   const steps = readers.map(
     (reader) =>
@@ -42,7 +42,7 @@ export function effectPreprocess(readers: readonly string[], inner: string): str
 }
 
 /** A default as the Effect literal of the schema's decoded type: a bigint for a 64-bit integer. */
-function defaultLiteral(schema: JSONSchema, value: unknown): string {
+function defaultLiteral(schema: JSONSchema, value: unknown) {
   if (typeof value === 'number') {
     if (schema.format === 'int64' || schema.format === 'uint64') return `${value}n`
     if (schema.format === 'bigint') return `BigInt(${value})`
@@ -66,11 +66,7 @@ function defaultLiteral(schema: JSONSchema, value: unknown): string {
  *
  * @see https://effect.website/docs/schema/annotations/
  */
-export function effectWrap(
-  effectStr: string,
-  schema: JSONSchema,
-  options?: EffectWrapOptions,
-): string {
+export function effectWrap(effectStr: string, schema: JSONSchema, options?: EffectWrapOptions) {
   const nullText = options?.nullText === true
   const nullable =
     (isNullable(schema) && options?.nullSchema !== true) ||

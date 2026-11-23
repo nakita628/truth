@@ -58,7 +58,7 @@ function formatChecks(schema: JSONSchema, format: string, patternMessage: string
  * `Schema.String`; a combination of them, or a Unicode normalisation, is one
  * transformation over the string.
  */
-function stringBase(schema: JSONSchema, transformFormat: string | undefined): string {
+function stringBase(schema: JSONSchema, transformFormat: string | undefined) {
   const steps = [
     schema['x-trim'] === true || transformFormat === 'trim' ? 'trim' : undefined,
     schema['x-toLowerCase'] === true || transformFormat === 'toLowerCase'
@@ -83,12 +83,12 @@ function stringBase(schema: JSONSchema, transformFormat: string | undefined): st
 }
 
 /** A count of characters, as the filter annotations spell it. */
-function characters(count: number | undefined): string {
+function characters(count: number | undefined) {
   return `${count} ${count === 1 ? 'character' : 'characters'}`
 }
 
 /** The annotations of a length filter: what it expects, and the message it reports. */
-function lengthAnnotations(expected: string, message: string | undefined): string {
+function lengthAnnotations(expected: string, message: string | undefined) {
   const messagePart = message === undefined ? '' : `,message:${effectMessage(message)}`
   return `{expected:${JSON.stringify(expected)}${messagePart}}`
 }
@@ -102,7 +102,7 @@ export function string(schema: JSONSchema) {
   // v3.0: x-required-message falls back to base annotation when no
   // x-error-message; Effect Schema has no native required dispatch.
   const errorMessage = schema['x-error-message'] ?? schema['x-required-message']
-  const annotate = (code: string): string =>
+  const annotate = (code: string) =>
     errorMessage ? `${code}.annotate(${effectError(errorMessage)})` : code
   const formatName = schema.format?.toLowerCase()
   // A `binary` string is a file, not text.

@@ -55,7 +55,7 @@ const IBAN_CHECK = `(val)=>{let rest=0;for(const char of val.slice(4)+val.slice(
  * The checks chained onto `z.string()` for a format Zod has no validator of its own for,
  * or `undefined` when the format is not one of them.
  */
-function formatChecks(schema: JSONSchema, format: string): string | undefined {
+function formatChecks(schema: JSONSchema, format: string) {
   const errorMessage = schema['x-error-message']
   const errorPart = zodErrorPart(errorMessage)
   // RFC 3339 `full-time` carries an offset, which `z.iso.time()` cannot express.
@@ -76,7 +76,7 @@ function formatChecks(schema: JSONSchema, format: string): string | undefined {
 }
 
 /** The Zod format call of a node, as `z.` would be followed by, or `undefined`. */
-function formatCall(schema: JSONSchema, format: string): string | undefined {
+function formatCall(schema: JSONSchema, format: string) {
   // `z.iso.time()` rejects an offset; it is only the right check once offsets are ruled out.
   if (format === 'time') return schema['x-isoOffset'] === false ? 'iso.time()' : undefined
   return FORMAT_STRING[format]
@@ -89,7 +89,7 @@ const EMAIL_PATTERN_MAP: { readonly [k: string]: string } = {
   unicode: 'z.regexes.unicodeEmail',
 }
 
-function buildFormatOptions(schema: JSONSchema, format: string): readonly string[] {
+function buildFormatOptions(schema: JSONSchema, format: string) {
   const parts: string[] = []
   if (format === 'email') {
     const emailPattern = schema['x-emailPattern']
@@ -143,7 +143,7 @@ function buildFormatOptions(schema: JSONSchema, format: string): readonly string
   return parts
 }
 
-function hashBase(schema: JSONSchema, baseErrorArg: string): string | undefined {
+function hashBase(schema: JSONSchema, baseErrorArg: string) {
   if (schema.format !== 'hash') return undefined
   const algo = schema['x-hashAlg']
   if (algo === undefined) {
@@ -159,14 +159,14 @@ function hashBase(schema: JSONSchema, baseErrorArg: string): string | undefined 
   return `z.hash(${JSON.stringify(algo)}${optsStr})`
 }
 
-function mergeOptions(formatOptions: readonly string[], baseErrorArg: string): string {
+function mergeOptions(formatOptions: readonly string[], baseErrorArg: string) {
   if (formatOptions.length === 0) return baseErrorArg
   const errorPart = baseErrorArg ? baseErrorArg.slice(1, -1) : ''
   const allParts = errorPart ? [...formatOptions, errorPart] : [...formatOptions]
   return `{${allParts.join(',')}}`
 }
 
-function stringbool(schema: JSONSchema): string | undefined {
+function stringbool(schema: JSONSchema) {
   const flag = schema['x-stringbool']
   if (flag === undefined || flag === false) return undefined
   const opts = typeof flag === 'object' ? flag : {}

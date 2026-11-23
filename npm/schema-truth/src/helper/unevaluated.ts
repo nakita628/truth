@@ -8,10 +8,7 @@ export type EvaluatedProperties = {
   readonly patterns: readonly string[]
 }
 
-function definitionOf(
-  ref: string,
-  definitions: SchemaDefinitions | undefined,
-): JSONSchema | undefined {
+function definitionOf(ref: string, definitions: SchemaDefinitions | undefined) {
   if (definitions === undefined) return undefined
   for (const prefix of DEFINITION_REF_PREFIXES) {
     if (!ref.startsWith(prefix)) continue
@@ -37,7 +34,7 @@ export function evaluatedProperties(
   schema: JSONSchema,
   definitions: SchemaDefinitions | undefined,
   reading: ReadonlySet<string> = new Set(),
-): EvaluatedProperties | undefined {
+) {
   if (schema.additionalProperties !== undefined) return undefined
   const members: JSONSchema[] = [
     ...(schema.allOf ?? []),
@@ -70,7 +67,7 @@ export function evaluatedProperties(
  * The emitted expression that tells whether `key` is evaluated: a lookup in the names
  * plus one `RegExp` test per pattern.
  */
-export function isEvaluatedKeyExpression(evaluated: EvaluatedProperties, key: string): string {
+export function isEvaluatedKeyExpression(evaluated: EvaluatedProperties, key: string) {
   const checks = [
     `${JSON.stringify(evaluated.names)}.includes(${key})`,
     ...evaluated.patterns.map((pattern) => `new RegExp(${JSON.stringify(pattern)}).test(${key})`),

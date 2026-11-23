@@ -9,7 +9,7 @@ import { zodBaseError, zodError } from '../../utils/index.js'
  * A `z.preprocess` and not a `z.string()` pipe, because `z.toJSONSchema` documents a pipe
  * by its input and a preprocess by `inner`: the parameter stays the spec's number.
  */
-export function zodWireNumber(kind: 'integer' | 'number', inner: string): string {
+export function zodWireNumber(kind: 'integer' | 'number', inner: string) {
   const pattern = kind === 'integer' ? integerWirePattern() : numberWirePattern()
   return `z.preprocess((val)=>typeof val==='string'&&${pattern}.test(val)?Number(val):val,${inner})`
 }

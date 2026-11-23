@@ -185,10 +185,7 @@ function wireOptions(paramIn: ParamIn | undefined, options: ToExpressionOptions 
  * cross-schema refs. The `//` comment lines above the declaration are returned apart, so a
  * marker never lands between `=` and the expression.
  */
-function extractParts(
-  code: string,
-  stripRefs: (expr: string) => string = (s) => s,
-): ExpressionParts {
+function extractParts(code: string, stripRefs: (expr: string) => string = (s) => s) {
   const lines = code.split('\n').filter((line) => !line.startsWith('import '))
   const firstCode = lines.findIndex((line) => line.trim() !== '' && !line.startsWith('//'))
   const head = firstCode === -1 ? lines : lines.slice(0, firstCode)
@@ -209,11 +206,8 @@ function expressionMethods(
   ) => string,
   stripRefs?: (expr: string) => string,
 ) {
-  const toExpressionParts = (
-    schema: Schema,
-    paramIn?: ParamIn,
-    options?: ToExpressionOptions,
-  ): ExpressionParts => extractParts(generate(schema, paramIn, options), stripRefs)
+  const toExpressionParts = (schema: Schema, paramIn?: ParamIn, options?: ToExpressionOptions) =>
+    extractParts(generate(schema, paramIn, options), stripRefs)
   return {
     toExpressionParts,
     toExpression: (schema: Schema, paramIn?: ParamIn, options?: ToExpressionOptions) =>
@@ -244,7 +238,7 @@ const ADAPTERS: { readonly [K in SchemaLib]: () => ComponentAdapter } = {
   effect: makeEffectAdapter,
 }
 
-export function makeAdapter(lib: SchemaLib): ComponentAdapter {
+export function makeAdapter(lib: SchemaLib) {
   return ADAPTERS[lib]()
 }
 

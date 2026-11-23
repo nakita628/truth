@@ -19,10 +19,7 @@ export type WalkOptions = {
  *
  * @yields each object node, parents before children
  */
-export function* walkSchema(
-  root: unknown,
-  options?: WalkOptions,
-): Generator<{ readonly [k: string]: unknown }, undefined, undefined> {
+export function* walkSchema(root: unknown, options?: WalkOptions) {
   const stack: unknown[] = [root]
   let isRoot = true
   while (stack.length > 0) {
@@ -47,7 +44,7 @@ export function* walkSchema(
 }
 
 /** Whether any node under `root` carries one of `keywords`. */
-export function hasKeyword(root: unknown, keywords: readonly string[]): boolean {
+export function hasKeyword(root: unknown, keywords: readonly string[]) {
   for (const node of walkSchema(root)) {
     if (keywords.some((keyword) => keyword in node)) return true
   }
@@ -58,7 +55,7 @@ export function hasKeyword(root: unknown, keywords: readonly string[]): boolean 
  * Whether a schema (at any depth) uses the JSON Schema conditional keywords
  * (`if` / `then` / `else`), so a generator that drops them can leave a marker.
  */
-export function hasIfThenElse(schema: unknown): boolean {
+export function hasIfThenElse(schema: unknown) {
   return hasKeyword(schema, ['if', 'then', 'else'])
 }
 
@@ -67,6 +64,6 @@ export function hasIfThenElse(schema: unknown): boolean {
  * generator drops the keyword (a bare `not` falls back to `Type.Any()`) because TypeBox v1
  * has no runtime `Type.Not(...)` and `Value.Check` does not evaluate `not`.
  */
-export function hasNotKeyword(schema: unknown): boolean {
+export function hasNotKeyword(schema: unknown) {
   return hasKeyword(schema, ['not'])
 }

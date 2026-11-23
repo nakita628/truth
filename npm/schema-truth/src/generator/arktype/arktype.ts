@@ -72,7 +72,7 @@ function combine(op: '&' | '|', inScope: boolean) {
 }
 
 /** `items` in consecutive groups of at most `size`. */
-function chunksOf<T>(items: readonly T[], size: number): readonly (readonly T[])[] {
+function chunksOf<T>(items: readonly T[], size: number) {
   return Array.from({ length: Math.ceil(items.length / size) }, (_, i) =>
     items.slice(i * size, (i + 1) * size),
   )
@@ -84,7 +84,7 @@ function chunksOf<T>(items: readonly T[], size: number): readonly (readonly T[])
  * `type.enumerated(...)` and anything else is joined in groups, so no single string is
  * long enough to exceed TypeScript's instantiation depth.
  */
-function unionStr(schemas: string[], inScope = false): string {
+function unionStr(schemas: string[], inScope = false) {
   if (!schemas.every(isQuoted)) return schemas.reduce(combine('|', inScope))
   const members = schemas.map((s) => s.slice(1, -1))
   if (members.length <= ARKTYPE_STRING_UNION_LIMIT) return `"${members.join(' | ')}"`
@@ -94,19 +94,19 @@ function unionStr(schemas: string[], inScope = false): string {
     .reduce(combine('|', inScope))
 }
 
-function intersectionStr(schemas: string[], inScope = false): string {
+function intersectionStr(schemas: string[], inScope = false) {
   return schemas.every(isQuoted)
     ? `"${schemas.map((s) => s.slice(1, -1)).join(' & ')}"`
     : schemas.reduce(combine('&', inScope))
 }
 
 /** An ArkType expression that carries methods: a quoted definition is wrapped in `type(...)`. */
-function asRuntime(source: string): string {
+function asRuntime(source: string) {
   return isQuoted(source) ? `type(${source})` : source
 }
 
 /** Whether an expression reads its input through a morph: ArkType cannot union two of them. */
-function isMorph(source: string): boolean {
+function isMorph(source: string) {
   return source.includes('.pipe(')
 }
 
@@ -115,32 +115,32 @@ function isMorph(source: string): boolean {
  * an unordered union of morphs with overlapping inputs, so the first branch that reads
  * the text wins, as `z.union()` reads it.
  */
-function wireUnion(schemas: readonly string[], message: string | undefined): string {
+function wireUnion(schemas: readonly string[], message: string | undefined) {
   const branches = schemas.map(asRuntime).join(',')
   const expected = JSON.stringify(message ?? 'one of the members')
   return `type("unknown").pipe((data, ctx) => { for (const branch of [${branches}]) { const out = branch(data); if (!(out instanceof type.errors)) return out } return ctx.error(${expected}) })`
 }
 
 /** `morph` validated against `inner` after it, unless `inner` is the bare keyword the morph already reads. */
-function wireNumeric(morph: string, inner: string): string {
+function wireNumeric(morph: string, inner: string) {
   if (inner === '"number"' || inner === '"number.integer"') return morph
   return isQuoted(inner) ? `${morph}.to(${inner})` : `${morph}.pipe(${inner})`
 }
 
 /** The boolean spellings of the wire, read into a boolean as `z.stringbool()` reads them. */
-function stringbool(): string {
+function stringbool() {
   return `type(${stringboolPattern()}).pipe((data) => ${stringboolTruthyPattern()}.test(data))`
 }
 
 /** A keyword-only `allOf` member: the keywords apply when the value has their type. */
-function keywordConstraint(schema: JSONSchema): string {
+function keywordConstraint(schema: JSONSchema) {
   const body = constraintPredicate(schema, 'data')
   const message = constraintMessage(schema)
   if (message === undefined) return `type("unknown").narrow((data) => ${body})`
   return `type("unknown").narrow((data, ctx) => (${body}) || ctx.mustBe(${JSON.stringify(message)}))`
 }
 
-function formatConst(value: unknown, isBigint: boolean): string {
+function formatConst(value: unknown, isBigint: boolean) {
   if (typeof value === 'string') return `"'${value}'"`
   if (typeof value === 'number' && isBigint) return `"${value}n"`
   if (typeof value === 'number' || typeof value === 'boolean') return `"${String(value)}"`
@@ -149,7 +149,7 @@ function formatConst(value: unknown, isBigint: boolean): string {
 }
 
 /** Whether an `allOf` member is a numeric primitive whose constraints can be merged into one definition. */
-function isNumericMember(schema: JSONSchema): boolean {
+function isNumericMember(schema: JSONSchema) {
   return (
     (schema.type === 'number' || schema.type === 'integer') &&
     schema.$ref === undefined &&
@@ -162,7 +162,7 @@ function isNumericMember(schema: JSONSchema): boolean {
 }
 
 /** An ArkType regex index-signature key for `source`, its slashes escaped. */
-function indexKey(source: string): string {
+function indexKey(source: string) {
   return JSON.stringify(`[/${source.replaceAll('/', '\\/')}/]`)
 }
 
@@ -178,7 +178,7 @@ function objectKeysMembers(
   rootName: string,
   isArktype: boolean,
   options: EmitOptions | undefined,
-): readonly string[] {
+) {
   const patternMembers = Object.entries(schema.patternProperties ?? {}).map(
     ([pattern, propSchema]) =>
       `{${indexKey(pattern)}:${arktype(propSchema, rootName, isArktype, options)}}`,
@@ -233,7 +233,7 @@ function node(
   rootName: string,
   isArktype: boolean,
   options: EmitOptions | undefined,
-): string {
+) {
   const codeExtOpts: ArktypeWrapOptions = {
     ...(options?.unsafeCodeExtensions === true && { unsafeCodeExtensions: true }),
     ...(isArktype && { scopeMode: true }),
@@ -242,7 +242,7 @@ function node(
     arktypeStr: string,
     s: JSONSchema,
     extra?: { readonly nullSchema?: boolean },
-  ): string => _arktypeWrap(arktypeStr, s, { ...codeExtOpts, ...extra })
+  ) => _arktypeWrap(arktypeStr, s, { ...codeExtOpts, ...extra })
   const readonly = (v: string) => (options?.readonly ? `${v}.readonly()` : v)
   const isStringWireParam = isStringWireLocation(options?.paramIn)
   const isWireCoerced = isStringWireParam && schema['x-coerce'] !== false
@@ -250,7 +250,7 @@ function node(
     isStringWireParam ? arktypePreprocess([wireArrayOnce('data')], v) : v
   // What reads a literal's input into the literal's type: on the wire the text is coerced,
   // and a 64-bit integer is a bigint wherever it comes from.
-  const literalInput = (values: readonly unknown[]): string | undefined => {
+  const literalInput = (values: readonly unknown[]) => {
     if (values.every((v) => typeof v === 'number')) {
       if (isInt64(schema)) return bigintMorph(isWireCoerced)
       if (isWireCoerced) {
@@ -262,13 +262,13 @@ function node(
     if (isWireCoerced && values.every((v) => typeof v === 'boolean')) return stringbool()
     return undefined
   }
-  const describeWithMessage = (expr: string, msg: unknown): string => {
+  const describeWithMessage = (expr: string, msg: unknown) => {
     if (typeof msg !== 'string') return expr
     const text = JSON.stringify(msg)
     if (isArktype && isArktypeDefinition(expr)) return `[${expr},"@",${text}]`
     return `${isQuoted(expr) ? `type(${expr})` : expr}.describe(${text})`
   }
-  const unionOf = (schemas: string[], message: string | undefined): string =>
+  const unionOf = (schemas: string[], message: string | undefined) =>
     isWireCoerced && schemas.some(isMorph)
       ? wireUnion(schemas, message)
       : describeWithMessage(unionStr(schemas, isArktype), message)
@@ -278,8 +278,8 @@ function node(
     // Standalone exports (`const X = type(...)`) have no scope, so a cross-schema ref must be a
     // value reference to the imported const (`User`). Self-refs stay quoted: a value ref to the
     // const being defined would hit a TDZ; recursion is only expressible in scope mode.
-    const emitRef = (name: string): string => (!isArktype && name !== rootName ? name : `"${name}"`)
-    const ref = (s: JSONSchema): string => {
+    const emitRef = (name: string) => (!isArktype && name !== rootName ? name : `"${name}"`)
+    const ref = (s: JSONSchema) => {
       if (isRootRef(s.$ref)) return `"${rootName}"`
       if (typeof s.$ref === 'string' && isDeepLocalPointer(s.$ref)) return '"unknown"'
       if (options?.openapi && s.$ref) {
@@ -378,7 +378,7 @@ function node(
     const { not: inner, ...withoutNot } = schema
     if (typeof inner !== 'object' || inner === null) return arktypeWrap('"unknown"', schema)
     const notMessage = schema['x-not-message']
-    const predicate = ((): string | undefined => {
+    const predicate = (() => {
       const bigint = isBigintFormat(withoutNot)
       const shared = notPredicate(inner, 'data', 'data: unknown', bigint)
       if (shared !== undefined) return shared
@@ -436,7 +436,7 @@ function node(
   }
 
   const types = normalizeTypes(schema.type)
-  const primitive = (t: string): string | undefined => {
+  const primitive = (t: string) => {
     if (t === 'string') return string(schema)
     if (t === 'number') {
       const definition = number(schema)
@@ -565,7 +565,7 @@ function node(
             `(data: unknown[], ctx) => new Set(data).size === data.length${uniqueItemsMessage ? ` || ctx.mustBe(${JSON.stringify(uniqueItemsMessage)})` : ''}`,
           )
         : lengthExpr
-    const containsNarrows = ((): readonly string[] => {
+    const containsNarrows = (() => {
       if (!schema.contains) return []
       const containsRt = callbackType(
         arktype(schema.contains, rootName, isArktype, options),

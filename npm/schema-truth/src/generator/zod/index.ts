@@ -21,14 +21,14 @@ import { zod } from './zod.js'
  * A whole JSON Schema document as a Zod module: imports, `$defs` in dependency order,
  * the root export, and the inferred type.
  */
-export function schemaToZod(input: JSONSchema, options?: GenerateOptions): string {
+export function schemaToZod(input: JSONSchema, options?: GenerateOptions) {
   // Every schema a reference reaches is a top-level definition, and a polymorphic base
   // and its subtypes do not refer to each other in a loop.
   const schema = withPolymorphicBases(hoistNestedRefs(sanitizeSchema(input)))
   const exportType = options?.exportType ?? true
   const baseOptions = emitOptionsOf(options)
   const codeExtensionsPresent =
-    baseOptions.unsafeCodeExtensions === true && findCodeExtensionKeysInSchema(schema).length > 0
+    baseOptions.unsafeCodeExtensions && findCodeExtensionKeysInSchema(schema).length > 0
   const toName = schemaNamer(baseOptions.openapi)
   const plan = planDocument(schema, rootNameOf(schema, toName))
   const definitions = definitionsOf(baseOptions, plan.definitions)

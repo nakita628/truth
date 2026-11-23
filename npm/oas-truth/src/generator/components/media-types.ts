@@ -1,14 +1,14 @@
 import type { ComponentAdapter } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
 import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.js'
-import type { ComponentCodeOptions, ComponentDeclaration } from './declaration.js'
+import type { ComponentCodeOptions } from './declaration.js'
 import { joinDeclarations } from './declaration.js'
 
 export function makeMediaTypesDeclarations(
   components: Components,
   adapter: ComponentAdapter,
   options?: ComponentCodeOptions,
-): readonly ComponentDeclaration[] {
+) {
   const { mediaTypes } = components
   if (!mediaTypes) return []
   return Object.entries(mediaTypes).flatMap(([name, media]) => {

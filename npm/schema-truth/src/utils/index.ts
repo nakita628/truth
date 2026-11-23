@@ -146,7 +146,7 @@ export function coerceDefault(
   schema: DefaultSchema,
   value: unknown,
   definitions?: { readonly [name: string]: DefaultSchema },
-): DefaultResult {
+) {
   return conformDefault(schema, value, definitions, new Set())
 }
 
@@ -213,7 +213,7 @@ function conformDefault(
   if (valueTypes.length === 0) {
     return schema.properties !== undefined ? (readObject(schema, value, conform) ?? drop) : asIs
   }
-  const read = (type: string): DefaultResult | undefined => {
+  const read = (type: string) => {
     if (type === 'boolean') {
       if (typeof value === 'boolean') return asIs
       if (value === 'true' || value === 'false') return { keep: true, value: value === 'true' }
@@ -266,7 +266,7 @@ function readObject(
   schema: DefaultSchema,
   value: unknown,
   conform: (schema: DefaultSchema, value: unknown) => DefaultResult,
-): DefaultResult | undefined {
+) {
   if (!isDeclaredObject(value)) return undefined
   if (schema.properties === undefined || canHoldUndeclaredKeys(schema)) {
     return { keep: true, value }
@@ -287,7 +287,7 @@ function readObject(
 function definitionOf(
   ref: string,
   definitions: { readonly [name: string]: DefaultSchema } | undefined,
-): DefaultSchema | undefined {
+) {
   if (definitions === undefined) return undefined
   for (const prefix of DEFINITION_REF_PREFIXES) {
     if (!ref.startsWith(prefix)) continue
@@ -299,7 +299,7 @@ function definitionOf(
   return undefined
 }
 
-function typeOf(value: unknown): string | undefined {
+function typeOf(value: unknown) {
   if (typeof value === 'boolean') return 'boolean'
   if (typeof value === 'number') return Number.isInteger(value) ? 'integer' : 'number'
   if (typeof value === 'string') return 'string'
@@ -323,7 +323,7 @@ function canHoldUndeclaredKeys(schema: {
   readonly additionalProperties?: boolean | object
   readonly patternProperties?: object
   readonly unevaluatedProperties?: boolean | object
-}): boolean {
+}) {
   if (schema.additionalProperties === true || typeof schema.additionalProperties === 'object') {
     return true
   }
@@ -341,7 +341,7 @@ function canHoldUndeclaredKeys(schema: {
  * issueMessageExpression('(issue) => issue.path[0]') // '((issue) => issue.path[0])(issue)'
  * ```
  */
-export function issueMessageExpression(message: string): string {
+export function issueMessageExpression(message: string) {
   return isArrowExpression(message) ? `(${message})(issue)` : JSON.stringify(message)
 }
 
@@ -359,7 +359,7 @@ export function zodError(message: string) {
 }
 
 /** `zodError(message)` as a trailing argument, or nothing when there is no message. */
-export function zodErrorPart(message: string | undefined): string {
+export function zodErrorPart(message: string | undefined) {
   return message ? `,${zodError(message)}` : ''
 }
 
@@ -368,10 +368,7 @@ export function zodErrorPart(message: string | undefined): string {
  * `x-error-message` (type / generic) and/or `x-required-message`
  * (`issue.input === undefined`) are present.
  */
-export function zodBaseError(
-  typeMessage: string | undefined,
-  requiredMessage: string | undefined,
-): string {
+export function zodBaseError(typeMessage: string | undefined, requiredMessage: string | undefined) {
   if (typeMessage === undefined && requiredMessage === undefined) return ''
   if (requiredMessage === undefined && typeMessage !== undefined) return zodError(typeMessage)
   if (requiredMessage !== undefined && typeMessage === undefined) {
@@ -394,7 +391,7 @@ export function valibotError(message: string) {
 }
 
 /** `valibotError(message)` as a trailing argument, or nothing when there is no message. */
-export function valibotErrorPart(message: string | undefined): string {
+export function valibotErrorPart(message: string | undefined) {
   return message ? `,${valibotError(message)}` : ''
 }
 
@@ -415,7 +412,7 @@ export function effectError(message: string) {
 }
 
 /** `effectError(message)` as a trailing argument, or nothing when there is no message. */
-export function effectErrorPart(message: string | undefined): string {
+export function effectErrorPart(message: string | undefined) {
   return message ? `,${effectError(message)}` : ''
 }
 
@@ -462,6 +459,6 @@ export function resolveOpenAPIRef($ref: string) {
  * makeSafeKey('123')      // '"123"'
  * ```
  */
-export function makeSafeKey(key: string): string {
+export function makeSafeKey(key: string) {
   return isValidIdentifier(key) ? key : JSON.stringify(key)
 }

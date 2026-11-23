@@ -30,8 +30,8 @@ export type ZodWrapOptions = CodeExtensionOptions & {
  *
  * @see https://zod.dev/metadata
  */
-export function zodWrap(zodStr: string, schema: JSONSchema, options?: ZodWrapOptions): string {
-  const formatLiteral = (value: unknown): string => {
+export function zodWrap(zodStr: string, schema: JSONSchema, options?: ZodWrapOptions) {
+  const formatLiteral = (value: unknown) => {
     if (typeof value === 'boolean') return `${value}`
     if (typeof value === 'number') {
       if (schema.format === 'int64' || schema.format === 'uint64') return `${value}n`

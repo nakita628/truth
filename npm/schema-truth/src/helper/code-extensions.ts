@@ -43,7 +43,7 @@ const DENYLIST_PATTERN = new RegExp(
  * any `.join(` invocation, template-literal backticks,
  * unicode/hex/octal-name escape sequences, and `[ '...' ]` computed access.
  */
-export function isSafeCodeExtension(value: unknown): boolean {
+export function isSafeCodeExtension(value: unknown) {
   if (typeof value !== 'string') return false
   return !DENYLIST_PATTERN.test(value)
 }
@@ -53,7 +53,7 @@ export function isSafeCodeExtension(value: unknown): boolean {
  * level), so callers can emit a single warning when programmatic callers
  * supply such schemas without `unsafeCodeExtensions: true`.
  */
-export function findCodeExtensionKeysInSchema(schema: JSONSchema): readonly string[] {
+export function findCodeExtensionKeysInSchema(schema: JSONSchema) {
   const found = new Set<string>()
   for (const node of walkSchema(schema)) {
     for (const key of Object.keys(node)) {
@@ -75,7 +75,7 @@ export function readCodeExtension(
   schema: JSONSchema,
   key: CodeExtensionKey,
   options: CodeExtensionOptions | undefined,
-): string | undefined {
+) {
   if (options?.unsafeCodeExtensions !== true) return undefined
   const raw = schema[key]
   if (typeof raw !== 'string') return undefined

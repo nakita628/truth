@@ -1,13 +1,13 @@
 import { valueToCode } from '../../helper/ref-resolver.js'
 import type { Components } from '../../openapi/index.js'
 import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.js'
-import type { ComponentCodeOptions, ComponentDeclaration } from './declaration.js'
+import type { ComponentCodeOptions } from './declaration.js'
 import { joinDeclarations } from './declaration.js'
 
 export function makeSecuritySchemesDeclarations(
   components: Components,
   options?: ComponentCodeOptions,
-): readonly ComponentDeclaration[] {
+) {
   const { securitySchemes } = components
   if (!securitySchemes) return []
   const asConst = options?.readonly === true ? ' as const' : ''

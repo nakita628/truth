@@ -1,7 +1,7 @@
 import { DEFINITION_REF_PREFIXES } from '../constants/index.js'
 import type { JSONSchema } from '../parser/index.js'
 
-function definitionName(ref: string): string | undefined {
+function definitionName(ref: string) {
   for (const prefix of DEFINITION_REF_PREFIXES) {
     if (!ref.startsWith(prefix)) continue
     const rest = ref.slice(prefix.length)
@@ -11,23 +11,14 @@ function definitionName(ref: string): string | undefined {
   return undefined
 }
 
-/** A union member and the discriminator values that select it. */
-export type DiscriminatedMember = {
-  readonly member: JSONSchema
-  /** `undefined` when the member is not a `$ref` and the mapping does not name it. */
-  readonly values: readonly string[] | undefined
-}
-
 /**
  * The discriminator values that select each `oneOf` / `anyOf` member (OpenAPI 3.x
  * Discriminator Object): the `mapping` keys whose target names the member's `$ref`, or,
  * when the mapping names it nowhere, the definition name itself (the implicit mapping).
- * `undefined` when the node has no discriminator property.
+ * A member's `values` is `undefined` when it is not a `$ref` the mapping can name, and the
+ * whole result is `undefined` when the node has no discriminator property.
  */
-export function discriminatedMembers(
-  schema: JSONSchema,
-  members: readonly JSONSchema[],
-): { readonly propertyName: string; readonly members: readonly DiscriminatedMember[] } | undefined {
+export function discriminatedMembers(schema: JSONSchema, members: readonly JSONSchema[]) {
   const propertyName = schema.discriminator?.propertyName
   if (propertyName === undefined) return undefined
   const mapping = Object.entries(schema.discriminator?.mapping ?? {})

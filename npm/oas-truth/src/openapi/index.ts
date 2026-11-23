@@ -3,41 +3,6 @@ import path from 'node:path'
 import SwaggerParser from '@apidevtools/swagger-parser'
 
 /**
- * The outcome of an operation that can fail: the value, or the reason it failed. The public
- * API never throws; every failure is folded into `{ ok: false, error }`.
- */
-export type Result<T, E = string> =
-  | { readonly ok: true; readonly value: T }
-  | { readonly ok: false; readonly error: E }
-
-/**
- * A document `parseOpenAPI` reads: an OpenAPI file by its extension, a TypeSpec file, or an
- * `http(s)` URL whatever its path (a document served without an extension is OpenAPI by
- * content).
- */
-export type OpenAPIInput =
-  | `${string}.yaml`
-  | `${string}.yml`
-  | `${string}.json`
-  | `${string}.tsp`
-  | `http://${string}`
-  | `https://${string}`
-
-const INPUT_EXTENSIONS: readonly string[] = ['.yaml', '.yml', '.json', '.tsp']
-
-/** Whether a value names a document `parseOpenAPI` reads, for narrowing a CLI or config value. */
-export function isOpenAPIInput(value: unknown): value is OpenAPIInput {
-  return (
-    typeof value === 'string' &&
-    (isURL(value) || INPUT_EXTENSIONS.some((extension) => value.endsWith(extension)))
-  )
-}
-
-function isURL(value: string) {
-  return /^https?:\/\//iu.test(value)
-}
-
-/**
  * Read an OpenAPI or TypeSpec document into a typed OpenAPI document.
  *
  * OpenAPI (a local `.yaml` / `.yml` / `.json` file or an `http(s)` URL) goes through
@@ -45,66 +10,80 @@ function isURL(value: string) {
  * the code builders can emit schema variables instead of inline copies. A local `.tsp` file
  * is compiled with `@typespec/compiler` and emitted with `@typespec/openapi3`, both loaded
  * only for TypeSpec, then bundled the same way.
+ *
+ * The input type lists what it reads: an OpenAPI file by its extension, a TypeSpec file, or an
+ * `http(s)` URL whatever its path (a document served without an extension is OpenAPI by
+ * content).
+ *
+ * It never throws: the document comes back as `{ ok: true, value }` and every failure as
+ * `{ ok: false, error }` with a message.
  */
-export async function parseOpenAPI(input: OpenAPIInput): Promise<Result<OpenAPI>> {
+export async function parseOpenAPI(
+  input:
+    | `${string}.yaml`
+    | `${string}.yml`
+    | `${string}.json`
+    | `${string}.tsp`
+    | `http://${string}`
+    | `https://${string}`,
+) {
   // A document object still reaches swagger-parser, as it always has; a string must name
   // a document this function reads.
-  if (typeof input === 'string' && !isOpenAPIInput(input)) {
+  const isURL = typeof input === 'string' && /^https?:\/\//iu.test(input)
+  if (
+    typeof input === 'string' &&
+    !isURL &&
+    !['.yaml', '.yml', '.json', '.tsp'].some((extension) => input.endsWith(extension))
+  ) {
     return {
       ok: false,
-      error: `Unsupported input: ${String(input)} (expected a .yaml, .yml, .json or .tsp file, or an http(s) URL)`,
-    }
+      error: `Unsupported input: ${input} (expected a .yaml, .yml, .json or .tsp file, or an http(s) URL)`,
+    } as const
   }
   try {
-    if (typeof input === 'string' && input.endsWith('.tsp') && !isURL(input)) {
-      return await parseTypeSpec(input)
+    if (typeof input !== 'string' || isURL || !input.endsWith('.tsp')) {
+      const openAPI = (await SwaggerParser.bundle(input)) as OpenAPI
+      return { ok: true, value: openAPI } as const
     }
-    const openAPI = (await SwaggerParser.bundle(input)) as OpenAPI
-    return { ok: true, value: openAPI }
+    // The compiler and the emitter take longer to import than a whole yaml or json run, so
+    // they are loaded only for a `.tsp` document.
+    const [{ compile, NodeHost }, { getOpenAPI3 }] = await Promise.all([
+      import('@typespec/compiler'),
+      import('@typespec/openapi3'),
+    ])
+    const program = await compile(NodeHost, path.resolve(input), { noEmit: true })
+    if (program.diagnostics.length > 0) {
+      const errors = program.diagnostics.map((d) => d.message).join('\n')
+      return { ok: false, error: `TypeSpec compile failed:\n${errors}` } as const
+    }
+    const [record] = await getOpenAPI3(program)
+    const document =
+      record === undefined
+        ? undefined
+        : 'document' in record
+          ? record.document
+          : record.versions[0]?.document
+    if (document === undefined) {
+      return { ok: false, error: `TypeSpec emitted no OpenAPI document: ${input}` } as const
+    }
+    // TypeSpec's document is a JS object; swagger-parser's overloads do not list that type.
+    const openAPI = (await SwaggerParser.bundle(document as never)) as OpenAPI
+    return { ok: true, value: openAPI } as const
   } catch (error) {
-    return { ok: false, error: errorMessage(error) }
+    if (!(error instanceof Error)) return { ok: false, error: String(error) } as const
+    // swagger-parser reports some I/O failures (a URL that does not resolve, a missing file)
+    // with a message that ends before the reason and the reason in `ioErrorCode`; it is
+    // appended so the message says what went wrong.
+    const code = 'ioErrorCode' in error ? error.ioErrorCode : undefined
+    const missingReason = error.message.trim() === '' || error.message.trimEnd().endsWith(':')
+    return {
+      ok: false,
+      error:
+        missingReason && typeof code === 'string' && code !== ''
+          ? `${error.message.trimEnd()} ${code}`.trim()
+          : error.message,
+    } as const
   }
-}
-
-async function parseTypeSpec(input: string): Promise<Result<OpenAPI>> {
-  // The compiler and the emitter take longer to import than a whole yaml or json run, so
-  // they are loaded only for a `.tsp` document.
-  const [{ compile, NodeHost }, { getOpenAPI3 }] = await Promise.all([
-    import('@typespec/compiler'),
-    import('@typespec/openapi3'),
-  ])
-  const program = await compile(NodeHost, path.resolve(input), { noEmit: true })
-  if (program.diagnostics.length > 0) {
-    const errors = program.diagnostics.map((d) => d.message).join('\n')
-    return { ok: false, error: `TypeSpec compile failed:\n${errors}` }
-  }
-  const [record] = await getOpenAPI3(program)
-  const document =
-    record === undefined
-      ? undefined
-      : 'document' in record
-        ? record.document
-        : record.versions[0]?.document
-  if (document === undefined) {
-    return { ok: false, error: `TypeSpec emitted no OpenAPI document: ${input}` }
-  }
-  // TypeSpec's document is a JS object; swagger-parser's overloads do not list that type.
-  const openAPI = (await SwaggerParser.bundle(document as never)) as OpenAPI
-  return { ok: true, value: openAPI }
-}
-
-/**
- * The message of a thrown value. swagger-parser reports some I/O failures (a URL that does
- * not resolve, a missing file) with a message that ends before the reason and the reason in
- * `ioErrorCode`; it is appended so the message says what went wrong.
- */
-function errorMessage(error: unknown) {
-  if (!(error instanceof Error)) return String(error)
-  const code = 'ioErrorCode' in error ? error.ioErrorCode : undefined
-  const missingReason = error.message.trim() === '' || error.message.trimEnd().endsWith(':')
-  return missingReason && typeof code === 'string' && code !== ''
-    ? `${error.message.trimEnd()} ${code}`.trim()
-    : error.message
 }
 
 export type OpenAPI = {

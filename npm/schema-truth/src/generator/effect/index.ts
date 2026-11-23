@@ -27,14 +27,14 @@ const EFFECT_ROOT_FALLBACK = `${DEFAULT_ROOT_NAME}_`
  * `options.readonly` is accepted for API symmetry and is a no-op: `Schema.Struct` and
  * `Schema.Array` are already readonly at the type level.
  */
-export function schemaToEffect(input: JSONSchema, options?: GenerateOptions): string {
+export function schemaToEffect(input: JSONSchema, options?: GenerateOptions) {
   // Every schema a reference reaches is a top-level definition, and a polymorphic base
   // and its subtypes do not refer to each other in a loop.
   const schema = withPolymorphicBases(hoistNestedRefs(sanitizeSchema(input)))
   const exportType = options?.exportType ?? true
   const baseOptions = emitOptionsOf(options)
   const codeExtensionsPresent =
-    baseOptions.unsafeCodeExtensions === true && findCodeExtensionKeysInSchema(schema).length > 0
+    baseOptions.unsafeCodeExtensions && findCodeExtensionKeysInSchema(schema).length > 0
   const toName = schemaNamer(baseOptions.openapi)
   // A root named `Schema` would collide with `import { Schema } from "effect"`.
   const pascalTitle = rootNameOf(schema, toName, EFFECT_ROOT_FALLBACK)

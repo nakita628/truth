@@ -43,14 +43,14 @@ export function isPrimitive(value: unknown): value is string | number | boolean 
 }
 
 /** An array or object value: one that needs a structural matcher rather than a literal. */
-export function isComposite(value: unknown): boolean {
+export function isComposite(value: unknown) {
   return typeof value === 'object' && value !== null
 }
 
 // ── Names and messages ───────────────────────────────────────────────────
 
 /** Whether a key can be written bare in an object literal or as a member access. */
-export function isValidIdentifier(name: string): boolean {
+export function isValidIdentifier(name: string) {
   return IDENTIFIER_PATTERN.test(name)
 }
 
@@ -61,7 +61,7 @@ export function isValidIdentifier(name: string): boolean {
  * The `x-*-message` extensions accept either, and a library that takes a callback
  * (Zod's `error`, Valibot's message argument) gets the source through unquoted.
  */
-export function isArrowExpression(source: string): boolean {
+export function isArrowExpression(source: string) {
   return ARROW_FUNCTION_PATTERN.test(source)
 }
 
@@ -86,14 +86,14 @@ export function isStringWireLocation(
  * Whether a property name is one every plain object inherits (`constructor`, `toString`,
  * ...), so reading it off a parameter object that never carried it finds a function.
  */
-export function isObjectPrototypeProperty(name: string): boolean {
+export function isObjectPrototypeProperty(name: string) {
   return OBJECT_PROTOTYPE_PROPERTIES.some((property) => property === name)
 }
 
 // ── References ───────────────────────────────────────────────────────────
 
 /** Whether a `$ref` names the whole document — the schema being emitted refers to itself. */
-export function isRootRef(ref: string | undefined): boolean {
+export function isRootRef(ref: string | undefined) {
   return ROOT_REFS.some((root) => root === ref)
 }
 
@@ -110,7 +110,7 @@ export function isRootRef(ref: string | undefined): boolean {
  * isDeepLocalPointer('#/components/schemas/User/properties/x') // true
  * ```
  */
-export function isDeepLocalPointer($ref: string): boolean {
+export function isDeepLocalPointer($ref: string) {
   if (!$ref.startsWith('#/')) return false
   const fragment = $ref.slice(2)
   const containers = ['components/schemas/', 'definitions/', '$defs/']
@@ -140,7 +140,7 @@ export function isSchemaList(
 }
 
 /** Whether a node admits `null`: OpenAPI 3.0 `nullable`, or `null` among its types. */
-export function isNullable(schema: JSONSchema): boolean {
+export function isNullable(schema: JSONSchema) {
   return schema.nullable === true || hasType(schema, 'null')
 }
 
@@ -148,7 +148,7 @@ export function isNullable(schema: JSONSchema): boolean {
  * Whether a node takes `null`: a nullable type, a `null` among its `enum`, a `const: null`
  * or a `oneOf` / `anyOf` member that does.
  */
-export function canBeNull(schema: JSONSchema): boolean {
+export function canBeNull(schema: JSONSchema) {
   if (isNullable(schema)) return true
   if (schema.const === null) return true
   if (schema.enum?.some((value) => value === null)) return true
@@ -159,7 +159,7 @@ export function canBeNull(schema: JSONSchema): boolean {
  * Whether a node may take a string: a `string` type, a string among its `enum` or `const`,
  * a `oneOf` / `anyOf` member that does, or no constraint on the type at all.
  */
-export function canBeString(schema: JSONSchema): boolean {
+export function canBeString(schema: JSONSchema) {
   if (hasType(schema, 'string')) return true
   if (typeof schema.const === 'string') return true
   if (schema.enum !== undefined) return schema.enum.some((value) => typeof value === 'string')
@@ -176,17 +176,17 @@ export function canBeString(schema: JSONSchema): boolean {
 }
 
 /** Whether a node without a `type` carries a keyword that only applies to a number. */
-export function hasNumericKeyword(schema: JSONSchema): boolean {
+export function hasNumericKeyword(schema: JSONSchema) {
   return NUMERIC_KEYWORDS.some((keyword) => schema[keyword] !== undefined)
 }
 
 /** Whether a node without a `type` carries a keyword that only applies to a string. */
-export function hasStringKeyword(schema: JSONSchema): boolean {
+export function hasStringKeyword(schema: JSONSchema) {
   return STRING_KEYWORDS.some((keyword) => schema[keyword] !== undefined)
 }
 
 /** Whether `type` names `type`, either alone or as one of a list. */
-export function hasType(schema: JSONSchema, type: JSONSchemaType): boolean {
+export function hasType(schema: JSONSchema, type: JSONSchemaType) {
   const types = schema.type
   if (types === undefined) return false
   if (typeof types === 'string') return types === type
@@ -194,7 +194,7 @@ export function hasType(schema: JSONSchema, type: JSONSchemaType): boolean {
 }
 
 /** Whether a node is composed of other schemas: `oneOf`, `anyOf`, `allOf` or `not`. */
-export function hasCombinator(schema: JSONSchema): boolean {
+export function hasCombinator(schema: JSONSchema) {
   return (
     schema.oneOf !== undefined ||
     schema.anyOf !== undefined ||
@@ -204,12 +204,12 @@ export function hasCombinator(schema: JSONSchema): boolean {
 }
 
 /** Whether a node carries a conditional (`if` / `then` / `else`). */
-export function hasConditional(schema: JSONSchema): boolean {
+export function hasConditional(schema: JSONSchema) {
   return schema.if !== undefined || schema.then !== undefined || schema.else !== undefined
 }
 
 /** Whether `minLength` and `maxLength` pin a string to exactly one length. */
-export function hasFixedLength(schema: JSONSchema): boolean {
+export function hasFixedLength(schema: JSONSchema) {
   return (
     schema.minLength !== undefined &&
     schema.maxLength !== undefined &&
@@ -218,7 +218,7 @@ export function hasFixedLength(schema: JSONSchema): boolean {
 }
 
 /** Whether `minItems` and `maxItems` pin an array to exactly one length. */
-export function hasFixedItemCount(schema: JSONSchema): boolean {
+export function hasFixedItemCount(schema: JSONSchema) {
   return (
     typeof schema.minItems === 'number' &&
     typeof schema.maxItems === 'number' &&
@@ -235,7 +235,7 @@ export function hasFixedItemCount(schema: JSONSchema): boolean {
  * a bare `{ type: 'null' }` is the JSON Schema equivalent. Neither contributes a shape,
  * so every generator lifts it out of the intersection and onto the result instead.
  */
-export function isNullTypeMember(schema: JSONSchema): boolean {
+export function isNullTypeMember(schema: JSONSchema) {
   return schema.type === 'null' || (schema.nullable === true && Object.keys(schema).length === 1)
 }
 
@@ -245,7 +245,7 @@ export function isNullTypeMember(schema: JSONSchema): boolean {
  * A default is metadata on the composed value rather than a constraint of its own, so it
  * is applied to the intersection rather than intersected into it.
  */
-export function isDefaultOnlyMember(schema: JSONSchema): boolean {
+export function isDefaultOnlyMember(schema: JSONSchema) {
   return Object.keys(schema).length === 1 && schema.default !== undefined
 }
 
@@ -256,7 +256,7 @@ export function isDefaultOnlyMember(schema: JSONSchema): boolean {
  * single value in a way none of the target libraries express as an intersection, so it is
  * dropped rather than emitted.
  */
-export function isConstOnlyMember(schema: JSONSchema): boolean {
+export function isConstOnlyMember(schema: JSONSchema) {
   return Object.keys(schema).length === 1 && schema.const !== undefined
 }
 
@@ -264,14 +264,14 @@ export function isConstOnlyMember(schema: JSONSchema): boolean {
  * True for an `allOf` member that carries no shape of its own — the ones every generator
  * filters out before intersecting what is left.
  */
-export function isShapelessMember(schema: JSONSchema): boolean {
+export function isShapelessMember(schema: JSONSchema) {
   return isNullTypeMember(schema) || isDefaultOnlyMember(schema) || isConstOnlyMember(schema)
 }
 
 // ── Emitted source ───────────────────────────────────────────────────────
 
 /** A double-quoted string literal: the ArkType string DSL form of a definition. */
-export function isQuoted(source: string): boolean {
+export function isQuoted(source: string) {
   return source.startsWith('"') && source.endsWith('"')
 }
 
@@ -279,7 +279,7 @@ export function isQuoted(source: string): boolean {
  * A bare ArkType definition — a string, object or tuple literal — as opposed to
  * an expression that already evaluates to a `Type` and so carries methods.
  */
-export function isArktypeDefinition(source: string): boolean {
+export function isArktypeDefinition(source: string) {
   return (
     isQuoted(source) ||
     (source.startsWith('{') && source.endsWith('}')) ||

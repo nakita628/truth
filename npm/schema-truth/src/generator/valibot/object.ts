@@ -64,7 +64,7 @@ export function object(
     schema.unevaluatedProperties === false ? schema['x-unevaluatedProperties-message'] : undefined
   const strictExtrasMessage = addlPropsMessage ?? unevalPropsMessage
 
-  const propertyNamesCheck = (): string => {
+  const propertyNamesCheck = () => {
     if (schema.propertyNames?.pattern) {
       return `v.check((input)=>Object.keys(input).every((key)=>new RegExp(${JSON.stringify(schema.propertyNames.pattern)}).test(key))${propNamesErrorArg})`
     }
@@ -74,7 +74,7 @@ export function object(
     return ''
   }
 
-  const patternPropertiesChecks = (): readonly string[] =>
+  const patternPropertiesChecks = () =>
     schema.patternProperties
       ? Object.entries(schema.patternProperties).map(([pattern, propSchema]) => {
           const s = valibot(propSchema, rootName, isValibot, options)

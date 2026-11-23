@@ -37,7 +37,7 @@ const HTTP_URL_PATTERN = String.raw`/^https?:\/\//`
  * The actions that check a string `format`: Valibot's own where it has one, otherwise the
  * regex every target shares. `[]` for a format with neither.
  */
-function formatActions(schema: JSONSchema, format: string, errorArg: string): readonly string[] {
+function formatActions(schema: JSONSchema, format: string, errorArg: string) {
   const withError = (action: string) =>
     errorArg ? action.replace(/\(\)$/u, `(${errorArg})`) : action
   const action = FORMAT_ACTION[format]

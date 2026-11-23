@@ -1,13 +1,10 @@
 import { valueToCode } from '../../helper/ref-resolver.js'
 import type { Components } from '../../openapi/index.js'
 import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.js'
-import type { ComponentCodeOptions, ComponentDeclaration } from './declaration.js'
+import type { ComponentCodeOptions } from './declaration.js'
 import { joinDeclarations } from './declaration.js'
 
-export function makeLinksDeclarations(
-  components: Components,
-  options?: ComponentCodeOptions,
-): readonly ComponentDeclaration[] {
+export function makeLinksDeclarations(components: Components, options?: ComponentCodeOptions) {
   const { links } = components
   if (!links) return []
   const asConst = options?.readonly === true ? ' as const' : ''

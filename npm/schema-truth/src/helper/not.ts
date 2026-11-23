@@ -2,12 +2,12 @@ import type { JSONSchema } from '../parser/index.js'
 import { normalizeTypes } from '../utils/index.js'
 
 /** Whether the schema's values are bigints (`int64`, `uint64`, `bigint`). */
-export function isBigintFormat(schema: JSONSchema): boolean {
+export function isBigintFormat(schema: JSONSchema) {
   return schema.format === 'int64' || schema.format === 'uint64' || schema.format === 'bigint'
 }
 
 /** A value as a TypeScript literal. Numbers of a bigint schema are `0n`, not `0`. */
-function literal(value: unknown, bigint: boolean): string {
+function literal(value: unknown, bigint: boolean) {
   if (bigint && typeof value === 'number' && Number.isFinite(value)) return `${value}n`
   return JSON.stringify(value)
 }
@@ -17,13 +17,13 @@ function literal(value: unknown, bigint: boolean): string {
  * `[0n].includes(val)` type-checks and rejects `0n`; `[0].includes(0n)` is both a
  * type error and always false.
  */
-export function valueListLiteral(values: readonly unknown[], bigint: boolean): string {
+export function valueListLiteral(values: readonly unknown[], bigint: boolean) {
   if (!bigint) return JSON.stringify(values)
   return `[${values.map((value) => literal(value, true)).join(',')}]`
 }
 
 /** The `not` predicate bodies by `type`, over a value bound to `param`. */
-function notTypeBody(type: string, param: string): string | undefined {
+function notTypeBody(type: string, param: string) {
   switch (type) {
     case 'string':
     case 'number':
@@ -55,7 +55,7 @@ export function notPredicate(
   param: string,
   parameter: string = param,
   bigint = false,
-): string | undefined {
+) {
   if ('const' in inner) return `(${parameter}) => ${param} !== ${literal(inner.const, bigint)}`
   if (typeof inner.type === 'string') {
     const body = notTypeBody(inner.type, param)

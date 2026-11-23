@@ -12,7 +12,7 @@ import {
 } from './number.js'
 
 /** Whether a node is a 64-bit integer: a value beyond 2^53 that is read as a bigint. */
-export function isInt64(schema: JSONSchema): boolean {
+export function isInt64(schema: JSONSchema) {
   return schema.format === 'int64' || schema.format === 'uint64'
 }
 
@@ -21,7 +21,7 @@ export function isInt64(schema: JSONSchema): boolean {
  * and digits; in a JSON body the value is a bigint, a safe-integer number, or the string
  * of digits that is the only lossless way to carry a larger one.
  */
-export function bigintMorph(isWire: boolean): string {
+export function bigintMorph(isWire: boolean) {
   const digits = regexSource(INTEGER_TEXT_PATTERN)
   if (isWire) {
     return `type("string").pipe((data, ctx) => (${digits}.test(data) ? BigInt(data) : ctx.error("an integer")))`
@@ -33,7 +33,7 @@ export function bigintMorph(isWire: boolean): string {
  * The `.narrow(...)` chain holding a bigint within its bounds: ArkType's DSL has no
  * bigint comparators, so each is a predicate with `ctx.mustBe`.
  */
-function bigintNarrows(schema: JSONSchema, lit: (n: number) => string): string {
+function bigintNarrows(schema: JSONSchema, lit: (n: number) => string) {
   const range = schema.format === undefined ? undefined : NUMBER_RANGES[schema.format]
   const narrows = [
     range === undefined

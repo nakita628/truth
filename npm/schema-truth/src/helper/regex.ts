@@ -19,7 +19,7 @@ import { UNICODE_ESCAPE_PATTERN } from '../constants/index.js'
  * regexLiteral('\\x{FFFF}')     // '/\\uFFFF/'
  * ```
  */
-export function regexLiteral(pattern: string): string {
+export function regexLiteral(pattern: string) {
   const rewritten = rewriteBracedHex(pattern)
   const body = rewritten.pattern.replaceAll(/(?<!\\)\//gu, '\\/')
   const unicodeFlag = rewritten.unicode || UNICODE_ESCAPE_PATTERN.test(rewritten.pattern) ? 'u' : ''
@@ -31,14 +31,11 @@ export function regexLiteral(pattern: string): string {
  * escapes. A code point above U+FFFF needs the `u` flag (`unicode`). An
  * already-escaped backslash (`\\x{FFFF}`) is left as text.
  */
-export function patternSource(pattern: string): string {
+export function patternSource(pattern: string) {
   return rewriteBracedHex(pattern).pattern
 }
 
-function rewriteBracedHex(pattern: string): {
-  readonly pattern: string
-  readonly unicode: boolean
-} {
+function rewriteBracedHex(pattern: string) {
   let unicode = false
   let out = ''
   for (let index = 0; index < pattern.length; index++) {

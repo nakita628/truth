@@ -9,7 +9,7 @@ import { walkSchema } from './walk.js'
  * `#/definitions/X`, `#/$defs/X` and the bare `#X` shorthand. `undefined` for the
  * whole-document reference and for a pointer into a sub-schema.
  */
-export function localDefinitionName(ref: string): string | undefined {
+export function localDefinitionName(ref: string) {
   return (
     DEFINITION_POINTER_PATTERN.exec(ref)?.groups?.name ?? ANCHOR_REF_PATTERN.exec(ref)?.groups?.name
   )
@@ -19,7 +19,7 @@ export function localDefinitionName(ref: string): string | undefined {
  * Collect the local definition names a schema refers to. Nested `definitions`/`$defs`
  * are not traversed: only references reachable from the schema body count as edges.
  */
-function collectLocalRefs(schema: JSONSchema): readonly string[] {
+function collectLocalRefs(schema: JSONSchema) {
   const refs = new Set<string>()
   for (const node of walkSchema(schema, { skipDefinitions: true })) {
     if (typeof node.$ref !== 'string') continue
@@ -41,7 +41,7 @@ function collectLocalRefs(schema: JSONSchema): readonly string[] {
 export function hasRootSelfReference(
   schema: JSONSchema,
   isSelfRef: (ref: string) => boolean = isRootRef,
-): boolean {
+) {
   for (const node of walkSchema(schema, { skipDefinitions: true, skipRoot: true })) {
     if (typeof node.$ref === 'string' && isSelfRef(node.$ref)) return true
   }
@@ -66,7 +66,7 @@ export function hasRootSelfReference(
  * }) // Set { 'A', 'B' }
  * ```
  */
-export function cyclicDefinitionNames(schema: JSONSchema): ReadonlySet<string> {
+export function cyclicDefinitionNames(schema: JSONSchema) {
   const definitions = collectDefinitions(schema)
 
   const edges = new Map<string, readonly string[]>()
@@ -83,7 +83,7 @@ export function cyclicDefinitionNames(schema: JSONSchema): ReadonlySet<string> {
   const state = new Map<string, 'visiting' | 'done'>()
   const path: string[] = []
 
-  const visit = (start: string): void => {
+  const visit = (start: string) => {
     // Each frame is `[name, leaving]`; the `leaving` frame is pushed before the
     // children so it pops once the whole subtree is done.
     const work: [string, boolean][] = [[start, false]]

@@ -2,14 +2,14 @@ import type { ComponentAdapter } from '../../adapter/index.js'
 import { isParamStyle } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
 import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.js'
-import type { ComponentCodeOptions, ComponentDeclaration } from './declaration.js'
+import type { ComponentCodeOptions } from './declaration.js'
 import { joinDeclarations } from './declaration.js'
 
 export function makeParametersDeclarations(
   components: Components,
   adapter: ComponentAdapter,
   options?: ComponentCodeOptions,
-): readonly ComponentDeclaration[] {
+) {
   const { parameters } = components
   if (!parameters) return []
   return Object.entries(parameters).flatMap(([name, param]) => {
