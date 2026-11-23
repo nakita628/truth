@@ -8,6 +8,17 @@ export function number(schema: JSONSchema, ref?: string) {
   const maxMessage = schema['x-maximum-message']
   const exclusiveMinimumMessage = schema['x-exclusiveMinimum-message']
   const exclusiveMaximumMessage = schema['x-exclusiveMaximum-message']
+  // Draft-04 spells an exclusive bound as `minimum` plus a boolean `exclusiveMinimum`.
+  // TypeBox reads the numeric keyword only, so the bound moves under it; its message is
+  // the exclusive keyword's, as in every other target.
+  const minimumKeyword =
+    schema.exclusiveMinimum === true && schema.minimum !== undefined
+      ? 'exclusiveMinimum'
+      : 'minimum'
+  const maximumKeyword =
+    schema.exclusiveMaximum === true && schema.maximum !== undefined
+      ? 'exclusiveMaximum'
+      : 'maximum'
   const multipleOfMessage = schema['x-multipleOf-message']
   // ajv-errors `errorMessage`: string for the common case (only
   // `x-error-message` set); object form when per-keyword messages are
@@ -15,8 +26,12 @@ export function number(schema: JSONSchema, ref?: string) {
   // ajv-errors `_` convention. See typebox/integer.ts for the same pattern.
   const perKeywordEntries: string[] = []
   if (requiredMessage) perKeywordEntries.push(`required:${JSON.stringify(requiredMessage)}`)
-  if (minMessage) perKeywordEntries.push(`minimum:${JSON.stringify(minMessage)}`)
-  if (maxMessage) perKeywordEntries.push(`maximum:${JSON.stringify(maxMessage)}`)
+  if (minMessage && minimumKeyword === 'minimum') {
+    perKeywordEntries.push(`minimum:${JSON.stringify(minMessage)}`)
+  }
+  if (maxMessage && maximumKeyword === 'maximum') {
+    perKeywordEntries.push(`maximum:${JSON.stringify(maxMessage)}`)
+  }
   if (exclusiveMinimumMessage) {
     perKeywordEntries.push(`exclusiveMinimum:${JSON.stringify(exclusiveMinimumMessage)}`)
   }
@@ -35,11 +50,11 @@ export function number(schema: JSONSchema, ref?: string) {
 
   const opts = [
     ...typeboxRefOpt(ref),
-    schema.minimum !== undefined ? `minimum:${schema.minimum}` : undefined,
+    schema.minimum !== undefined ? `${minimumKeyword}:${schema.minimum}` : undefined,
     typeof schema.exclusiveMinimum === 'number'
       ? `exclusiveMinimum:${schema.exclusiveMinimum}`
       : undefined,
-    schema.maximum !== undefined ? `maximum:${schema.maximum}` : undefined,
+    schema.maximum !== undefined ? `${maximumKeyword}:${schema.maximum}` : undefined,
     typeof schema.exclusiveMaximum === 'number'
       ? `exclusiveMaximum:${schema.exclusiveMaximum}`
       : undefined,
