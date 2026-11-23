@@ -1,10 +1,14 @@
 import { NUMBER_RANGES } from '../../constants/index.js'
+import type { BigintSchema } from '../../helper/bigint.js'
 import { numberWirePattern } from '../../helper/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { valibotError, valibotErrorPart } from '../../utils/index.js'
 
 /** The `v.minValue` / `v.maxValue` / `v.gtValue` / `v.ltValue` / `v.multipleOf` actions of a numeric node. */
-export function numberActions(schema: JSONSchema, lit: (n: number) => string = (n) => `${n}`) {
+export function numberActions(
+  schema: BigintSchema,
+  lit: (n: number | bigint) => string = (n) => `${n}`,
+) {
   const minimumMessage = schema['x-minimum-message']
   const minErrorPart = valibotErrorPart(minimumMessage)
   const maximumMessage = schema['x-maximum-message']

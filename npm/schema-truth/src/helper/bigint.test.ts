@@ -2,9 +2,10 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import type { JSONSchema } from '../parser/index.js'
 import { bigintBounds, bigintDivisor } from './bigint.js'
+import type { BigintSchema } from './bigint.js'
 
 describe('bigintBounds', () => {
-  it.concurrent.each<[JSONSchema, JSONSchema]>([
+  it.concurrent.each<[JSONSchema, BigintSchema]>([
     [
       { type: 'integer', minimum: 0.5, maximum: 2.5 },
       { type: 'integer', minimum: 1, maximum: 2 },
@@ -31,7 +32,7 @@ describe('bigintBounds', () => {
 })
 
 describe('bigintDivisor', () => {
-  it.concurrent.each<[unknown, number | undefined]>([
+  it.concurrent.each<[unknown, number | bigint | undefined]>([
     [2, 2],
     [0.5, 1],
     [2.5, 5],
@@ -39,6 +40,10 @@ describe('bigintDivisor', () => {
     [1.5e-7, 3],
     [2 ** 60, 2 ** 60],
     [1e23, 1e23],
+    // 12345678901234567 is above 2^53, so it stays a bigint.
+    [1.2345678901234567, 12_345_678_901_234_567n],
+    // 12345678901234567 is above 2^53, so it stays a bigint.
+    [1.2345678901234567, 12_345_678_901_234_567n],
     [-2, 2],
     [-0.5, 1],
     [1e21, 1e21],

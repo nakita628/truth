@@ -1,6 +1,27 @@
 import type { JSONSchema } from '../parser/index.js'
 
 /**
+ * A schema whose `multipleOf` may be a bigint: a divisor above 2^53 that a number literal
+ * cannot hold exactly.
+ */
+export type BigintSchema = Omit<JSONSchema, 'multipleOf'> & {
+  readonly multipleOf?: number | bigint
+}
+
+/** A bigint literal, `5n`, spelled in digits however the number prints. */
+export function bigintLiteral(n: number | bigint) {
+  return `${BigInt(n)}n`
+}
+
+/**
+ * A `BigInt(5)` call, the spelling `format: bigint` has always used. A divisor a number
+ * cannot hold exactly is written as a literal, `12345678901234567n`, which keeps every digit.
+ */
+export function bigintCall(n: number | bigint) {
+  return typeof n === 'bigint' ? `${n}n` : `BigInt(${n})`
+}
+
+/**
  * A bigint check takes an integer, but a schema's bound can be fractional: `BigInt(0.5)`
  * throws a `RangeError` and `0.5n` does not parse. A fractional bound is rounded to the
  * integer that admits the same bigints: an inclusive minimum and an exclusive maximum
@@ -18,7 +39,7 @@ function bigintBound(value: number | undefined, round: 'ceil' | 'floor') {
  * lowest terms) exactly when it is a multiple of `p`, so a fraction reduces to its
  * numerator: 2.5 is 5/2 and becomes `5`. The fraction is read from the number's shortest
  * decimal spelling. Zero or a non-finite divisor has no such integer and is left out (a
- * bigint `% 0n` throws).
+ * bigint `% 0n` throws). A reduced divisor a number cannot hold exactly stays a bigint.
  */
 export function bigintDivisor(value: unknown) {
   if (typeof value !== 'number' || !Number.isFinite(value) || value === 0) return undefined
@@ -33,7 +54,7 @@ export function bigintDivisor(value: unknown) {
   let [a, b] = [numerator, 10n ** BigInt(scale)]
   while (b !== 0n) [a, b] = [b, a % b]
   const divisor = numerator / a
-  return BigInt(Number(divisor)) === divisor ? Number(divisor) : undefined
+  return BigInt(Number(divisor)) === divisor ? Number(divisor) : divisor
 }
 
 /**
@@ -41,7 +62,7 @@ export function bigintDivisor(value: unknown) {
  * {@link bigintBound} and {@link bigintDivisor}. A bound or divisor that has no such
  * integer is left out, together with the draft-04 boolean or the message that belongs to it.
  */
-export function bigintBounds(schema: JSONSchema): JSONSchema {
+export function bigintBounds(schema: JSONSchema): BigintSchema {
   const {
     minimum,
     maximum,

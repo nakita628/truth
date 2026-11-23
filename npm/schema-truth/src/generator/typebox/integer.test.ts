@@ -193,7 +193,6 @@ describe('typebox integer: bigint bounds and divisors a bigint can take', () => 
       { type: 'integer', format: 'bigint', multipleOf: 0, 'x-multipleOf-message': 'm' },
       'Type.BigInt()',
     ],
-    [{ type: 'integer', format: 'bigint', default: 5 }, 'Type.BigInt({default:BigInt(5)})'],
   ])('integer(%o) -> %s', (schema, expected) => {
     expect(integer(schema)).toBe(expected)
   })

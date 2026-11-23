@@ -143,7 +143,7 @@ describe('arktype integer: bigint bounds and divisors a bigint can take', () => 
     ],
     [
       { type: 'integer', format: 'int64', maximum: 1e21 },
-      String.raw`type("bigint | number.integer").or(/^-?\d+$/).pipe((data) => BigInt(data)).narrow((data, ctx) => (data >= -9223372036854775808n && data <= 9223372036854775807n) || ctx.mustBe("an int64")).narrow((data, ctx) => data <= 1000000000000000000000n || ctx.mustBe("at most 1e+21"))`,
+      String.raw`type("bigint | number.integer").or(/^-?\d+$/).pipe((data) => BigInt(data)).narrow((data, ctx) => (data >= -9223372036854775808n && data <= 9223372036854775807n) || ctx.mustBe("an int64")).narrow((data, ctx) => data <= 1000000000000000000000n || ctx.mustBe("at most 1000000000000000000000"))`,
     ],
   ])('integer(%o) -> %s', (schema, expected) => {
     expect(integer(schema)).toBe(expected)
