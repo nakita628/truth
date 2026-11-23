@@ -250,6 +250,7 @@ describe('a 64-bit or bigint default', () => {
       ),
     ).toBe('S')
     expect(zodWrap('S', { type: 'number', format: 'int64', default: 5 })).toBe('S.default(5)')
+    expect(zodWrap('S', { type: 'number', format: 'int64', default: 1.5 })).toBe('S.default(1.5)')
   })
   it('valibotWrap', () => {
     expect(valibotWrap('S', long)).toBe('v.optional(S,1000000000000000000000n)')

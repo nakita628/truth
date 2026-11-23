@@ -116,10 +116,12 @@ describe('arktype number per-keyword message', () => {
   })
 })
 
-describe('arktype number with both an inclusive and a numeric exclusive bound', () => {
+describe('arktype number keeps the stricter of an inclusive and a numeric exclusive bound', () => {
   it.concurrent.each<[JSONSchema, string]>([
-    [{ type: 'number', minimum: 1, exclusiveMinimum: 5 }, '"number >= 1 & number > 5"'],
-    [{ type: 'number', maximum: 10, exclusiveMaximum: 8 }, '"number <= 10 & number < 8"'],
+    [{ type: 'number', minimum: 1, exclusiveMinimum: 5 }, '"number > 5"'],
+    [{ type: 'number', minimum: 5, exclusiveMinimum: 1 }, '"number >= 5"'],
+    [{ type: 'number', maximum: 10, exclusiveMaximum: 8 }, '"number < 8"'],
+    [{ type: 'number', maximum: 8, exclusiveMaximum: 10 }, '"number <= 8"'],
   ])('number(%o) → %s', (input, expected) => {
     expect(number(input)).toBe(expected)
   })

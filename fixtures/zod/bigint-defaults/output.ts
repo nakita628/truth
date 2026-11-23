@@ -1,6 +1,12 @@
 import * as z from 'zod'
 
-type _Limits = { between?: bigint; large?: bigint; level?: 9007199254740992n | 2n; big?: _Big }
+type _Limits = {
+  between?: bigint
+  large?: bigint
+  level?: 9007199254740992n | 2n
+  big?: _Big
+  maybe?: _Big | null
+}
 
 type _Big = bigint
 
@@ -22,6 +28,10 @@ export const Limits: z.ZodType<_Limits> = z.object({
   big: z
     .lazy(() => Big)
     .default(BigInt(5))
+    .exactOptional(),
+  maybe: z
+    .union([z.lazy(() => Big), z.null()])
+    .default(BigInt(6))
     .exactOptional(),
 })
 

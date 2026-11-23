@@ -137,7 +137,7 @@ export function isWritableBigintDefault(value: unknown, format: string | undefin
 /**
  * The bigint `format` (`int64`, `uint64` or `bigint`) a node's values have: its own, or the
  * one on the definition its `$ref` names, on an `allOf` member or on every non-null member
- * of a union, so a `default` beside a
+ * of a union (the first one's), so a `default` beside a
  * `$ref` is written as the bigint the target holds. `holdsBigint` narrows which nodes count,
  * for a target that spells some of them (an `enum`) with numbers. A reference already being
  * read ends the search, as a cycle does.
@@ -162,11 +162,11 @@ export function bigintFormatOf(
       const found = search(member, reading)
       if (found !== undefined) return found
     }
-    // A union is a bigint when every member but `null` is the same one: the nullable
+    // A union is a bigint when every member but `null` is one: the nullable
     // `anyOf: [{ $ref }, { type: 'null' }]` of OpenAPI 3.1.
     const members = (node.anyOf ?? node.oneOf ?? []).filter((member) => member.type !== 'null')
     const [first, ...rest] = members.map((member) => search(member, reading))
-    return first !== undefined && rest.every((found) => found === first) ? first : undefined
+    return first !== undefined && rest.every((found) => found !== undefined) ? first : undefined
   }
   return search(schema, new Set())
 }

@@ -876,7 +876,7 @@ describe('bigint-defaults', () => {
   })
 
   it('fills the int64 and bigint defaults as bigints', () => {
-    expect(Limits.parse({})).toStrictEqual({ large: 9007199254740992n, big: 5n })
+    expect(Limits.parse({})).toStrictEqual({ large: 9007199254740992n, big: 5n, maybe: 6n })
   })
 
   it('reads an int64 enum member beyond 2^53', () => {

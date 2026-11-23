@@ -1,6 +1,12 @@
 import * as v from 'valibot'
 
-type _Limits = { between?: bigint; large?: bigint; level?: 9007199254740992n | 2n; big?: _Big }
+type _Limits = {
+  between?: bigint
+  large?: bigint
+  level?: 9007199254740992n | 2n
+  big?: _Big
+  maybe?: _Big | null
+}
 
 type _Big = bigint
 
@@ -44,6 +50,7 @@ export const Limits: v.GenericSchema<unknown, _Limits> = v.object({
     v.lazy(() => Big),
     BigInt(5),
   ),
+  maybe: v.optional(v.union([v.lazy(() => Big), v.null()]), BigInt(6)),
 })
 
 export type LimitsOutput = v.InferOutput<typeof Limits>

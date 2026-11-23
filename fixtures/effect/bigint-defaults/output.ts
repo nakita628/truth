@@ -5,6 +5,7 @@ type _Limits = {
   readonly large?: bigint
   readonly level?: 9007199254740992n | 2n
   readonly big?: _Big
+  readonly maybe?: _Big | null
 }
 
 type _Big = bigint
@@ -56,6 +57,9 @@ export const Limits: Schema.Schema<_Limits> = Schema.Struct({
       .pipe(Schema.decodeTo(Schema.Literals([9007199254740992n, 2n]))),
   ),
   big: Schema.suspend(() => Big).pipe(Schema.withDecodingDefault(Effect.succeed(BigInt(5)))),
+  maybe: Schema.Union([Schema.suspend(() => Big), Schema.Null]).pipe(
+    Schema.withDecodingDefault(Effect.succeed(BigInt(6))),
+  ),
 })
 
 export type Limits = typeof Limits.Type

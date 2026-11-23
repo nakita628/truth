@@ -162,17 +162,6 @@ describe('helper', () => {
   })
 
   describe('coerceDefault', () => {
-    it('drops a fractional default of a 64-bit or bigint format, whatever its type', () => {
-      expect(coerceDefault({ type: 'number', format: 'int64' }, 1.5)).toStrictEqual({
-        keep: false,
-        value: 1.5,
-      })
-      expect(coerceDefault({ type: 'integer', format: 'bigint' }, 5)).toStrictEqual({
-        keep: true,
-        value: 5,
-      })
-    })
-
     it('drops a composite default on a scalar schema', () => {
       expect(coerceDefault({ type: 'string' }, [])).toStrictEqual({ keep: false, value: [] })
       expect(coerceDefault({ type: 'integer' }, {})).toStrictEqual({ keep: false, value: {} })

@@ -20,6 +20,7 @@ const types = scope({
       .pipe((data) => BigInt(data))
       .to('9007199254740992n | 2n'),
     'big?': 'Big',
+    'maybe?': 'Big | null',
   },
 }).export()
 

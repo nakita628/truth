@@ -15,6 +15,7 @@
     },
     "large": { "type": "integer", "format": "int64", "default": 9007199254740992 },
     "level": { "type": "integer", "format": "int64", "enum": [9007199254740992, 2] },
-    "big": { "$ref": "#/$defs/Big", "default": 5 }
+    "big": { "$ref": "#/$defs/Big", "default": 5 },
+    "maybe": { "anyOf": [{ "$ref": "#/$defs/Big" }, { "type": "null" }], "default": 6 }
   }
 }

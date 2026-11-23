@@ -189,12 +189,13 @@ function tbComp(
   schema: JSONSchema,
   extraOpts: readonly string[] = [],
   ref?: string,
+  definitions?: SchemaDefinitions,
 ) {
   const opts = [
     ...typeboxRefOpt(ref),
     ...extraOpts,
     ...typeboxMetaOpts(schema),
-    ...typeboxDefaultOpt(schema),
+    ...typeboxDefaultOpt(schema, false, definitions),
   ]
   return opts.length === 0 ? `${name}(${payload})` : `${name}(${payload},{${opts.join(',')}})`
 }
@@ -292,6 +293,7 @@ export function typebox(
         schema,
         messageOpt(schema['x-oneOf-message']),
         hostRef,
+        definitions,
       ),
       schema,
     )
@@ -304,7 +306,14 @@ export function typebox(
     const schemas = schema.anyOf.map((s) => typebox(s, rootName, isTypebox, childOptions))
     const anyOfMessage = schema['x-implication-message'] ?? schema['x-anyOf-message']
     return typeboxWrap(
-      tbComp('Type.Union', `[${schemas.join(',')}]`, schema, messageOpt(anyOfMessage), hostRef),
+      tbComp(
+        'Type.Union',
+        `[${schemas.join(',')}]`,
+        schema,
+        messageOpt(anyOfMessage),
+        hostRef,
+        definitions,
+      ),
       schema,
     )
   }

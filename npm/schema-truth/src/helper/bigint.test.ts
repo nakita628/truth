@@ -98,6 +98,7 @@ describe('bigintFormatOf', () => {
     [{ allOf: [{ $ref: '#/$defs/Long' }], default: 5 }, 'int64'],
     [{ anyOf: [{ $ref: '#/$defs/Long' }, { type: 'null' }], default: 5 }, 'int64'],
     [{ oneOf: [{ $ref: '#/$defs/Long' }, { type: 'string' }] }, undefined],
+    [{ oneOf: [{ $ref: '#/$defs/Long' }, { $ref: '#/$defs/Big' }] }, 'int64'],
     [{ type: 'number', format: 'bigint' }, undefined],
     [{ format: 'int64', enum: [1, 2] }, 'int64'],
     [{ type: 'integer', format: 'bigint', enum: [1, 2] }, undefined],
