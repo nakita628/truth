@@ -59,6 +59,9 @@ describe('typebox integer', () => {
     [{ type: 'integer', format: 'bigint', multipleOf: 0.5 }, 'Type.BigInt({multipleOf:1})'],
     [{ type: 'integer', format: 'bigint', multipleOf: 0.75 }, 'Type.BigInt({multipleOf:3})'],
     [{ type: 'integer', format: 'bigint', multipleOf: 1.5e-7 }, 'Type.BigInt({multipleOf:3})'],
+    // 0.9999999999999999 reduces to 9999999999999999, which a number literal reads as
+    // 10000000000000000, so the divisor is left out.
+    [{ type: 'integer', format: 'bigint', multipleOf: 0.9999999999999999 }, 'Type.BigInt()'],
     [
       { type: 'integer', format: 'bigint', multipleOf: 1e21 },
       'Type.BigInt({multipleOf:1000000000000000000000})',
@@ -69,15 +72,19 @@ describe('typebox integer', () => {
       'Type.BigInt()',
     ],
     [{ type: 'integer', format: 'bigint', multipleOf: -5 }, 'Type.BigInt()'],
-    // A bound stays a number: TypeBox compares a bigint with it directly, so a fraction
-    // needs no rounding and the schema stays serializable.
+    // A fractional bound rounds to the integer that admits the same bigints, since
+    // `Value.Create` runs `BigInt()` on it.
     [
       { type: 'integer', format: 'bigint', minimum: 0.5, maximum: 9.5 },
-      'Type.BigInt({minimum:0.5,maximum:9.5})',
+      'Type.BigInt({minimum:1,maximum:9})',
+    ],
+    [
+      { type: 'integer', format: 'bigint', minimum: -0.5, maximum: -0.5 },
+      'Type.BigInt({minimum:0,maximum:-1})',
     ],
     [
       { type: 'integer', format: 'bigint', exclusiveMinimum: 0.5, exclusiveMaximum: 9.5 },
-      'Type.BigInt({exclusiveMinimum:0.5,exclusiveMaximum:9.5})',
+      'Type.BigInt({exclusiveMinimum:0,exclusiveMaximum:10})',
     ],
     [
       {
@@ -88,7 +95,7 @@ describe('typebox integer', () => {
         maximum: 9.5,
         exclusiveMaximum: true,
       },
-      'Type.BigInt({exclusiveMinimum:0.5,exclusiveMaximum:9.5})',
+      'Type.BigInt({exclusiveMinimum:0,exclusiveMaximum:10})',
     ],
     [
       { type: 'integer', format: 'bigint', minimum: -1e21, maximum: 1e21 },

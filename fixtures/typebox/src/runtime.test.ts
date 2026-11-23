@@ -812,4 +812,10 @@ describe('bigint-bounds', () => {
   it('stays serializable', () => {
     expect(() => JSON.stringify(Amount)).not.toThrow()
   })
+
+  // `Value.Create` runs `BigInt()` on the lower bound, which throws on a fraction. It
+  // starts from the minimum and does not look at `multipleOf`.
+  it('creates a value from the rounded minimum', () => {
+    expect(Value.Create(Amount)).toBe(1n)
+  })
 })
