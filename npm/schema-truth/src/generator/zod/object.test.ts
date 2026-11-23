@@ -299,6 +299,10 @@ describe('object', () => {
   describe('no property named (#60)', () => {
     it.each<[JSONSchema, string]>([
       [
+        { type: 'object', patternProperties: {}, additionalProperties: false },
+        'z.looseObject({}).refine((val)=>Object.keys(val).length===0)',
+      ],
+      [
         { type: 'object', properties: {}, additionalProperties: { type: 'string' } },
         'z.looseObject({}).refine((val)=>Object.values(val).every((value)=>z.string().safeParse(value).success))',
       ],

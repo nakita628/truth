@@ -262,6 +262,10 @@ describe('object', () => {
   describe('no property named (#60)', () => {
     it.each<[JSONSchema, string]>([
       [
+        { type: 'object', patternProperties: {}, additionalProperties: false },
+        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.keys(input).length===0))',
+      ],
+      [
         { type: 'object', properties: {}, additionalProperties: { type: 'string' } },
         'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.values(input).every((value)=>v.safeParse(v.string(),value).success)))',
       ],
