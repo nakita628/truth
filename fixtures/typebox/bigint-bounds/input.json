@@ -1,0 +1,8 @@
+{
+  "title": "Amount",
+  "type": "integer",
+  "format": "bigint",
+  "minimum": 0.5,
+  "exclusiveMaximum": 100,
+  "multipleOf": 2.5
+}
