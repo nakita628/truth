@@ -190,7 +190,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'z.looseObject({}).refine((val)=>Object.entries(val).every(([key,value])=>!new RegExp("^id_").test(key)||z.number().safeParse(value).success)).refine((val)=>Object.entries(val).every(([key,value])=>[].includes(key)||new RegExp("^id_").test(key)||z.string().safeParse(value).success))',
+        'z.looseObject({}).refine((val)=>Object.entries(val).every(([key,value])=>!new RegExp("^id_").test(key)||z.number().safeParse(value).success)).refine((val)=>Object.entries(val).every(([key,value])=>new RegExp("^id_").test(key)||z.string().safeParse(value).success))',
       )
     })
   })

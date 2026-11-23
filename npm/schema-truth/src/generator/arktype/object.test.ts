@@ -150,7 +150,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'type({}).narrow((data) => Object.entries(data).every(([key, value]) => !new RegExp("^id_").test(key) || type("number").allows(value))).narrow((data) => Object.entries(data).every(([key, value]) => [].includes(key)||new RegExp("^id_").test(key) || type("string").allows(value)))',
+        'type({}).narrow((data) => Object.entries(data).every(([key, value]) => !new RegExp("^id_").test(key) || type("number").allows(value))).narrow((data) => Object.entries(data).every(([key, value]) => new RegExp("^id_").test(key) || type("string").allows(value)))',
       )
     })
   })

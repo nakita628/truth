@@ -66,12 +66,13 @@ export function evaluatedProperties(
 
 /**
  * The emitted expression that tells whether `key` is evaluated: a lookup in the names
- * plus one `RegExp` test per pattern.
+ * plus one `RegExp` test per pattern. With no names the lookup is left out, as `[]` is
+ * typed `never[]` and `[].includes(key)` does not type-check; with neither it is `false`.
  */
 export function isEvaluatedKeyExpression(evaluated: EvaluatedProperties, key: string) {
   const checks = [
-    `${JSON.stringify(evaluated.names)}.includes(${key})`,
+    ...(evaluated.names.length > 0 ? [`${JSON.stringify(evaluated.names)}.includes(${key})`] : []),
     ...evaluated.patterns.map((pattern) => `new RegExp(${JSON.stringify(pattern)}).test(${key})`),
   ]
-  return checks.join('||')
+  return checks.length > 0 ? checks.join('||') : 'false'
 }
