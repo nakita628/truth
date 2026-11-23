@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.8.13
+
+### Patch Changes
+
+- [#65](https://github.com/nakita628/truth/pull/65) [`ccaeb57`](https://github.com/nakita628/truth/commit/ccaeb572d5d3b137e9bb2bc1aec0f20fcd20ca73) Thanks [@nakita628](https://github.com/nakita628)! - ArkType: write a union with a member that is not a string literal, such as a nullable enum, another way past 12 members, so a nullable enum of 12 to 16 values no longer fails to type-check with TS2589.
+
 ## 0.8.12
 
 ### Patch Changes
