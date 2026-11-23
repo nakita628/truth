@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.8.10
+
+### Patch Changes
+
+- [#50](https://github.com/nakita628/truth/pull/50) [`e2371e6`](https://github.com/nakita628/truth/commit/e2371e6d4ccf257ab02c0713bb76581418ad10e9) Thanks [@nakita628](https://github.com/nakita628)! - Emit numeric `exclusiveMinimum`, `exclusiveMaximum` and `multipleOf` on TypeBox's `Type.BigInt`, and write its bounds as integer numbers instead of `BigInt(<number>)`, which threw on a fractional bound when the generated module loaded. A fractional bound rounds to the integer that admits the same bigints (`minimum: 0.5` becomes `minimum:1`), and the schema stays serializable. A fractional `multipleOf` reduces to the integer divisor that admits the same bigints (`2.5` becomes `5`), and a non-finite bound or a divisor a number cannot hold exactly is left out.
+
 ## 0.8.9
 
 ### Patch Changes
