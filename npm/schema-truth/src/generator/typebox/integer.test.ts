@@ -53,9 +53,22 @@ describe('typebox integer', () => {
       'Type.BigInt({exclusiveMinimum:0n,errorMessage:{exclusiveMinimum:"m"}})',
     ],
     [{ type: 'integer', format: 'bigint', multipleOf: 5 }, 'Type.BigInt({multipleOf:5n})'],
-    // `value % BigInt(multipleOf)` throws on a fraction or zero, so neither is emitted.
-    [{ type: 'integer', format: 'bigint', multipleOf: 0.5 }, 'Type.BigInt()'],
-    [{ type: 'integer', format: 'bigint', multipleOf: 0 }, 'Type.BigInt()'],
+    // A fractional divisor p/q reduces to p: a bigint is a multiple of 5/2 exactly when it
+    // is a multiple of 5.
+    [{ type: 'integer', format: 'bigint', multipleOf: 2.5 }, 'Type.BigInt({multipleOf:5n})'],
+    [{ type: 'integer', format: 'bigint', multipleOf: 0.5 }, 'Type.BigInt({multipleOf:1n})'],
+    [{ type: 'integer', format: 'bigint', multipleOf: 0.75 }, 'Type.BigInt({multipleOf:3n})'],
+    [{ type: 'integer', format: 'bigint', multipleOf: 1.5e-7 }, 'Type.BigInt({multipleOf:3n})'],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 1e21 },
+      'Type.BigInt({multipleOf:1000000000000000000000n})',
+    ],
+    // `value % BigInt(0)` throws, so a zero or negative divisor is left out with its message.
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 0, 'x-multipleOf-message': 'm' },
+      'Type.BigInt()',
+    ],
+    [{ type: 'integer', format: 'bigint', multipleOf: -5 }, 'Type.BigInt()'],
     // A fractional bound rounds to the integer that admits the same bigints.
     [
       { type: 'integer', format: 'bigint', minimum: 0.5, maximum: 9.5 },
@@ -88,6 +101,19 @@ describe('typebox integer', () => {
     [
       { type: 'integer', format: 'bigint', minimum: 0, maximum: 100 },
       'Type.BigInt({minimum:0n,maximum:100n})',
+    ],
+    // A non-finite bound (a YAML `.inf`) has no bigint and is left out.
+    [
+      {
+        type: 'integer',
+        format: 'bigint',
+        minimum: Number.NEGATIVE_INFINITY,
+        maximum: Number.POSITIVE_INFINITY,
+        exclusiveMinimum: Number.NEGATIVE_INFINITY,
+        exclusiveMaximum: Number.NaN,
+        multipleOf: Number.POSITIVE_INFINITY,
+      },
+      'Type.BigInt()',
     ],
   ])('integer(%o) → %s', (input, expected) => {
     expect(integer(input)).toBe(expected)

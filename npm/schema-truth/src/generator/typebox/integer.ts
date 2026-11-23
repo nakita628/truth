@@ -4,9 +4,32 @@ import type { JSONSchema } from '../../parser/index.js'
 // A bound of a bigint is written as a bigint literal. A fractional bound is rounded to
 // the integer that admits the same bigints: an inclusive minimum and an exclusive maximum
 // round up, an inclusive maximum and an exclusive minimum round down. `BigInt(n)` spells
-// the digits out, where a template literal would write `1e+21`.
-function bigintBound(value: number, round: 'ceil' | 'floor') {
-  return `${BigInt(Math[round](value))}n`
+// the digits out, where a template literal would write `1e+21`; a bound past 2^53 is only
+// as exact as the double the parser read it into. A non-finite bound (a YAML `.inf`) has
+// no bigint, so the keyword is left out rather than crashing generation.
+function bigintBound(keyword: string, value: unknown, round: 'ceil' | 'floor') {
+  return typeof value === 'number' && Number.isFinite(value)
+    ? `${keyword}:${BigInt(Math[round](value))}n`
+    : undefined
+}
+
+// TypeBox checks a bigint with `value % BigInt(multipleOf)`, so the divisor has to be a
+// positive integer. A bigint `x` is a multiple of `p / q` (in lowest terms) exactly when
+// it is a multiple of `p`, so a fraction reduces to its numerator: 2.5 is 5/2 and becomes
+// `5n`. The fraction is read from the number's shortest decimal spelling. Zero, a
+// negative or a non-finite divisor has no such integer and is left out.
+function bigintDivisor(value: unknown) {
+  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined
+  const match = /^(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/.exec(String(value))
+  if (!match) return undefined
+  const [, whole, fraction = '', exponent = '0'] = match
+  const numerator = BigInt(whole + fraction)
+  const scale = Number(exponent) - fraction.length
+  if (scale >= 0) return numerator * 10n ** BigInt(scale)
+  const denominator = 10n ** BigInt(-scale)
+  let [a, b] = [numerator, denominator]
+  while (b !== 0n) [a, b] = [b, a % b]
+  return numerator / a
 }
 
 export function integer(schema: JSONSchema, ref?: string) {
@@ -27,7 +50,12 @@ export function integer(schema: JSONSchema, ref?: string) {
     schema.exclusiveMaximum === true && schema.maximum !== undefined
       ? 'exclusiveMaximum'
       : 'maximum'
-  const multipleOfMessage = schema['x-multipleOf-message']
+  const bigintMultipleOf = schema.format === 'bigint' ? bigintDivisor(schema.multipleOf) : undefined
+  // A `multipleOf` the bigint branch leaves out takes its message with it.
+  const multipleOfMessage =
+    schema.format === 'bigint' && bigintMultipleOf === undefined
+      ? undefined
+      : schema['x-multipleOf-message']
   // ajv-errors `errorMessage` accepts two shapes:
   //   - string  → used as a single message for any validation failure
   //   - object  → per-keyword messages keyed by JSON Schema keyword
@@ -63,25 +91,11 @@ export function integer(schema: JSONSchema, ref?: string) {
   if (schema.format === 'bigint') {
     const opts = [
       ...typeboxRefOpt(ref),
-      schema.minimum !== undefined
-        ? `${minimumKeyword}:${bigintBound(schema.minimum, minimumKeyword === 'minimum' ? 'ceil' : 'floor')}`
-        : undefined,
-      typeof schema.exclusiveMinimum === 'number'
-        ? `exclusiveMinimum:${bigintBound(schema.exclusiveMinimum, 'floor')}`
-        : undefined,
-      schema.maximum !== undefined
-        ? `${maximumKeyword}:${bigintBound(schema.maximum, maximumKeyword === 'maximum' ? 'floor' : 'ceil')}`
-        : undefined,
-      typeof schema.exclusiveMaximum === 'number'
-        ? `exclusiveMaximum:${bigintBound(schema.exclusiveMaximum, 'ceil')}`
-        : undefined,
-      // TypeBox checks a bigint with `value % BigInt(multipleOf)`, which throws on a
-      // fraction or zero, so only a positive integer divisor is emitted.
-      schema.multipleOf !== undefined &&
-      Number.isInteger(schema.multipleOf) &&
-      schema.multipleOf > 0
-        ? `multipleOf:${bigintBound(schema.multipleOf, 'floor')}`
-        : undefined,
+      bigintBound(minimumKeyword, schema.minimum, minimumKeyword === 'minimum' ? 'ceil' : 'floor'),
+      bigintBound('exclusiveMinimum', schema.exclusiveMinimum, 'floor'),
+      bigintBound(maximumKeyword, schema.maximum, maximumKeyword === 'maximum' ? 'floor' : 'ceil'),
+      bigintBound('exclusiveMaximum', schema.exclusiveMaximum, 'ceil'),
+      bigintMultipleOf !== undefined ? `multipleOf:${bigintMultipleOf}n` : undefined,
       errorMessageField,
       ...metaOpts,
     ].filter((v) => v !== undefined)
