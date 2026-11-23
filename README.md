@@ -31,7 +31,7 @@ bazel test //...               # build, test and type-check every package
 bazel build //npm/schema-truth:build   # one package's dist, under bazel-bin/
 pnpm check                     # format check (vp fmt), per-package vp check, repository linters
 pnpm fix                       # the autofixable part of the above
-pnpm lint                      # markdownlint, textlint, cspell, secretlint, actionlint, knip, dead links
+pnpm lint                      # markdownlint, textlint, cspell, secretlint, actionlint, zizmor, knip, dead links
 pnpm knip                      # unused files, dependencies and exports across every workspace
 ```
 

@@ -5,22 +5,21 @@ alwaysApply: false
 
 # GitHub Actions
 
-Two linters run over these files in CI, and neither is part of `vp run lint`: they are a
-Go and a Rust binary, and no maintained npm build of either exists (the `actionlint` and
-`node-actionlint` packages on npm were last published in 2022 and are unofficial).
+Two linters run over these files, both inside `pnpm lint`, the same task the `Lint the
+repository` job in `test.yml` runs, so a finding fails locally before it fails CI:
 
 | Tool | Catches | Where |
 | --- | --- | --- |
-| [actionlint](https://github.com/rhysd/actionlint) | invalid keys, broken `${{ }}` expressions, bad `needs` / `steps` references, and — through shellcheck, which the runners have — mistakes inside `run:` blocks | `Lint workflows` step in `test.yml`, pinned release + checksum |
-| [zizmor](https://docs.zizmor.sh/) | unpinned actions, credential persistence, over-broad permissions, dangerous triggers | `zizmorcore/zizmor-action` step in `test.yml` |
-
-Run them locally before pushing a workflow change:
+| [actionlint](https://github.com/rhysd/actionlint) | invalid keys, broken `${{ }}` expressions, bad `needs` / `steps` references | `lint/actionlint.mjs`, the `actionlint` npm package (a WebAssembly build of the Go binary) |
+| [zizmor](https://docs.zizmor.sh/) | unpinned actions, credential persistence, over-broad permissions, missing concurrency, dangerous triggers | `lint/zizmor.mjs`, the version it pins, through `uvx` (or `pipx`, which the runners have) |
 
 ```bash
-curl -fsSL https://github.com/rhysd/actionlint/releases/download/v1.7.12/actionlint_1.7.12_linux_amd64.tar.gz \
-  | tar xz actionlint && ./actionlint
-uvx zizmor .   # or pipx run zizmor .
+pnpm lint:actions   # both; zizmor needs uv (or pipx) installed, and fails rather than skips without it
 ```
+
+With `GH_TOKEN` set, zizmor also runs its online audits; CI passes the job's read-only token.
+shellcheck inside actionlint only runs where the binary is installed, so quote shell variables
+regardless (below).
 
 ## What the linters expect here
 

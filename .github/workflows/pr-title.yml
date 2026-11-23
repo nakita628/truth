@@ -12,6 +12,12 @@ on:
 # Nothing is granted: the check reads the title from the event payload and nothing else.
 permissions: {}
 
+# Only the latest title is worth checking, so an edit that supersedes an earlier one cancels its
+# run.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 jobs:
   pr-title:
     name: Check the pull request title

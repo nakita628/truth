@@ -30,8 +30,9 @@ npm/oas-truth/           the published package (the only npm artifact)
   tsconfig.json               NodeNext, strict, exactOptionalPropertyTypes; tests are excluded
 vite.config.ts                shared formatting style (printWidth 100, single quotes, no semicolons)
 lint/actionlint.mjs           runs actionlint (the npm WebAssembly build) over .github/workflows
-.github/workflows/test.yaml   CI (Test): build, test, `vp run check`
-.github/workflows/lint.yaml   CI (Lint): the repository linters, zizmor included
+lint/zizmor.mjs               runs zizmor, at the version it pins, over .github through uvx / pipx
+.github/workflows/test.yml    CI (Test): `pnpm lint`, format, `vp run check`, `bazel test //...`
+.github/workflows/pr-title.yml CI (PR title): the title is `type(scope): summary`
 .github/workflows/release.yml after Test on main: merges the Version Packages PR, npm publish, tag + release
 ```
 

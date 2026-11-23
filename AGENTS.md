@@ -20,7 +20,14 @@ bazel test //...      # build, tests and the fixtures' type checks, every packag
 pnpm check            # format check, per-package vp check, repository linters
 ```
 
-`bazel test //...` and `pnpm check` are exactly what CI runs; both must pass before a change is finished.
+`bazel test //...` and `pnpm check` are exactly what CI runs; both must pass before a change is finished. `pnpm lint` runs zizmor through uvx, so install [uv](https://docs.astral.sh/uv/) once; it fails rather than skips without it.
+
+## Workflow
+
+1. Read the rule files that match what you are about to touch (the table below) before editing, including the workflow rules before touching `.github/`.
+2. Run `pnpm fix`, then `bazel test //...` and `pnpm check` locally. A check that cannot run here is a problem to fix, not one to leave for CI.
+3. Push and open the pull request (`.cursor/rules/schema-truth/pull-requests.mdc`), then watch it with `gh pr checks <number> --watch`. A change is finished when every check on the pull request is green, not when it is pushed; a red check is fixed on the same branch.
+4. One topic per pull request. Work that builds on an open pull request is stacked on its branch (`--base <branch>`), and GitHub retargets it to `main` when the base merges.
 
 ## Invariants
 

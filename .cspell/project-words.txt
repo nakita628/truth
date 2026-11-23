@@ -48,6 +48,7 @@ pipx
 prefault
 # Project and author names
 # Project vocabulary for cspell. One word per line, lowercase unless the word is
+pypi
 runfiles
 shellcheck
 shiba
