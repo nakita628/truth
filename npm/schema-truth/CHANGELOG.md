@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.8.11
+
+### Patch Changes
+
+- [#54](https://github.com/nakita628/truth/pull/54) [`3a25e86`](https://github.com/nakita628/truth/commit/3a25e86871e26d0638950a6563283affaedcf183) Thanks [@nakita628](https://github.com/nakita628)! - For `format: bigint`, `int64` and `uint64` in Zod, Valibot, ArkType and Effect, a fractional bound is rounded and a fractional `multipleOf` reduced to an integer, so the generated module no longer throws a `RangeError` (or fails to parse) on load. A zero `multipleOf` is left out, and a negative one is checked by its absolute value (in TypeBox too).
+
 ## 0.8.10
 
 ### Patch Changes
