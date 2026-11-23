@@ -262,7 +262,7 @@ describe('typebox', () => {
       [{ type: 'integer', format: 'bigint' }, 'Type.BigInt()'],
       [
         { type: 'integer', format: 'bigint', minimum: 0, maximum: 100 },
-        'Type.BigInt({minimum:BigInt(0),maximum:BigInt(100)})',
+        'Type.BigInt({minimum:0n,maximum:100n})',
       ],
     ])('typebox(%o) → %s', (input, expected) => {
       expect(typebox(input)).toBe(expected)

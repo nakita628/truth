@@ -36,12 +36,58 @@ describe('typebox integer', () => {
         maximum: 100,
         exclusiveMaximum: true,
       },
-      'Type.BigInt({exclusiveMinimum:BigInt(0),exclusiveMaximum:BigInt(100)})',
+      'Type.BigInt({exclusiveMinimum:0n,exclusiveMaximum:100n})',
     ],
     [{ type: 'integer', format: 'bigint' }, 'Type.BigInt()'],
     [
+      { type: 'integer', format: 'bigint', exclusiveMinimum: 0, exclusiveMaximum: 100 },
+      'Type.BigInt({exclusiveMinimum:0n,exclusiveMaximum:100n})',
+    ],
+    [
+      {
+        type: 'integer',
+        format: 'bigint',
+        exclusiveMinimum: 0,
+        'x-exclusiveMinimum-message': 'm',
+      },
+      'Type.BigInt({exclusiveMinimum:0n,errorMessage:{exclusiveMinimum:"m"}})',
+    ],
+    [{ type: 'integer', format: 'bigint', multipleOf: 5 }, 'Type.BigInt({multipleOf:5n})'],
+    // `value % BigInt(multipleOf)` throws on a fraction or zero, so neither is emitted.
+    [{ type: 'integer', format: 'bigint', multipleOf: 0.5 }, 'Type.BigInt()'],
+    [{ type: 'integer', format: 'bigint', multipleOf: 0 }, 'Type.BigInt()'],
+    // A fractional bound rounds to the integer that admits the same bigints.
+    [
+      { type: 'integer', format: 'bigint', minimum: 0.5, maximum: 9.5 },
+      'Type.BigInt({minimum:1n,maximum:9n})',
+    ],
+    [
+      { type: 'integer', format: 'bigint', minimum: -0.5, maximum: -0.5 },
+      'Type.BigInt({minimum:0n,maximum:-1n})',
+    ],
+    [
+      { type: 'integer', format: 'bigint', exclusiveMinimum: 0.5, exclusiveMaximum: 9.5 },
+      'Type.BigInt({exclusiveMinimum:0n,exclusiveMaximum:10n})',
+    ],
+    [
+      {
+        type: 'integer',
+        format: 'bigint',
+        minimum: 0.5,
+        exclusiveMinimum: true,
+        maximum: 9.5,
+        exclusiveMaximum: true,
+      },
+      'Type.BigInt({exclusiveMinimum:0n,exclusiveMaximum:10n})',
+    ],
+    // The digits are spelled out: a template literal would write 1e+21.
+    [
+      { type: 'integer', format: 'bigint', minimum: -1e21, maximum: 1e21 },
+      'Type.BigInt({minimum:-1000000000000000000000n,maximum:1000000000000000000000n})',
+    ],
+    [
       { type: 'integer', format: 'bigint', minimum: 0, maximum: 100 },
-      'Type.BigInt({minimum:BigInt(0),maximum:BigInt(100)})',
+      'Type.BigInt({minimum:0n,maximum:100n})',
     ],
   ])('integer(%o) → %s', (input, expected) => {
     expect(integer(input)).toBe(expected)
@@ -94,7 +140,7 @@ describe('typebox integer', () => {
           minimum: 0,
           'x-error-message': 'Invalid bigint',
         },
-        'Type.BigInt({minimum:BigInt(0),errorMessage:"Invalid bigint"})',
+        'Type.BigInt({minimum:0n,errorMessage:"Invalid bigint"})',
       ],
     ])('integer(%o) → %s', (input, expected) => {
       expect(integer(input)).toBe(expected)

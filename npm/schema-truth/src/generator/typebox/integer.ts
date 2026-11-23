@@ -1,6 +1,14 @@
 import { typeboxDefaultOpt, typeboxMetaOpts, typeboxRefOpt } from '../../helper/meta.js'
 import type { JSONSchema } from '../../parser/index.js'
 
+// A bound of a bigint is written as a bigint literal. A fractional bound is rounded to
+// the integer that admits the same bigints: an inclusive minimum and an exclusive maximum
+// round up, an inclusive maximum and an exclusive minimum round down. `BigInt(n)` spells
+// the digits out, where a template literal would write `1e+21`.
+function bigintBound(value: number, round: 'ceil' | 'floor') {
+  return `${BigInt(Math[round](value))}n`
+}
+
 export function integer(schema: JSONSchema, ref?: string) {
   const errorMessage = schema['x-error-message']
   const requiredMessage = schema['x-required-message']
@@ -55,8 +63,25 @@ export function integer(schema: JSONSchema, ref?: string) {
   if (schema.format === 'bigint') {
     const opts = [
       ...typeboxRefOpt(ref),
-      schema.minimum !== undefined ? `${minimumKeyword}:BigInt(${schema.minimum})` : undefined,
-      schema.maximum !== undefined ? `${maximumKeyword}:BigInt(${schema.maximum})` : undefined,
+      schema.minimum !== undefined
+        ? `${minimumKeyword}:${bigintBound(schema.minimum, minimumKeyword === 'minimum' ? 'ceil' : 'floor')}`
+        : undefined,
+      typeof schema.exclusiveMinimum === 'number'
+        ? `exclusiveMinimum:${bigintBound(schema.exclusiveMinimum, 'floor')}`
+        : undefined,
+      schema.maximum !== undefined
+        ? `${maximumKeyword}:${bigintBound(schema.maximum, maximumKeyword === 'maximum' ? 'floor' : 'ceil')}`
+        : undefined,
+      typeof schema.exclusiveMaximum === 'number'
+        ? `exclusiveMaximum:${bigintBound(schema.exclusiveMaximum, 'ceil')}`
+        : undefined,
+      // TypeBox checks a bigint with `value % BigInt(multipleOf)`, which throws on a
+      // fraction or zero, so only a positive integer divisor is emitted.
+      schema.multipleOf !== undefined &&
+      Number.isInteger(schema.multipleOf) &&
+      schema.multipleOf > 0
+        ? `multipleOf:${bigintBound(schema.multipleOf, 'floor')}`
+        : undefined,
       errorMessageField,
       ...metaOpts,
     ].filter((v) => v !== undefined)
