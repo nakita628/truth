@@ -12,6 +12,31 @@ describe('typebox number', () => {
     [{ type: 'number', exclusiveMinimum: 0 }, 'Type.Number({exclusiveMinimum:0})'],
     [{ type: 'number', exclusiveMaximum: 100 }, 'Type.Number({exclusiveMaximum:100})'],
     [{ type: 'number', multipleOf: 0.5 }, 'Type.Number({multipleOf:0.5})'],
+    // draft-04: a boolean flag makes `minimum` / `maximum` exclusive
+    [{ type: 'number', minimum: 0, exclusiveMinimum: true }, 'Type.Number({exclusiveMinimum:0})'],
+    [
+      { type: 'number', maximum: 100, exclusiveMaximum: true },
+      'Type.Number({exclusiveMaximum:100})',
+    ],
+    [
+      { type: 'number', minimum: 0, exclusiveMinimum: false, maximum: 1, exclusiveMaximum: false },
+      'Type.Number({minimum:0,maximum:1})',
+    ],
+    [{ type: 'number', exclusiveMinimum: true }, 'Type.Number()'],
+    [
+      { type: 'number', minimum: 0, exclusiveMinimum: true, 'x-minimum-message': 'positive' },
+      'Type.Number({exclusiveMinimum:0,errorMessage:{exclusiveMinimum:"positive"}})',
+    ],
+    [
+      {
+        type: 'number',
+        maximum: 1,
+        exclusiveMaximum: true,
+        'x-maximum-message': 'at most 1',
+        'x-exclusiveMaximum-message': 'below 1',
+      },
+      'Type.Number({exclusiveMaximum:1,errorMessage:{exclusiveMaximum:"below 1"}})',
+    ],
   ])('number(%o) → %s', (input, expected) => {
     expect(number(input)).toBe(expected)
   })

@@ -12,6 +12,32 @@ describe('typebox integer', () => {
     [{ type: 'integer', exclusiveMinimum: 0 }, 'Type.Integer({exclusiveMinimum:0})'],
     [{ type: 'integer', exclusiveMaximum: 100 }, 'Type.Integer({exclusiveMaximum:100})'],
     [{ type: 'integer', multipleOf: 2 }, 'Type.Integer({multipleOf:2})'],
+    // draft-04: a boolean flag makes `minimum` / `maximum` exclusive
+    [{ type: 'integer', minimum: 0, exclusiveMinimum: true }, 'Type.Integer({exclusiveMinimum:0})'],
+    [
+      { type: 'integer', maximum: 100, exclusiveMaximum: true },
+      'Type.Integer({exclusiveMaximum:100})',
+    ],
+    [
+      { type: 'integer', minimum: 0, exclusiveMinimum: false, maximum: 9, exclusiveMaximum: false },
+      'Type.Integer({minimum:0,maximum:9})',
+    ],
+    [{ type: 'integer', exclusiveMaximum: true }, 'Type.Integer()'],
+    [
+      { type: 'integer', minimum: 0, exclusiveMinimum: true, 'x-minimum-message': 'positive' },
+      'Type.Integer({exclusiveMinimum:0,errorMessage:{exclusiveMinimum:"positive"}})',
+    ],
+    [
+      {
+        type: 'integer',
+        format: 'bigint',
+        minimum: 0,
+        exclusiveMinimum: true,
+        maximum: 100,
+        exclusiveMaximum: true,
+      },
+      'Type.BigInt({exclusiveMinimum:BigInt(0),exclusiveMaximum:BigInt(100)})',
+    ],
     [{ type: 'integer', format: 'bigint' }, 'Type.BigInt()'],
     [
       { type: 'integer', format: 'bigint', minimum: 0, maximum: 100 },
