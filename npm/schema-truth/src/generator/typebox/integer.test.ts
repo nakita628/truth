@@ -24,8 +24,8 @@ describe('typebox integer', () => {
     ],
     [{ type: 'integer', exclusiveMaximum: true }, 'Type.Integer()'],
     [
-      { type: 'integer', minimum: 0, exclusiveMinimum: true, 'x-minimum-message': 'positive' },
-      'Type.Integer({exclusiveMinimum:0,errorMessage:{exclusiveMinimum:"positive"}})',
+      { type: 'integer', minimum: 0, exclusiveMinimum: true, 'x-minimum-message': 'unused' },
+      'Type.Integer({exclusiveMinimum:0})',
     ],
     [
       {

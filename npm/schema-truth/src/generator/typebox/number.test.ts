@@ -24,8 +24,8 @@ describe('typebox number', () => {
     ],
     [{ type: 'number', exclusiveMinimum: true }, 'Type.Number()'],
     [
-      { type: 'number', minimum: 0, exclusiveMinimum: true, 'x-minimum-message': 'positive' },
-      'Type.Number({exclusiveMinimum:0,errorMessage:{exclusiveMinimum:"positive"}})',
+      { type: 'number', minimum: 0, exclusiveMinimum: true, 'x-minimum-message': 'unused' },
+      'Type.Number({exclusiveMinimum:0})',
     ],
     [
       {

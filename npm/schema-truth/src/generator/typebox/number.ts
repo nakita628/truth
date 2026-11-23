@@ -6,9 +6,11 @@ export function number(schema: JSONSchema, ref?: string) {
   const requiredMessage = schema['x-required-message']
   const minMessage = schema['x-minimum-message']
   const maxMessage = schema['x-maximum-message']
+  const exclusiveMinimumMessage = schema['x-exclusiveMinimum-message']
+  const exclusiveMaximumMessage = schema['x-exclusiveMaximum-message']
   // Draft-04 spells an exclusive bound as `minimum` plus a boolean `exclusiveMinimum`.
-  // TypeBox reads the numeric keyword only, so the bound moves under it, and the
-  // message written for `minimum` follows when the exclusive keyword has none.
+  // TypeBox reads the numeric keyword only, so the bound moves under it; its message is
+  // the exclusive keyword's, as in every other target.
   const minimumKeyword =
     schema.exclusiveMinimum === true && schema.minimum !== undefined
       ? 'exclusiveMinimum'
@@ -17,12 +19,6 @@ export function number(schema: JSONSchema, ref?: string) {
     schema.exclusiveMaximum === true && schema.maximum !== undefined
       ? 'exclusiveMaximum'
       : 'maximum'
-  const exclusiveMinimumMessage =
-    schema['x-exclusiveMinimum-message'] ??
-    (minimumKeyword === 'exclusiveMinimum' ? minMessage : undefined)
-  const exclusiveMaximumMessage =
-    schema['x-exclusiveMaximum-message'] ??
-    (maximumKeyword === 'exclusiveMaximum' ? maxMessage : undefined)
   const multipleOfMessage = schema['x-multipleOf-message']
   // ajv-errors `errorMessage`: string for the common case (only
   // `x-error-message` set); object form when per-keyword messages are
