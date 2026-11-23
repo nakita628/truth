@@ -1,11 +1,22 @@
 import { bigintBounds } from '../../helper/bigint.js'
 import { typeboxDefaultOpt, typeboxMetaOpts, typeboxRefOpt } from '../../helper/meta.js'
 import type { JSONSchema } from '../../parser/index.js'
+import { coerceDefault } from '../../utils/index.js'
 
 // `Type.BigInt` takes its bounds as numbers, which keeps the schema serializable where a
 // bigint literal makes `JSON.stringify` throw. `Value.Create` runs `BigInt()` on a lower
 // bound and the check runs `BigInt(value) % BigInt(multipleOf)`, so both are made
-// integers first (`bigintBounds`).
+// integers first (`bigintBounds`). A default is the exception: `Value.Default` puts it in
+// as written and the check takes only a bigint, so it is written as one. A
+// `Type.BigInt` with a default therefore does not survive `JSON.stringify`.
+function bigintDefaultOpt(schema: JSONSchema) {
+  if (schema.default === undefined) return []
+  const result = coerceDefault(schema, schema.default)
+  return result.keep && typeof result.value === 'number'
+    ? [`default:BigInt(${result.value})`]
+    : typeboxDefaultOpt(schema)
+}
+
 export function integer(schema: JSONSchema, ref?: string) {
   const errorMessage = schema['x-error-message']
   const requiredMessage = schema['x-required-message']
@@ -73,7 +84,8 @@ export function integer(schema: JSONSchema, ref?: string) {
         : undefined,
       bigint.multipleOf !== undefined ? `multipleOf:${BigInt(bigint.multipleOf)}` : undefined,
       errorMessageField,
-      ...metaOpts,
+      ...typeboxMetaOpts(schema),
+      ...bigintDefaultOpt(schema),
     ].filter((v) => v !== undefined)
 
     if (opts.length > 0) return `Type.BigInt({${opts.join(',')}})`

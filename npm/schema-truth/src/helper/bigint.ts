@@ -12,26 +12,27 @@ function bigintBound(value: number | undefined, round: 'ceil' | 'floor') {
 }
 
 /**
- * The positive integer divisor a bigint `multipleOf` check can use. A bigint `x` is a
- * multiple of `p / q` (in lowest terms) exactly when it is a multiple of `p`, so a
- * fraction reduces to its numerator: 2.5 is 5/2 and becomes `5`. The fraction is read
- * from the number's shortest decimal spelling. Zero, a negative or a non-finite divisor
- * has no such integer and is left out (a bigint `% 0n` throws), and so is a divisor a
- * number literal cannot hold exactly (above 2^53), since it would round to a different one.
+ * The positive integer divisor a bigint `multipleOf` check can use. An integer is taken as
+ * it is (`BigInt(value)` is exact for any integer a number holds), and a negative one by its
+ * absolute value, which has the same multiples. A bigint `x` is a multiple of `p / q` (in
+ * lowest terms) exactly when it is a multiple of `p`, so a fraction reduces to its
+ * numerator: 2.5 is 5/2 and becomes `5`. The fraction is read from the number's shortest
+ * decimal spelling. Zero or a non-finite divisor has no such integer and is left out (a
+ * bigint `% 0n` throws).
  */
 export function bigintDivisor(value: unknown) {
-  if (typeof value !== 'number' || !Number.isFinite(value) || value <= 0) return undefined
-  const match = /^(\d+)(?:\.(\d+))?(?:e([+-]\d+))?$/.exec(String(value))
+  if (typeof value !== 'number' || !Number.isFinite(value) || value === 0) return undefined
+  const magnitude = Math.abs(value)
+  if (Number.isInteger(magnitude)) return magnitude
+  // A fraction is spelled `0.25` or, below 1e-6, `2.5e-7`.
+  const match = /^(\d+)(?:\.(\d+))?(?:e-(\d+))?$/.exec(String(magnitude))
   if (!match) return undefined
-  const [, whole, fraction = '', exponent = '0'] = match
+  const [, whole = '', fraction = '', exponent = '0'] = match
+  const scale = fraction.length + Number(exponent)
   const numerator = BigInt(whole + fraction)
-  const scale = Number(exponent) - fraction.length
-  const divisor = (() => {
-    if (scale >= 0) return numerator * 10n ** BigInt(scale)
-    let [a, b] = [numerator, 10n ** BigInt(-scale)]
-    while (b !== 0n) [a, b] = [b, a % b]
-    return numerator / a
-  })()
+  let [a, b] = [numerator, 10n ** BigInt(scale)]
+  while (b !== 0n) [a, b] = [b, a % b]
+  const divisor = numerator / a
   return BigInt(Number(divisor)) === divisor ? Number(divisor) : undefined
 }
 

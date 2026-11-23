@@ -66,12 +66,13 @@ describe('typebox integer', () => {
       { type: 'integer', format: 'bigint', multipleOf: 1e21 },
       'Type.BigInt({multipleOf:1000000000000000000000})',
     ],
-    // `value % BigInt(0)` throws, so a zero or negative divisor is left out with its message.
+    // `value % BigInt(0)` throws, so a zero divisor is left out with its message.
     [
       { type: 'integer', format: 'bigint', multipleOf: 0, 'x-multipleOf-message': 'm' },
       'Type.BigInt()',
     ],
-    [{ type: 'integer', format: 'bigint', multipleOf: -5 }, 'Type.BigInt()'],
+    // A negative divisor has the same multiples as its absolute value.
+    [{ type: 'integer', format: 'bigint', multipleOf: -5 }, 'Type.BigInt({multipleOf:5})'],
     // A fractional bound rounds to the integer that admits the same bigints, since
     // `Value.Create` runs `BigInt()` on it.
     [

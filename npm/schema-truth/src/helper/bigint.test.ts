@@ -23,7 +23,8 @@ describe('bigintBounds', () => {
       { multipleOf: 5, 'x-multipleOf-message': 'm' },
     ],
     [{ multipleOf: 0, 'x-multipleOf-message': 'm' }, {}],
-    [{ multipleOf: -2 }, {}],
+    [{ multipleOf: -2 }, { multipleOf: 2 }],
+    [{ multipleOf: 2 ** 60 }, { multipleOf: 2 ** 60 }],
   ])('bigintBounds(%o) -> %o', (schema, expected) => {
     expect(bigintBounds(schema)).toStrictEqual(expected)
   })
@@ -35,9 +36,13 @@ describe('bigintDivisor', () => {
     [0.5, 1],
     [2.5, 5],
     [1e-7, 1],
+    [1.5e-7, 3],
+    [2 ** 60, 2 ** 60],
+    [1e23, 1e23],
+    [-2, 2],
+    [-0.5, 1],
     [1e21, 1e21],
     [0, undefined],
-    [-1, undefined],
     [Infinity, undefined],
     ['2', undefined],
   ])('bigintDivisor(%o) -> %o', (value, expected) => {

@@ -288,6 +288,14 @@ describe('zod integer: bigint bounds and divisors a bigint can take', () => {
       { type: 'integer', format: 'int64', maximum: 1e21 },
       String.raw`z.union([z.bigint(),z.number().int(),z.string().regex(/^-?\d+$/)]).transform((val)=>BigInt(val)).pipe(z.int64().max(1000000000000000000000n))`,
     ],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 2 ** 60 },
+      'z.bigint().multipleOf(BigInt(1152921504606847000))',
+    ],
+    [
+      { type: 'integer', format: 'int64', multipleOf: -2 },
+      String.raw`z.union([z.bigint(),z.number().int(),z.string().regex(/^-?\d+$/)]).transform((val)=>BigInt(val)).pipe(z.int64().multipleOf(2n))`,
+    ],
   ])('integer(%o) -> %s', (schema, expected) => {
     expect(integer(schema)).toBe(expected)
   })

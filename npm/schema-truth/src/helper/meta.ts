@@ -55,8 +55,6 @@ export function typeboxDefaultOpt(
   const result = coerceDefault(schema, schema.default, definitions)
   if (!result.keep) return []
   const value = stringWire ? String(result.value) : result.value
-  // `Value.Default` puts the default in as written, and `Type.BigInt` checks a bigint.
-  if (schema.format === 'bigint' && typeof value === 'number') return [`default:BigInt(${value})`]
   const formatLiteral =
     typeof value === 'boolean' || typeof value === 'number' ? `${value}` : JSON.stringify(value)
   return [`default:${formatLiteral}`]
