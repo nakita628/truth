@@ -5,7 +5,7 @@ import type { JSONSchema } from '../parser/index.js'
 const DATA_KEYWORDS = new Set(['const', 'default', 'enum', 'example', 'examples'])
 
 /** Whether a `$ref` already names a definition directly (`#/$defs/X`). */
-function isDefinitionRef(ref: string): boolean {
+function isDefinitionRef(ref: string) {
   return DEFINITION_REF_PREFIXES.some((prefix) => {
     if (!ref.startsWith(prefix)) return false
     const rest = ref.slice(prefix.length)
@@ -14,15 +14,15 @@ function isDefinitionRef(ref: string): boolean {
 }
 
 /** A local JSON Pointer `$ref` deeper than a definition: `#/$defs/A/properties/b`. */
-function isNestedPointer(ref: string): boolean {
+function isNestedPointer(ref: string) {
   return ref.startsWith('#/') && !isDefinitionRef(ref)
 }
 
-function decodeToken(token: string): string {
+function decodeToken(token: string) {
   return decodeURIComponent(token).replaceAll('~1', '/').replaceAll('~0', '~')
 }
 
-function resolvePointer(document: unknown, ref: string): unknown {
+function resolvePointer(document: unknown, ref: string) {
   let node = document
   for (const token of ref.slice(2).split('/').map(decodeToken)) {
     if (typeof node !== 'object' || node === null || !Object.hasOwn(node, token)) return undefined
@@ -31,7 +31,7 @@ function resolvePointer(document: unknown, ref: string): unknown {
   return node
 }
 
-function collectNestedPointers(node: unknown, found: Set<string>): void {
+function collectNestedPointers(node: unknown, found: Set<string>) {
   if (Array.isArray(node)) {
     for (const item of node) collectNestedPointers(item, found)
     return
@@ -71,7 +71,7 @@ function rewriteRefs(node: unknown, refs: ReadonlyMap<string, string>): unknown 
  *
  * Returns the document as given when it has no such reference.
  */
-export function hoistNestedRefs(schema: JSONSchema): JSONSchema {
+export function hoistNestedRefs(schema: JSONSchema) {
   const pointers = new Set<string>()
   collectNestedPointers(schema, pointers)
   if (pointers.size === 0) return schema

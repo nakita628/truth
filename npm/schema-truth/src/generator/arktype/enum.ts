@@ -3,7 +3,7 @@ import { isComposite } from '../../guard/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { isInt64 } from './integer.js'
 
-function lit(v: unknown, isBigint: boolean): string {
+function lit(v: unknown, isBigint: boolean) {
   if (v === null) return 'null'
   if (typeof v === 'string') return `'${v}'`
   if (typeof v === 'number' && isBigint) return `${v}n`
@@ -22,7 +22,7 @@ export const ARKTYPE_STRING_UNION_LIMIT = 16
 const DSL_LITERAL_PATTERN = /^(?:'[^'\\]*'|-?\d+(?:\.\d+)?(?:e[+-]?\d+)?n?|true|false|null)$/u
 
 /** Whether every member of a string-DSL union is a single literal `type.enumerated` takes. */
-export function isDslLiteralUnion(members: readonly string[]): boolean {
+export function isDslLiteralUnion(members: readonly string[]) {
   return members.every((member) => DSL_LITERAL_PATTERN.test(member))
 }
 

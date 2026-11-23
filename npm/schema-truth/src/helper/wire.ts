@@ -22,7 +22,7 @@ import { regexSource } from './format.js'
  */
 
 /** The `type` a typeless wire node reads its text as, from the constraints it carries. */
-export function impliedWireType(schema: JSONSchema): 'number' | 'string' | undefined {
+export function impliedWireType(schema: JSONSchema) {
   if (
     schema.type !== undefined ||
     hasCombinator(schema) ||
@@ -44,7 +44,7 @@ export function impliedWireType(schema: JSONSchema): 'number' | 'string' | undef
  * takes every integer, so the two together are one member, and on the wire every member
  * reads text, so the string member is tried last.
  */
-export function unionPrimitiveTypes(types: readonly string[], isWire: boolean): readonly string[] {
+export function unionPrimitiveTypes(types: readonly string[], isWire: boolean) {
   const ordered = isWire ? WIRE_PRIMITIVE_ORDER.filter((t) => types.includes(t)) : types
   return ordered.filter(
     (t) =>
@@ -54,7 +54,7 @@ export function unionPrimitiveTypes(types: readonly string[], isWire: boolean): 
 }
 
 /** Whether a `type` list is a union of primitives alone: more than one, and no array or object. */
-export function isPrimitiveUnion(types: readonly string[], isWire: boolean): boolean {
+export function isPrimitiveUnion(types: readonly string[], isWire: boolean) {
   return (
     unionPrimitiveTypes(types, isWire).length > 1 &&
     !types.includes('array') &&
@@ -66,7 +66,7 @@ export function isPrimitiveUnion(types: readonly string[], isWire: boolean): boo
  * Whether the text `null` has to be read ahead of a wire node: it takes `null`, and no
  * string, so `null` can only be the value and never the text.
  */
-export function isNullTextRead(schema: JSONSchema): boolean {
+export function isNullTextRead(schema: JSONSchema) {
   return canBeNull(schema) && !canBeString(schema)
 }
 
@@ -75,17 +75,17 @@ export function isNullTextRead(schema: JSONSchema): boolean {
  * `null` among its literals. A combinator coerces `null` to `0` or `false` before a
  * `null` member is tried, so the null has to be matched ahead of it instead.
  */
-export function isNullMatchedFirst(schema: JSONSchema): boolean {
+export function isNullMatchedFirst(schema: JSONSchema) {
   return isNullable(schema) || schema.const === null || schema.enum?.includes(null) === true
 }
 
 /** A wire array sent once arrives as its one element: wrapped, it is an array of one. */
-export function wireArrayOnce(param: string): string {
+export function wireArrayOnce(param: string) {
   return `(${param})=>(${param}===undefined||Array.isArray(${param})?${param}:[${param}])`
 }
 
 /** The text `null` on the wire, read as the `null` a nullable non-string schema takes. */
-export function wireNullText(param: string): string {
+export function wireNullText(param: string) {
   return `(${param})=>(${param}==='null'?null:${param})`
 }
 
@@ -93,17 +93,17 @@ export function wireNullText(param: string): string {
  * A parameter object answers an `Object.prototype` name it was not sent with the inherited
  * member. Copied onto a null-prototype object, it holds only what the request carried.
  */
-export function ownProperties(param: string): string {
+export function ownProperties(param: string) {
   return `(${param})=>(typeof ${param}==="object"&&${param}!==null&&!Array.isArray(${param})?Object.assign(Object.create(null),${param}):${param})`
 }
 
 /** The regex literal of integer text on the wire. */
-export function integerWirePattern(): string {
+export function integerWirePattern() {
   return regexSource(INTEGER_WIRE_PATTERN)
 }
 
 /** The regex literal of JSON number text on the wire. */
-export function numberWirePattern(): string {
+export function numberWirePattern() {
   return regexSource(NUMBER_WIRE_PATTERN)
 }
 
@@ -111,10 +111,7 @@ export function numberWirePattern(): string {
  * Whether wire text for these literals is an integer or a number. An integer rejects
  * exponents and fractions; a number follows the JSON number grammar.
  */
-export function wireNumericKind(
-  schema: JSONSchema,
-  values: readonly unknown[],
-): 'integer' | 'number' {
+export function wireNumericKind(schema: JSONSchema, values: readonly unknown[]) {
   const types = schema.type
   if (types === 'number') return 'number'
   if (types === 'integer') return 'integer'
@@ -127,12 +124,12 @@ export function wireNumericKind(
 }
 
 /** The regex literal of every spelling of a boolean on the wire. */
-export function stringboolPattern(): string {
+export function stringboolPattern() {
   return regexSource(STRINGBOOL_PATTERN)
 }
 
 /** The regex literal of the spellings that read as `true`. */
-export function stringboolTruthyPattern(): string {
+export function stringboolTruthyPattern() {
   return regexSource(STRINGBOOL_TRUTHY_PATTERN)
 }
 

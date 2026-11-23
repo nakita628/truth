@@ -1,14 +1,14 @@
 import type { ComponentAdapter } from '../../adapter/index.js'
 import type { Components } from '../../openapi/index.js'
 import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.js'
-import type { ComponentCodeOptions, ComponentDeclaration } from './declaration.js'
+import type { ComponentCodeOptions } from './declaration.js'
 import { joinDeclarations } from './declaration.js'
 
 export function makeHeadersDeclarations(
   components: Components,
   adapter: ComponentAdapter,
   options?: ComponentCodeOptions,
-): readonly ComponentDeclaration[] {
+) {
   const { headers } = components
   if (!headers) return []
   return Object.entries(headers).flatMap(([name, header]) => {

@@ -29,6 +29,13 @@ be worked around. `*.test.ts` relaxes some of it — see the testing rule.
   in `src/utils`, or a local `is*` function). The one sanctioned place for `as` is
   `src/openapi/index.ts`, where swagger-parser's result is narrowed to `OpenAPI`.
 - Every `unsafe-*` rule is an error. Take `unknown` and bring it down through a guard.
+- **Return types are inferred.** Leave the annotation off and let the body say it; give a
+  returned literal its narrow type with `as const` (`return { ok: true, value } as const`),
+  which `assertionStyle: 'never'` allows. Annotate only where inference cannot do the job: a
+  type predicate (`value is X`), a recursive function, a function whose declared type gives
+  the literal it returns its contextual type, or a value that would otherwise come back as
+  `any` (`(): unknown => JSON.parse(raw)`). Do not wrap a one-off expression in a helper or
+  an IIFE just to annotate it.
 - Type imports use `import type` (`consistent-type-imports`), in their own statement
   (`import/consistent-type-specifier-style`).
 - `exactOptionalPropertyTypes` is on: an optional property is omitted, not set to `undefined`.
@@ -46,7 +53,8 @@ be worked around. `*.test.ts` relaxes some of it — see the testing rule.
 ## Errors and async
 
 - Do not throw out of the public API. `parseOpenAPI` folds every failure into
-  `{ ok: false, error }`; the code builders have nothing that can fail.
+  `{ ok: false, error } as const`; there is no named `Result` type, the union is inferred from
+  the returns. The code builders have nothing that can fail.
 - If a throw is unavoidable, throw an `Error` with a message (`only-throw-error`,
   `unicorn/error-message`).
 - A catch binding is named **`error`** (`unicorn/catch-error-name`).

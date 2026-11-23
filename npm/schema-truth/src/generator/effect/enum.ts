@@ -4,7 +4,7 @@ import type { JSONSchema } from '../../parser/index.js'
 import { effectError } from '../../utils/index.js'
 import { isInt64 } from './integer.js'
 
-function literal(v: unknown, isBigint: boolean): string {
+function literal(v: unknown, isBigint: boolean) {
   if (v === null) return 'null'
   if (typeof v === 'string') return `"${v}"`
   if (typeof v === 'number' && isBigint) return `${v}n`
@@ -16,7 +16,7 @@ function literal(v: unknown, isBigint: boolean): string {
  * A schema of JSON values compared by deep equality: `Schema.Literal` takes only a
  * primitive, so an object or array value is matched by a guard.
  */
-export function deepEqualSchema(values: readonly unknown[]): string {
+export function deepEqualSchema(values: readonly unknown[]) {
   const type = values.map((v) => JSON.stringify(v) ?? 'null').join('|')
   const test = values.map((v) => `(${deepEqualExpression(v, 'input')})`).join('||')
   return `Schema.declare((input: unknown): input is ${type} => ${test})`
@@ -42,16 +42,16 @@ export function deepEqualSchema(values: readonly unknown[]): string {
 export function _enum(schema: JSONSchema) {
   if (!schema.enum || schema.enum.length === 0) return 'Schema.Unknown'
   const isBigint = isInt64(schema)
-  const lit = (v: unknown): string => literal(v, isBigint)
+  const lit = (v: unknown) => literal(v, isBigint)
 
   // v3.0: x-enum-message overrides x-error-message for the enum wrapper.
   const enumMessage = schema['x-enum-message']
   const errorMessage = enumMessage ?? schema['x-error-message']
-  const annotate = (code: string): string =>
+  const annotate = (code: string) =>
     errorMessage ? `${code}.annotate(${effectError(errorMessage)})` : code
-  const tuple = (arr: readonly unknown[]): string =>
+  const tuple = (arr: readonly unknown[]) =>
     `Schema.Tuple([${arr.map((i: unknown) => `Schema.Literal(${lit(i)})`).join(',')}])`
-  const literals = (values: readonly unknown[]): string => {
+  const literals = (values: readonly unknown[]) => {
     // `Schema.Literals` takes only `LiteralValue`s (string, number, bigint, boolean): a
     // `null` among the values is `Schema.Null`, joined to the rest by `Schema.NullOr`.
     const nonNull = values.filter((v) => v !== null)

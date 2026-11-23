@@ -34,7 +34,7 @@ export type TypeboxGenerateOptions = Omit<GenerateOptions, 'unsafeCodeExtensions
 }
 
 /** The import line, carrying `Codec` only when the emitted source calls it. */
-function importLine(emitted: string): string {
+function importLine(emitted: string) {
   return `import { ${emitted.includes('Codec(') ? 'Codec, ' : ''}Type, type Static } from 'typebox'`
 }
 
@@ -43,7 +43,7 @@ function importLine(emitted: string): string {
  * with plain `const` declarations, so a cyclic document becomes one
  * `Type.Cyclic($defs, root)` map instead.
  */
-export function schemaToTypebox(input: JSONSchema, options?: TypeboxGenerateOptions): string {
+export function schemaToTypebox(input: JSONSchema, options?: TypeboxGenerateOptions) {
   // Every schema a reference reaches is a top-level definition, and a polymorphic base
   // and its subtypes do not refer to each other in a loop.
   const schema = withPolymorphicBases(hoistNestedRefs(sanitizeSchema(input)))

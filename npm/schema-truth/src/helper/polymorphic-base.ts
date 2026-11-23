@@ -4,11 +4,7 @@ import type { JSONSchema, Ref } from '../parser/index.js'
 type Definitions = { readonly [name: string]: JSONSchema }
 
 /** The definition name a `$ref` names and the prefix it is written with. */
-function refParts(
-  ref: string,
-):
-  | { readonly prefix: (typeof DEFINITION_REF_PREFIXES)[number]; readonly name: string }
-  | undefined {
+function refParts(ref: string) {
   for (const prefix of DEFINITION_REF_PREFIXES) {
     if (!ref.startsWith(prefix)) continue
     const rest = ref.slice(prefix.length)
@@ -19,7 +15,7 @@ function refParts(
 }
 
 /** A definition's own shape: the definition without the union that lists its subtypes. */
-function baseOf(schema: JSONSchema): JSONSchema {
+function baseOf(schema: JSONSchema) {
   const { oneOf: _oneOf, anyOf: _anyOf, discriminator: _discriminator, ...base } = schema
   return base
 }
@@ -36,7 +32,7 @@ function baseOf(schema: JSONSchema): JSONSchema {
  *
  * Returns `definitions` unchanged when no definition has that shape.
  */
-export function separatePolymorphicBases(definitions: Definitions): Definitions {
+export function separatePolymorphicBases(definitions: Definitions) {
   const result: { [name: string]: JSONSchema } = { ...definitions }
   let changed = false
   for (const [name, schema] of Object.entries(definitions)) {
@@ -72,11 +68,11 @@ export function separatePolymorphicBases(definitions: Definitions): Definitions 
   return changed ? result : definitions
 }
 
-function withRef(schema: JSONSchema, $ref: Ref): JSONSchema {
+function withRef(schema: JSONSchema, $ref: Ref) {
   return { ...schema, $ref }
 }
 
-function unusedName(name: string, taken: Definitions): string {
+function unusedName(name: string, taken: Definitions) {
   if (!Object.hasOwn(taken, name)) return name
   let index = 2
   while (Object.hasOwn(taken, `${name}${index}`)) index += 1
@@ -87,7 +83,7 @@ function unusedName(name: string, taken: Definitions): string {
  * A document with {@link separatePolymorphicBases} applied to its `$defs` and
  * `definitions`; the document itself when neither changes.
  */
-export function withPolymorphicBases(schema: JSONSchema): JSONSchema {
+export function withPolymorphicBases(schema: JSONSchema) {
   const $defs = schema.$defs === undefined ? undefined : separatePolymorphicBases(schema.$defs)
   const definitions =
     schema.definitions === undefined ? undefined : separatePolymorphicBases(schema.definitions)

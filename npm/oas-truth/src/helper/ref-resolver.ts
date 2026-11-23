@@ -4,7 +4,7 @@ export function valueToCode(
   value: unknown,
   codeReplacements?: ReadonlyMap<unknown, string>,
   identifiers?: ReadonlyMap<string, string>,
-): string {
+) {
   return encodeValue(value, codeReplacements, identifiers, new Set())
 }
 

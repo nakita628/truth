@@ -4,10 +4,7 @@ import type { JSONSchema } from '../../parser/index.js'
 import { valibotError, valibotErrorPart } from '../../utils/index.js'
 
 /** The `v.minValue` / `v.maxValue` / `v.gtValue` / `v.ltValue` / `v.multipleOf` actions of a numeric node. */
-export function numberActions(
-  schema: JSONSchema,
-  lit: (n: number) => string = (n) => `${n}`,
-): readonly string[] {
+export function numberActions(schema: JSONSchema, lit: (n: number) => string = (n) => `${n}`) {
   const minimumMessage = schema['x-minimum-message']
   const minErrorPart = valibotErrorPart(minimumMessage)
   const maximumMessage = schema['x-maximum-message']
@@ -49,7 +46,7 @@ export function numberActions(
 }
 
 /** The `v.minValue` / `v.maxValue` pair of a fixed-width numeric `format`, if it has one. */
-export function rangeActions(format: string | undefined): readonly string[] {
+export function rangeActions(format: string | undefined) {
   const range = format === undefined ? undefined : NUMBER_RANGES[format]
   if (range === undefined) return []
   return [`v.minValue(${range.minimum})`, `v.maxValue(${range.maximum})`]

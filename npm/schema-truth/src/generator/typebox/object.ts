@@ -185,7 +185,7 @@ function buildAdvancedOpts(
   rootName: string,
   isTypebox: boolean,
   options?: TypeboxOptions,
-): readonly (string | undefined)[] {
+) {
   const propertyNamesOpt = schema.propertyNames
     ? `propertyNames:${typebox(schema.propertyNames, rootName, isTypebox, options)}`
     : undefined

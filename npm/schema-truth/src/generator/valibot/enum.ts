@@ -4,7 +4,7 @@ import type { JSONSchema } from '../../parser/index.js'
 import { valibotErrorPart } from '../../utils/index.js'
 import { isInt64 } from './integer.js'
 
-function lit(v: unknown, isBigint: boolean): string {
+function lit(v: unknown, isBigint: boolean) {
   if (v === null) return 'null'
   if (typeof v === 'string') return `'${v.replaceAll("'", "\\'")}'`
   if (typeof v === 'number' && isBigint) return `${v}n`
@@ -38,18 +38,17 @@ export function _enum(schema: JSONSchema) {
   // `v.literal` only accepts string/number/boolean. `null` → `v.null()`, and
   // object members → a deep-equality `v.custom` (arrays are handled as tuples by
   // the callers below); primitives stay on `v.literal`.
-  const litSchema = (v: unknown, errPart: string): string => {
+  const litSchema = (v: unknown, errPart: string) => {
     if (v === null) return `v.null(${errPart.replace(/^,/, '')})`
     if (typeof v === 'string' || typeof v === 'number' || typeof v === 'boolean') {
       return `v.literal(${lit(v, isBigint)}${errPart})`
     }
     return `v.custom<${JSON.stringify(v)}>((input) => ${deepEqualExpression(v, 'input')}${errPart})`
   }
-  const innerLit = (v: unknown): string => litSchema(v, '')
-  const outerLit = (v: unknown): string => litSchema(v, errorArg)
-  const innerTuple = (arr: readonly unknown[]): string =>
-    `v.tuple([${arr.map(innerLit).join(',')}])`
-  const outerTuple = (arr: readonly unknown[]): string =>
+  const innerLit = (v: unknown) => litSchema(v, '')
+  const outerLit = (v: unknown) => litSchema(v, errorArg)
+  const innerTuple = (arr: readonly unknown[]) => `v.tuple([${arr.map(innerLit).join(',')}])`
+  const outerTuple = (arr: readonly unknown[]) =>
     `v.tuple([${arr.map(innerLit).join(',')}]${errorArg})`
   if (hasType(schema, 'number') || hasType(schema, 'integer') || hasType(schema, 'boolean')) {
     return schema.enum.length > 1

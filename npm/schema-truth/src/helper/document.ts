@@ -6,7 +6,7 @@ import { resolveSchemaDependenciesFromSchema } from './resolve-schema-dependenci
 import { collectDefinitions } from './schema.js'
 
 /** The node options of a document generation, with the unset parameter options left out. */
-export function emitOptionsOf(options: GenerateOptions | undefined): EmitOptions {
+export function emitOptionsOf(options: GenerateOptions | undefined) {
   return {
     openapi: options?.openapi ?? false,
     readonly: options?.readonly ?? false,
@@ -28,7 +28,7 @@ export function emitOptionsOf(options: GenerateOptions | undefined): EmitOptions
 export function definitionsOf(
   options: EmitOptions | undefined,
   document: { readonly [name: string]: JSONSchema },
-): EmitOptions['definitions'] {
+) {
   if (Object.keys(document).length === 0 && options?.definitions === undefined) return undefined
   return { ...options?.definitions, ...document }
 }
@@ -37,7 +37,7 @@ export function definitionsOf(
  * How a document names its schemas. An OpenAPI component name is always made a valid
  * identifier; a plain JSON Schema title keeps its hyphens and underscores for back-compat.
  */
-export function schemaNamer(openapi: boolean | undefined): (name: string) => string {
+export function schemaNamer(openapi: boolean | undefined) {
   return openapi === true ? toIdentifierPascalCase : toPascalCase
 }
 
@@ -46,12 +46,12 @@ export function rootNameOf(
   schema: JSONSchema,
   toName: (name: string) => string,
   fallback: string = DEFAULT_ROOT_NAME,
-): string {
+) {
   return schema.title ? toName(schema.title) : fallback
 }
 
 /** The comment left where a `$ref` names a definition the document does not hold. */
-export function missingDefinitionComment(name: string): string {
+export function missingDefinitionComment(name: string) {
   return `${MISSING_DEFINITION_PREFIX}${name}`
 }
 
@@ -77,7 +77,7 @@ export type DocumentPlan = {
  * The plan of a document: its definitions in dependency order, and which of them, if
  * any, is the root under another name.
  */
-export function planDocument(schema: JSONSchema, rootName: string): DocumentPlan {
+export function planDocument(schema: JSONSchema, rootName: string) {
   const definitions = collectDefinitions(schema)
   const hasDefinitions = Object.keys(definitions).length > 0
   const orderedNames = hasDefinitions ? resolveSchemaDependenciesFromSchema(schema) : []
@@ -104,7 +104,7 @@ export function renderDefinitions(
   plan: DocumentPlan,
   toName: (name: string) => string,
   render: (definition: JSONSchema, name: string) => string,
-): string {
+) {
   return plan.nonRootNames
     .map((name) => {
       const definition = plan.definitions[name]

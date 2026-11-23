@@ -32,7 +32,7 @@ const TRANSFORM_KEYWORD: { readonly [k: string]: string } = {
 const HTTP_URL_PATTERN = String.raw`/^https?:\/\//`
 
 /** The definition checking a string `format`: a keyword, a pattern, or `"string"` for none. */
-function formatDefinition(schema: JSONSchema, format: string | undefined): string {
+function formatDefinition(schema: JSONSchema, format: string | undefined) {
   if (format === undefined) return '"string"'
   if (format === 'binary') return '"File"'
   if (format === 'httpurl') return `type("string.url").and(${HTTP_URL_PATTERN})`
@@ -46,12 +46,12 @@ function formatDefinition(schema: JSONSchema, format: string | undefined): strin
 }
 
 /** A count of characters, as the predicate messages spell it. */
-function characters(count: number | undefined): string {
+function characters(count: number | undefined) {
   return `${count} ${count === 1 ? 'character' : 'characters'}`
 }
 
 /** `expr` validated against `definition` after its morphs: `.to()` for a definition, `.pipe()` for a type. */
-function validateWith(expr: string, definition: string): string {
+function validateWith(expr: string, definition: string) {
   return isQuoted(definition) ? `${expr}.to(${definition})` : `${expr}.pipe(${definition})`
 }
 
@@ -88,7 +88,7 @@ export function string(schema: JSONSchema) {
   const hasMorph = transforms.length > 0
   // After a morph the checks apply to its output, so a pattern is validated with `.to()`
   // rather than intersected into the input.
-  const constrain = (expr: string, pattern: string): string =>
+  const constrain = (expr: string, pattern: string) =>
     hasMorph ? `${expr}.to(${pattern})` : `${expr}.and(${pattern})`
 
   const narrows: string[] = []

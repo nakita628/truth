@@ -22,7 +22,7 @@ import { ajv } from './ajv.js'
 export function schemaToAjv(
   schema: JSONSchema,
   options?: { exportType?: boolean; readonly?: boolean },
-): string {
+) {
   void options
   const expression = ajv(sanitizeSchema(schema))
   const withFormats = expression.includes("format:'email'")

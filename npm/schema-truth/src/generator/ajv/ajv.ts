@@ -17,7 +17,7 @@ import { string } from './string.js'
  * ajv({ type: 'string', format: 'email' }) // "{type:'string',format:'email'}"
  * ```
  */
-export function ajv(schema: JSONSchema): string {
+export function ajv(schema: JSONSchema) {
   if (schema.properties !== undefined) return object(schema)
   const types = normalizeTypes(schema.type)
   if (types.includes('string')) return string(schema)

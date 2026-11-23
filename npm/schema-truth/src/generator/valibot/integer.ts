@@ -6,7 +6,7 @@ import { valibotError } from '../../utils/index.js'
 import { numberActions, rangeActions } from './number.js'
 
 /** Whether a node is a 64-bit integer: a value beyond 2^53 that is read as a bigint. */
-export function isInt64(schema: JSONSchema): boolean {
+export function isInt64(schema: JSONSchema) {
   return schema.format === 'int64' || schema.format === 'uint64'
 }
 
@@ -15,7 +15,7 @@ export function isInt64(schema: JSONSchema): boolean {
  * wire the text is a sign and digits; in a JSON body the value is a bigint, a safe-integer
  * number, or the string of digits that is the only lossless way to carry a larger one.
  */
-export function int64Input(isWire: boolean, baseErrorArg = ''): readonly string[] {
+export function int64Input(isWire: boolean, baseErrorArg = '') {
   const digits = regexSource(INTEGER_TEXT_PATTERN)
   if (isWire) {
     return [

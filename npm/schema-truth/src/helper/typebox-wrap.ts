@@ -30,7 +30,7 @@ export function typeboxWrap(
   schema: JSONSchema,
   definitions?: SchemaDefinitions,
   options?: TypeboxWrapOptions,
-): string {
+) {
   const withNullable =
     isNullable(schema) && options?.nullSchema !== true
       ? `Type.Union([${typeboxStr},Type.Null()])`

@@ -4,8 +4,9 @@ import path from 'node:path'
 
 import { afterAll, afterEach, beforeEach, describe, expect, it } from 'vite-plus/test'
 
-import { isOpenAPIInput, parseOpenAPI } from './index.js'
-import type { OpenAPIInput } from './index.js'
+import { parseOpenAPI } from './index.js'
+
+type OpenAPIInput = Parameters<typeof parseOpenAPI>[0]
 
 describe('parseOpenAPI', () => {
   it.concurrent('should return ok for a valid OpenAPI YAML string', async () => {
@@ -110,23 +111,17 @@ describe('parseOpenAPI', () => {
   })
 })
 
-describe('isOpenAPIInput', () => {
-  it.each([
-    ['openapi.yaml', true],
-    ['openapi.yml', true],
-    ['openapi.json', true],
-    ['main.tsp', true],
-    ['http://example.com/openapi', true],
-    ['https://example.com/openapi.yaml', true],
-    ['HTTPS://example.com/spec', true],
-    ['openapi.txt', false],
-    ['ftp://example.com/openapi.yaml.gz', false],
-    ['', false],
-    [undefined, false],
-    [{ openapi: '3.1.0' }, false],
-  ])('isOpenAPIInput(%o) is %s', (value, expected) => {
-    expect(isOpenAPIInput(value)).toBe(expected)
-  })
+describe('parseOpenAPI input check', () => {
+  it.concurrent.each(['openapi.txt', 'ftp://example.com/openapi.yaml.gz', ''])(
+    'rejects %o before reading it',
+    async (value) => {
+      const result = await parseOpenAPI(value as OpenAPIInput)
+      expect(result).toStrictEqual({
+        ok: false,
+        error: expect.stringContaining('Unsupported input'),
+      })
+    },
+  )
 })
 
 // TypeSpec test

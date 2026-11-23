@@ -4,7 +4,7 @@ import { collectDefinitions } from './schema.js'
 import { walkSchema } from './walk.js'
 
 /** The definition name the fragment of an external `$ref` points at, if it names one. */
-function fragmentDefinitionName(fragment: string): string | undefined {
+function fragmentDefinitionName(fragment: string) {
   return (
     /^\/(?:definitions|\$defs)\/(?<name>[^/]+)$/u.exec(fragment)?.groups?.name ??
     /^\/(?<name>[^/]+)$/u.exec(fragment)?.groups?.name
@@ -12,7 +12,7 @@ function fragmentDefinitionName(fragment: string): string | undefined {
 }
 
 /** A node that is a reference into a document: what it points at is the whole of what it says. */
-function isPointerNode(node: { readonly [k: string]: unknown }): boolean {
+function isPointerNode(node: { readonly [k: string]: unknown }) {
   return typeof node.$ref === 'string' && node.$ref.includes('#')
 }
 
@@ -20,7 +20,7 @@ function isPointerNode(node: { readonly [k: string]: unknown }): boolean {
  * The definition names a definition refers to, sorted. A reference node is not descended
  * into, so a sibling keyword beside a `$ref` adds no edge.
  */
-function collectRefs(definition: JSONSchema): readonly string[] {
+function collectRefs(definition: JSONSchema) {
   const refs = new Set<string>()
   for (const node of walkSchema(definition, { prune: isPointerNode })) {
     const ref = node.$ref
@@ -52,14 +52,14 @@ function collectRefs(definition: JSONSchema): readonly string[] {
  * resolveSchemaDependenciesFromSchema(schema) // ['animal', 'zoo']
  * ```
  */
-export function resolveSchemaDependenciesFromSchema(schema: JSONSchema): string[] {
+export function resolveSchemaDependenciesFromSchema(schema: JSONSchema) {
   const definitions = collectDefinitions(schema)
 
   const sorted: string[] = []
   const done = new Set<string>()
   const visiting = new Set<string>()
 
-  const visit = (name: string): void => {
+  const visit = (name: string) => {
     if (done.has(name) || visiting.has(name)) return
 
     const definition = definitions[name]

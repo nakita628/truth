@@ -14,7 +14,7 @@ export type TypeFlavour = {
 }
 
 /** Whether a node is a 64-bit integer, whose number is a bigint. */
-function isInt64(schema: JSONSchema): boolean {
+function isInt64(schema: JSONSchema) {
   return schema.format === 'int64' || schema.format === 'uint64'
 }
 
@@ -28,7 +28,7 @@ export function typeDeclaration(
   schema: JSONSchema | undefined,
   flavour: TypeFlavour,
   rootName: string = DEFAULT_ROOT_NAME,
-): string {
+) {
   if (schema === undefined) return ''
   const base = nonNullType(schema, flavour, rootName)
   // `nullable` (OpenAPI 3.0), a `null` among the types or a `{ type: 'null' }` allOf member
@@ -38,7 +38,7 @@ export function typeDeclaration(
   return `(${base} | null)`
 }
 
-function nonNullType(schema: JSONSchema, flavour: TypeFlavour, rootName: string): string {
+function nonNullType(schema: JSONSchema, flavour: TypeFlavour, rootName: string) {
   const type = (s: JSONSchema | undefined): string => typeDeclaration(s, flavour, rootName)
 
   if (schema.$ref) {
@@ -72,7 +72,7 @@ function nonNullType(schema: JSONSchema, flavour: TypeFlavour, rootName: string)
 
   // A JSON value spelled as a literal is also its own TypeScript literal type; an int64's
   // number is a bigint.
-  const literal = (value: unknown): string =>
+  const literal = (value: unknown) =>
     typeof value === 'number' && isInt64(schema) ? `${value}n` : jsLiteral(value)
 
   if (schema.const !== undefined) return literal(schema.const)
@@ -83,7 +83,7 @@ function nonNullType(schema: JSONSchema, flavour: TypeFlavour, rootName: string)
   }
 
   const readonly = flavour.readonly ? 'readonly ' : ''
-  const object = (): string => {
+  const object = () => {
     if (!schema.properties) {
       if (schema.additionalProperties) {
         if (typeof schema.additionalProperties === 'boolean') {

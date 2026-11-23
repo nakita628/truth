@@ -5,7 +5,7 @@
  * go through template interpolation so `-0`, `1e21` and friends keep the spelling the
  * source had rather than picking up quotes.
  */
-export function jsLiteral(value: unknown): string {
+export function jsLiteral(value: unknown) {
   if (typeof value === 'boolean') return `${value}`
   if (typeof value === 'number') return `${value}`
   return JSON.stringify(value)

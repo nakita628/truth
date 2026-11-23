@@ -72,7 +72,7 @@ const ZOD_ISSUE_CODES = [
  * The `not` predicate of an inner schema, as the source of a `(val) => ...` arrow, or
  * `undefined` when the inner schema has none this generator can express.
  */
-function zodNotPredicate(inner: JSONSchema, parent: JSONSchema): string | undefined {
+function zodNotPredicate(inner: JSONSchema, parent: JSONSchema) {
   if (inner.$ref) return undefined
   const bigint = isBigintFormat(parent)
   const shared = notPredicate(inner, 'val', 'val', bigint)
@@ -95,7 +95,7 @@ function zodNotPredicate(inner: JSONSchema, parent: JSONSchema): string | undefi
  * Re-push `issue` into `ctx` with `message`. Each issue code is narrowed first: the union of
  * parsed issues does not type-check as a raw issue, while each member does.
  */
-export function forwardIssue(message: string): string {
+export function forwardIssue(message: string) {
   return ZOD_ISSUE_CODES.map(
     (c, i) =>
       `${i === 0 ? '' : 'else '}if(issue.code==='${c}'){ctx.issues.push({...issue,input:issue.input,message:${message}})}`,
@@ -103,7 +103,7 @@ export function forwardIssue(message: string): string {
 }
 
 /** A message for the issues under the value (with a path); the root's own issues keep theirs. */
-export function nestedIssueMessageWrap(inner: string, msg: string): string {
+export function nestedIssueMessageWrap(inner: string, msg: string) {
   const msgExpr = `issue.path.length>0?${issueMessageExpression(msg)}:issue.message`
   return `(()=>{const Schema=${inner};return z.unknown().check((ctx)=>{const result=Schema.safeParse(ctx.value);if(!result.success){for(const issue of result.error.issues){${forwardIssue(msgExpr)}}}}).pipe(Schema)})()`
 }
@@ -139,13 +139,13 @@ export function zod(
 }
 
 /** A keyword-only `allOf` member: the keywords apply when the value has their type. */
-function keywordConstraint(schema: JSONSchema): string {
+function keywordConstraint(schema: JSONSchema) {
   const body = constraintPredicate(schema, 'val')
   return `z.any().refine((val) => ${body}${zodErrorPart(constraintMessage(schema))})`
 }
 
 /** Push a key's issues (`result`, for the value `v` under key `k`) under that key. */
-function forwardKeyIssues(message: string | undefined): string {
+function forwardKeyIssues(message: string | undefined) {
   return `for(const issue of result.error.issues){ctx.issues.push({code:'custom',input:v,path:[k,...issue.path],message:${message === undefined ? 'issue.message' : JSON.stringify(message)}})}`
 }
 
@@ -161,7 +161,7 @@ function objectKeysCheck(
   rootName: string,
   isZod: boolean,
   options: EmitOptions | undefined,
-): string {
+) {
   const patterns = Object.entries(schema.patternProperties ?? {})
   const unevaluated = schema.unevaluatedProperties
   const unevaluatedSchema = typeof unevaluated === 'object' ? unevaluated : undefined
@@ -194,16 +194,12 @@ function node(
   rootName: string,
   isZod: boolean,
   options: EmitOptions | undefined,
-): string {
+) {
   const isStringWireParam = isStringWireLocation(options?.paramIn)
   const isWireCoerced = isStringWireParam && schema['x-coerce'] !== false
   const codeExtOpts: CodeExtensionOptions =
     options?.unsafeCodeExtensions === true ? { unsafeCodeExtensions: true } : {}
-  const zodWrap = (
-    zodStr: string,
-    s: JSONSchema,
-    extra?: { readonly nullSchema?: boolean },
-  ): string =>
+  const zodWrap = (zodStr: string, s: JSONSchema, extra?: { readonly nullSchema?: boolean }) =>
     _zodWrap(zodStr, s, {
       ...extra,
       ...codeExtOpts,
@@ -214,7 +210,7 @@ function node(
     isStringWireParam ? `z.preprocess(${wireArrayOnce('val')},${v})` : v
   // A literal schema behind what reads its input into the literal's type: on the wire the
   // text is coerced, and a 64-bit integer is a bigint wherever it comes from.
-  const literalInput = (values: readonly unknown[], literal: string): string | undefined => {
+  const literalInput = (values: readonly unknown[], literal: string) => {
     if (values.every((v) => typeof v === 'number')) {
       if (isInt64(schema)) return `${int64Input(isWireCoerced)}.pipe(${literal})`
       if (isWireCoerced) return zodWireNumber(wireNumericKind(schema, values), literal)
@@ -226,7 +222,7 @@ function node(
   }
   // The expression a `$ref` names, bare: the caller wraps it once with what the node
   // itself carries, a `default` or `nullable` beside the `$ref` included.
-  const ref = (s: JSONSchema, rn: string, iz: boolean): string => {
+  const ref = (s: JSONSchema, rn: string, iz: boolean) => {
     if (s.$ref === undefined) return 'z.any()'
     const target = refTarget(s.$ref, rn, iz, options?.openapi)
     if (target.kind === 'lazy') return `z.lazy(() => ${target.name})`
@@ -362,7 +358,7 @@ function node(
   if (schema.properties) return readonly(zodWrap(object(schema, rootName, isZod, options), schema))
 
   const types = normalizeTypes(schema.type)
-  const primitive = (t: string): string | undefined => {
+  const primitive = (t: string) => {
     if (t === 'string') return string(schema)
     if (t === 'number') return number(schema, { wire: isWireCoerced })
     if (t === 'integer') return integer(schema, { wire: isWireCoerced })

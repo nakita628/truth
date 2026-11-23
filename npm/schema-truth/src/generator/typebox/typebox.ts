@@ -62,7 +62,7 @@ export type TypeboxOptions = {
  * Options for a nested TypeBox node: the same as `options` but without a
  * host `ref`, so only the outermost factory of a declaration receives it.
  */
-export function nestedTypeboxOptions(options?: TypeboxOptions): TypeboxOptions | undefined {
+export function nestedTypeboxOptions(options?: TypeboxOptions) {
   if (options === undefined) return undefined
   return {
     ...(options.openapi !== undefined && { openapi: options.openapi }),
@@ -77,12 +77,7 @@ export function nestedTypeboxOptions(options?: TypeboxOptions): TypeboxOptions |
  * Emits a single-argument TypeBox factory call (`Type.X({opts})`), embedding
  * any meta options from the schema. Returns `Type.X()` when no options.
  */
-function tbPrim(
-  name: string,
-  schema: JSONSchema,
-  extraOpts: readonly string[] = [],
-  ref?: string,
-): string {
+function tbPrim(name: string, schema: JSONSchema, extraOpts: readonly string[] = [], ref?: string) {
   const opts = [
     ...typeboxRefOpt(ref),
     ...extraOpts,
@@ -98,7 +93,7 @@ function tbPrim(
  * Codec decodes from a string. A host `ref` lands on this inner `Type.String`,
  * not on the `Codec(...)` wrapper.
  */
-function wireString(schema: JSONSchema, ref?: string, pattern?: string): string {
+function wireString(schema: JSONSchema, ref?: string, pattern?: string) {
   const opts = [
     ...typeboxRefOpt(ref),
     ...(pattern === undefined ? [] : [`pattern:${pattern}`]),
@@ -112,7 +107,7 @@ function wireString(schema: JSONSchema, ref?: string, pattern?: string): string 
  * JSON Schema form (a `RegExp` serializes as `{}`), and each numeric bound is a
  * `Type.Refine` on the text read as a number, since the decoded value is not checked.
  */
-function numericWire(schema: JSONSchema, pattern: RegExp, ref?: string): string {
+function numericWire(schema: JSONSchema, pattern: RegExp, ref?: string) {
   return numericBounds(schema).reduce(
     (wire, [check, keyword, message]) =>
       `Type.Refine(${wire},(value)=>${check},()=>${JSON.stringify(
@@ -129,7 +124,7 @@ type NumericBound = readonly [
 ]
 
 /** The checks of the numeric keywords on `Number(value)`, with TypeBox's own messages. */
-function numericBounds(schema: JSONSchema): readonly NumericBound[] {
+function numericBounds(schema: JSONSchema) {
   const bounds: NumericBound[] = []
   const { minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf } = schema
   if (minimum !== undefined) {
@@ -173,7 +168,7 @@ function numericBounds(schema: JSONSchema): readonly NumericBound[] {
 }
 
 /** A keyword-only `allOf` member. TypeBox has no type-guarded check, so the keyword's type carries it. */
-function keywordSchema(schema: JSONSchema): string {
+function keywordSchema(schema: JSONSchema) {
   if (hasStringKeyword(schema) && !hasNumericKeyword(schema)) {
     return string({ ...schema, type: 'string' })
   }
@@ -194,7 +189,7 @@ function tbComp(
   schema: JSONSchema,
   extraOpts: readonly string[] = [],
   ref?: string,
-): string {
+) {
   const opts = [
     ...typeboxRefOpt(ref),
     ...extraOpts,
@@ -205,11 +200,11 @@ function tbComp(
 }
 
 /** A reference to a peer of a `Type.Cyclic` map, reached by name. */
-function byName(name: string, s: JSONSchema): string {
+function byName(name: string, s: JSONSchema) {
   return tbComp('Type.Ref', `'${name}'`, s)
 }
 
-function messageOpt(msg: unknown): readonly string[] {
+function messageOpt(msg: unknown) {
   return typeof msg === 'string' ? [`errorMessage:${JSON.stringify(msg)}`] : []
 }
 
@@ -228,13 +223,13 @@ export function typebox(
   // A name emitted inside `Type.Cyclic($defs, root)` can only be reached by
   // name — the peer `const` it would otherwise reference may be declared later
   // in the same cycle.
-  const named = (name: string, s: JSONSchema): string =>
+  const named = (name: string, s: JSONSchema) =>
     options?.cyclicRefs?.has(name) ? byName(name, s) : name
 
   if (schema.$ref) {
     // The expression a `$ref` names, bare: the caller wraps it once with what the node
     // itself carries, a `default` or `nullable` beside the `$ref` included.
-    const ref = (s: JSONSchema): string => {
+    const ref = (s: JSONSchema) => {
       // A reference back to the schema being emitted is always a cycle, so it
       // always goes by name — `schemaToTypebox` puts such a schema inside a
       // `Type.Cyclic` map.
@@ -261,7 +256,7 @@ export function typebox(
     }
     // A `default` beside a `$ref` rides on a one-member intersection: the referenced
     // schema is shared, so its own options cannot carry it.
-    const withDefault = (s: JSONSchema): string => {
+    const withDefault = (s: JSONSchema) => {
       const defaultOpt = typeboxDefaultOpt(s, false, definitions)
       const target = ref(s)
       const inner =

@@ -54,7 +54,7 @@ export function object(
     schema.unevaluatedProperties === false ? schema['x-unevaluatedProperties-message'] : undefined
   const strictExtrasMessage = addlPropsMessage ?? unevalPropsMessage
 
-  const propertyNamesFilter = (): string => {
+  const propertyNamesFilter = () => {
     if (schema.propertyNames?.pattern) {
       return `Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp(${JSON.stringify(schema.propertyNames.pattern)}).test(key))${propNamesErrorArg})`
     }
@@ -64,7 +64,7 @@ export function object(
     return ''
   }
 
-  const patternPropertiesFilters = (): readonly string[] =>
+  const patternPropertiesFilters = () =>
     schema.patternProperties
       ? Object.entries(schema.patternProperties).map(([pattern, propSchema]) => {
           const s = effect(propSchema, rootName, isEffect, options)

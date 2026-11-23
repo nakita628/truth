@@ -57,7 +57,7 @@ import { object } from './object.js'
 import { string } from './string.js'
 
 /** `inner` with `prefix` ahead of it in one pipe: an existing pipe is opened, not nested. */
-function prependPipe(prefix: readonly string[], inner: string): string {
+function prependPipe(prefix: readonly string[], inner: string) {
   if (inner.startsWith('v.pipe(') && inner.endsWith(')')) {
     const body = inner.slice('v.pipe('.length, -1)
     return `v.pipe(${prefix.join(',')},${body})`
@@ -66,7 +66,7 @@ function prependPipe(prefix: readonly string[], inner: string): string {
 }
 
 /** `inner` with `actions` after it in one pipe: an existing pipe is opened, not nested. */
-function appendPipe(inner: string, actions: readonly string[]): string {
+function appendPipe(inner: string, actions: readonly string[]) {
   if (inner.startsWith('v.pipe(') && inner.endsWith(')')) {
     const body = inner.slice('v.pipe('.length, -1)
     return `v.pipe(${body},${actions.join(',')})`
@@ -78,13 +78,13 @@ function appendPipe(inner: string, actions: readonly string[]): string {
  * `inner` read after `readers`, each a `(input) => ...` arrow over the raw value, in one
  * pipe: a schema may follow a transform, so an inner pipe is opened rather than nested.
  */
-function preprocess(readers: readonly string[], inner: string): string {
+function preprocess(readers: readonly string[], inner: string) {
   if (readers.length === 0) return inner
   return prependPipe(['v.unknown()', ...readers.map((reader) => `v.transform(${reader})`)], inner)
 }
 
 /** The pipe items reading the boolean spellings of the wire into a boolean, as `z.stringbool()` reads them. */
-function stringboolItems(errorArg: string): readonly string[] {
+function stringboolItems(errorArg: string) {
   return [
     `v.string(${errorArg})`,
     `v.regex(${stringboolPattern()}${errorArg ? `,${errorArg}` : ''})`,
@@ -93,7 +93,7 @@ function stringboolItems(errorArg: string): readonly string[] {
 }
 
 /** The boolean spellings of the wire, read into a boolean as `z.stringbool()` reads them. */
-function stringbool(errorArg: string): string {
+function stringbool(errorArg: string) {
   return `v.pipe(${stringboolItems(errorArg).join(',')})`
 }
 
@@ -103,7 +103,7 @@ function elementMessageWrap(inner: string, msg: string) {
 }
 
 /** Add a key's issues (`result`) to the raw check. */
-function forwardKeyIssues(message: string | undefined): string {
+function forwardKeyIssues(message: string | undefined) {
   return `for(const issue of result.issues){addIssue({message:${message === undefined ? 'issue.message' : JSON.stringify(message)}})}`
 }
 
@@ -119,7 +119,7 @@ function objectKeysCheck(
   rootName: string,
   isValibot: boolean,
   options: EmitOptions | undefined,
-): string {
+) {
   const patterns = Object.entries(schema.patternProperties ?? {})
   const unevaluated = schema.unevaluatedProperties
   const unevaluatedSchema = typeof unevaluated === 'object' ? unevaluated : undefined
@@ -170,7 +170,7 @@ export function valibot(
 }
 
 /** A keyword-only `allOf` member: the keywords apply when the value has their type. */
-function keywordConstraint(schema: JSONSchema): string {
+function keywordConstraint(schema: JSONSchema) {
   const body = constraintPredicate(schema, 'input')
   return `v.pipe(v.any(),v.check((input) => ${body}${valibotErrorPart(constraintMessage(schema))}))`
 }
@@ -180,14 +180,14 @@ function node(
   rootName: string,
   isValibot: boolean,
   options: EmitOptions | undefined,
-): string {
+) {
   const isStringWireParam = isStringWireLocation(options?.paramIn)
   const isWireCoerced = isStringWireParam && schema['x-coerce'] !== false
   const codeExtOpts: ValibotWrapOptions =
     options?.unsafeCodeExtensions === true ? { unsafeCodeExtensions: true } : {}
   // On the wire every node's input is text, so its default is spelled as text, and the
   // text `null` is read ahead of a node that takes `null` but no string.
-  const wireOptions = (s: JSONSchema): ValibotWrapOptions => {
+  const wireOptions = (s: JSONSchema) => {
     if (!isStringWireParam || s['x-coerce'] === false) return {}
     return { stringWire: true, ...(isNullTextRead(s) && { nullText: true }) }
   }
@@ -195,7 +195,7 @@ function node(
     valibotStr: string,
     s: JSONSchema,
     extra?: { readonly nullSchema?: boolean },
-  ): string =>
+  ) =>
     _valibotWrap(valibotStr, s, {
       ...extra,
       ...codeExtOpts,
@@ -206,7 +206,7 @@ function node(
   const wireArray = (v: string) => (isStringWireParam ? preprocess([wireArrayOnce('input')], v) : v)
   // What reads a literal's input into the literal's type: on the wire the text is coerced,
   // and a 64-bit integer is a bigint wherever it comes from.
-  const literalInput = (values: readonly unknown[]): readonly string[] | undefined => {
+  const literalInput = (values: readonly unknown[]) => {
     if (values.every((v) => typeof v === 'number')) {
       if (isInt64(schema)) return int64Input(isWireCoerced)
       if (isWireCoerced) {
@@ -222,7 +222,7 @@ function node(
   if (schema.$ref) {
     // The expression a `$ref` names, bare: the caller wraps it once with what the node
     // itself carries, a `default` or `nullable` beside the `$ref` included.
-    const ref = (s: JSONSchema): string => {
+    const ref = (s: JSONSchema) => {
       if (s.$ref === undefined) return 'v.any()'
       const target = refTarget(s.$ref, rootName, isValibot, options?.openapi)
       if (target.kind === 'lazy') return `v.lazy(() => ${target.name})`
@@ -309,7 +309,7 @@ function node(
     if (typeof inner !== 'object' || inner === null) return valibotWrap('v.any()', schema)
     const notMessage = schema['x-not-message']
     const errorPart = valibotErrorPart(notMessage)
-    const predicate = ((): string | undefined => {
+    const predicate = (() => {
       const bigint = isBigintFormat(withoutNot)
       const shared = notPredicate(inner, 'input', 'input', bigint)
       if (shared !== undefined) return shared
@@ -363,7 +363,7 @@ function node(
   }
 
   const types = normalizeTypes(schema.type)
-  const primitive = (t: string): string | undefined => {
+  const primitive = (t: string) => {
     if (t === 'string') return string(schema)
     if (t === 'number') return number(schema, { wire: isWireCoerced })
     if (t === 'integer') return integer(schema, { wire: isWireCoerced })

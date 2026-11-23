@@ -23,7 +23,7 @@ export type SchemaReplacementsOptions = {
   readonly identifiers?: ReadonlyMap<string, string>
 }
 
-function slotAt(path: readonly string[], fallback?: SchemaSlot): SchemaSlot {
+function slotAt(path: readonly string[], fallback?: SchemaSlot) {
   if (path.includes('headers')) return 'header'
   if (path.includes('parameters')) return 'parameter'
   if (path.includes('content')) return fallback ?? 'response-content'
@@ -34,7 +34,7 @@ export function makeSchemaReplacements(
   value: unknown,
   adapter: ComponentAdapter,
   options?: SchemaReplacementsOptions,
-): ReadonlyMap<unknown, string> {
+) {
   return new Map(makeEntries(value, adapter, new Set(), [], options))
 }
 

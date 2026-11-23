@@ -32,7 +32,7 @@ export function analyzeSchemas(schemas: { readonly [k: string]: Schema }) {
   const stack: string[] = []
   const onStack = new Set<string>()
   const components: (readonly string[])[] = []
-  const connect = (name: string): void => {
+  const connect = (name: string) => {
     index.set(name, index.size)
     low.set(name, index.size - 1)
     stack.push(name)
@@ -86,7 +86,7 @@ function makeTypeString(
   const optionalUndef = style.optionalUndefined === true ? '|undefined' : ''
   const base = types
     .filter((type) => type !== 'null')
-    .map((type): string => {
+    .map((type) => {
       if (type === 'string') return 'string'
       if (type === 'number' || type === 'integer') return 'number'
       if (type === 'boolean') return 'boolean'

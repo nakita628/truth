@@ -6,7 +6,7 @@ import { ajv } from './ajv.js'
  * Reconstruct a draft-07 object schema from `type`, `properties` and `required`.
  * Property values recurse through {@link ajv}; other object keywords are dropped.
  */
-export function object(schema: JSONSchema): string {
+export function object(schema: JSONSchema) {
   const parts: string[] = [`type:'object'`]
   if (schema.properties !== undefined) {
     const props = Object.entries(schema.properties).map(

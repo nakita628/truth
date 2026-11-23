@@ -1,4 +1,4 @@
-import type { ComponentAdapter, ExpressionParts } from '../../adapter/index.js'
+import type { ComponentAdapter } from '../../adapter/index.js'
 import { analyzeSchemas, collectSchemaRefs, makeCyclicType } from '../../helper/graph.js'
 import { wrapReferences } from '../../helper/identifiers.js'
 import type { Components, Schema } from '../../openapi/index.js'
@@ -83,7 +83,7 @@ function isSchema(value: unknown): value is Schema {
 }
 
 /** Rewrites a schema bottom-up with `fn`, following only subschemas (never example or default values). */
-function mapSchema(schema: Schema, fn: (node: Schema) => Schema): Schema {
+function mapSchema(schema: Schema, fn: (node: Schema) => Schema) {
   const map = (value: unknown): unknown => (isSchema(value) ? mapSchema(value, fn) : value)
   const node = Object.fromEntries(
     Object.entries(schema).map(([key, value]) => {
@@ -130,7 +130,7 @@ function makeCyclicContainer(
   ref?: string,
 ) {
   const groupIdentifiers = new Map(group.map((name) => [name, identifiers.get(name) ?? name]))
-  const localize = (node: Schema): Schema => {
+  const localize = (node: Schema) => {
     const key = node.$ref ? schemaRefToName(node.$ref) : undefined
     if (key === undefined) return node
     const groupIdent = groupIdentifiers.get(key)
@@ -161,7 +161,7 @@ function expressionParts(
   adapter: ComponentAdapter,
   schema: Schema,
   options: { readonly ref: string } | undefined,
-): ExpressionParts {
+) {
   return (
     adapter.toExpressionParts?.(schema, undefined, options) ?? {
       expression: adapter.toExpression(schema, undefined, options),

@@ -15,7 +15,7 @@ import { yup } from './yup.js'
  * @param options.openapi - Enable OpenAPI component-aware naming (default: false)
  * @returns Generated TypeScript/Yup code string
  */
-export function schemaToYup(input: JSONSchema, options?: GenerateOptions): string {
+export function schemaToYup(input: JSONSchema, options?: GenerateOptions) {
   const schema = sanitizeSchema(input)
   const exportType = options?.exportType ?? true
   const rootName = rootNameOf(schema, schemaNamer(options?.openapi))

@@ -5,7 +5,7 @@ import { effectError } from '../../utils/index.js'
 import { numberChecks, wireNumericInput } from './number.js'
 
 /** Whether a node is a 64-bit integer: a value beyond 2^53 that is read as a bigint. */
-export function isInt64(schema: JSONSchema): boolean {
+export function isInt64(schema: JSONSchema) {
   return schema.format === 'int64' || schema.format === 'uint64'
 }
 
@@ -15,13 +15,13 @@ export function isInt64(schema: JSONSchema): boolean {
  * safe-integer number, or the string of digits that is the only lossless way to carry a
  * larger one.
  */
-export function int64Input(isWire: boolean): string {
+export function int64Input(isWire: boolean) {
   if (isWire) return 'Schema.BigIntFromString'
   return `Schema.Union([Schema.BigInt,Schema.Number.check(Schema.isInt()),Schema.String.check(Schema.isPattern(${regexSource(INTEGER_TEXT_PATTERN)}))]).pipe(Schema.decodeTo(Schema.BigInt,SchemaTransformation.transform({decode:(input)=>BigInt(input),encode:(output)=>output})))`
 }
 
 /** The range check of `int64` / `uint64`, over bigints. */
-function int64Range(format: string): string {
+function int64Range(format: string) {
   const range = NUMBER_RANGES[format]
   if (range === undefined) return ''
   return `Schema.isBetweenBigInt({minimum:${range.minimum},maximum:${range.maximum}})`
@@ -35,7 +35,7 @@ function int64Range(format: string): string {
 export function integer(schema: JSONSchema, options?: { readonly wire?: boolean }) {
   const isWire = options?.wire === true
   const errorMessage = schema['x-error-message'] ?? schema['x-required-message']
-  const annotate = (base: string): string =>
+  const annotate = (base: string) =>
     errorMessage ? `${base}.annotate(${effectError(errorMessage)})` : base
   if (schema.format === 'bigint' || isInt64(schema)) {
     const lit = (n: number) => (schema.format === 'bigint' ? `BigInt(${n})` : `${n}n`)

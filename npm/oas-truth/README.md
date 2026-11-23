@@ -29,21 +29,11 @@ if (result.ok) {
   with `@apidevtools/swagger-parser` to resolve external `$ref`s
 - TypeSpec files (`.tsp`) are compiled with `@typespec/compiler` and then bundled; the compiler is
   loaded only for a `.tsp` input
-- Returns a `Result<OpenAPI>`, `{ ok: true, value } | { ok: false, error }`, and never throws: an
+- Returns `{ ok: true, value } | { ok: false, error }` and never throws: an
   unsupported input, a missing file, an unreachable URL and a TypeSpec diagnostic all come back as
   `error`
 
-The input is typed as `OpenAPIInput`. `isOpenAPIInput` narrows a CLI argument or a config value
-to it:
-
-```ts
-import { isOpenAPIInput, parseOpenAPI } from 'oas-truth'
-
-const input = process.argv[2]
-if (isOpenAPIInput(input)) {
-  const result = await parseOpenAPI(input)
-}
-```
+The input is typed as a template literal union of these documents (`Parameters<typeof parseOpenAPI>[0]`). A string that names none of them is checked at runtime too and comes back as `{ ok: false, error }` before anything is read.
 
 ## Component schemas
 

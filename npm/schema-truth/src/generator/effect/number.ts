@@ -8,7 +8,7 @@ export function numberChecks(
   schema: JSONSchema,
   lit: (n: number) => string = (n) => `${n}`,
   suffix = '',
-): readonly string[] {
+) {
   const minimumMessage = schema['x-minimum-message']
   const minErrorPart = effectErrorPart(minimumMessage)
   const maximumMessage = schema['x-maximum-message']
@@ -53,7 +53,7 @@ export function numberChecks(
 }
 
 /** The range check of a fixed-width numeric `format` that has one and no filter of its own. */
-function rangeCheck(format: string | undefined, suffix = ''): readonly string[] {
+function rangeCheck(format: string | undefined, suffix = '') {
   const range = format === undefined ? undefined : NUMBER_RANGES[format]
   if (range === undefined) return []
   return [`Schema.isBetween${suffix}({minimum:${range.minimum},maximum:${range.maximum}})`]
@@ -63,7 +63,7 @@ function rangeCheck(format: string | undefined, suffix = ''): readonly string[] 
  * Wire text checked against the integer or JSON number grammar, then decoded to a finite
  * number. `Schema.FiniteFromString` uses `Number`, which accepts `""`, `" "` and `"0x10"`.
  */
-export function wireNumericInput(kind: 'integer' | 'number'): string {
+export function wireNumericInput(kind: 'integer' | 'number') {
   const pattern = kind === 'integer' ? integerWirePattern() : numberWirePattern()
   return `Schema.String.check(Schema.isPattern(${pattern})).pipe(Schema.decodeTo(Schema.Finite,SchemaTransformation.transform({decode:(input)=>Number(input),encode:(output)=>String(output)})))`
 }

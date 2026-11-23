@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vite-plus/test'
 
 import {
-  isOpenAPIInput,
   isParamStyle,
   makeAdapter,
   makeMediaTypesCode,
@@ -44,10 +43,6 @@ describe('public API barrel', () => {
     expect(makeSecuritySchemesCode(components, false)).toBe(
       'export const BearerSecurityScheme={type:"http",scheme:"bearer"}\n',
     )
-  })
-
-  it('re-exports isOpenAPIInput', () => {
-    expect(isOpenAPIInput('https://example.com/openapi.json')).toBe(true)
   })
 
   it('re-exports isParamStyle', () => {

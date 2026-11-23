@@ -75,7 +75,7 @@ const commandLine = {
  * `reason.cause` and still carries the `ENOTDIR` / `EISDIR` line, so it is appended
  * whenever there is one.
  */
-function describeFailure(error: { readonly message: string }): string {
+function describeFailure(error: { readonly message: string }) {
   const cause = platformCause(error)
   return cause instanceof Error && cause.message !== ''
     ? `${error.message}: ${cause.message}`
@@ -83,7 +83,7 @@ function describeFailure(error: { readonly message: string }): string {
 }
 
 /** The host error a `PlatformError` wrapped, when it is one and it kept one. */
-function platformCause(error: unknown): unknown {
+function platformCause(error: unknown) {
   if (!isRecord(error)) return undefined
   const reason = error.reason
   return isRecord(reason) ? reason.cause : undefined

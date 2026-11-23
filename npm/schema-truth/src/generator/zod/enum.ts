@@ -20,7 +20,7 @@ import { isInt64 } from './integer.js'
  * come from `x-error-message`; finer-grained business rules belong in
  * handler code, not the schema.
  */
-function lit(v: unknown, isBigint: boolean): string {
+function lit(v: unknown, isBigint: boolean) {
   if (v === null) return 'null'
   if (typeof v === 'string') return `'${v.replaceAll("'", "\\'")}'`
   if (typeof v === 'number' && isBigint) return `${v}n`
@@ -52,18 +52,17 @@ export function _enum(schema: JSONSchema) {
   }
   // Inner literal — used inside a wrapper (z.union / z.tuple) that
   // already carries `errorArg`, so we don't repeat it.
-  const innerLit = (v: unknown): string => valueSchema(v)
+  const innerLit = (v: unknown) => valueSchema(v)
   // Outer literal — used when the literal is the entire schema output.
   // Composite single values carry no error arg (rare; structural matcher only).
-  const outerLit = (v: unknown): string =>
+  const outerLit = (v: unknown) =>
     isComposite(v) ? valueSchema(v) : `z.literal(${lit(v, isBigint)}${errorArg})`
   // Inner tuple — used inside a z.union of multiple tuples; the outer
   // union's errorArg covers this tuple too, so neither the tuple wrapper
   // nor its inner literals receive errorArg.
-  const innerTuple = (arr: readonly unknown[]): string =>
-    `z.tuple([${arr.map(innerLit).join(',')}])`
+  const innerTuple = (arr: readonly unknown[]) => `z.tuple([${arr.map(innerLit).join(',')}])`
   // Outer tuple — used when a single tuple is the entire schema output.
-  const outerTuple = (arr: readonly unknown[]): string =>
+  const outerTuple = (arr: readonly unknown[]) =>
     `z.tuple([${arr.map(innerLit).join(',')}]${errorArg})`
   if (hasType(schema, 'number') || hasType(schema, 'integer') || hasType(schema, 'boolean')) {
     return schema.enum.length > 1

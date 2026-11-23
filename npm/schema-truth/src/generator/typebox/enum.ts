@@ -2,7 +2,7 @@ import { isComposite } from '../../guard/index.js'
 import { typeboxDefaultOpt, typeboxMetaOpts, typeboxRefOpt } from '../../helper/meta.js'
 import type { JSONSchema } from '../../parser/index.js'
 
-function lit(v: unknown): string {
+function lit(v: unknown) {
   if (v === null) return 'null'
   if (typeof v === 'string') return JSON.stringify(v)
   if (typeof v === 'number' || typeof v === 'boolean') return String(v)
@@ -14,7 +14,7 @@ function lit(v: unknown): string {
  * (string | number | boolean | bigint only), so a `null` member is `Type.Null()`, not
  * `Type.Literal(null)`.
  */
-function member(v: unknown): string {
+function member(v: unknown) {
   return v === null ? 'Type.Null()' : `Type.Literal(${lit(v)})`
 }
 

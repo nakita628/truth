@@ -9,7 +9,7 @@ import type { SchemaDefinitions } from './schema.js'
  * time — there is no post-construction `.meta()` — so it must land in the
  * factory options object. Empty when the caller omitted `ref`.
  */
-export function typeboxRefOpt(ref?: string): readonly string[] {
+export function typeboxRefOpt(ref?: string) {
   return ref === undefined ? [] : [`ref:${JSON.stringify(ref)}`]
 }
 
@@ -21,7 +21,7 @@ export function typeboxRefOpt(ref?: string): readonly string[] {
  * `Type.X(payload, options)` constructor call. A host `ref` is emitted first
  * when supplied, in the same object as description / examples / deprecated.
  */
-export function typeboxMetaOpts(schema: JSONSchema, ref?: string): readonly string[] {
+export function typeboxMetaOpts(schema: JSONSchema, ref?: string) {
   const examples = examplesOf(schema)
   return [
     ...typeboxRefOpt(ref),
@@ -50,7 +50,7 @@ export function typeboxDefaultOpt(
   schema: JSONSchema,
   stringWire = false,
   definitions?: SchemaDefinitions,
-): readonly string[] {
+) {
   if (schema.default === undefined) return []
   const result = coerceDefault(schema, schema.default, definitions)
   if (!result.keep) return []

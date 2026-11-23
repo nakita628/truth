@@ -32,6 +32,13 @@ alone will not tell you.
 - **No default exports**, and no `require`. ESM only, `node:` protocol for built-in modules.
 - **No escape hatches**: no `any`, no non-null assertion, and `assertionStyle: 'never'` —
   `x as Y` does not compile here. Narrow with a type guard instead.
+- **Return types are inferred.** Leave the annotation off and let the body say it; give a
+  returned literal its narrow type with `as const` (`return { kind: 'lazy', name } as const`),
+  which `assertionStyle: 'never'` allows. Annotate only where inference cannot do the job: a
+  type predicate (`value is X`), a recursive function, a function whose declared type gives
+  the literal it returns its contextual type, or a value that would otherwise come back as
+  `any` (`(): unknown => JSON.parse(raw)`). Do not wrap a one-off expression in a helper or
+  an IIFE just to annotate it.
 - **Failures land in the error channel.** `fmt`, `parseJson` and `parseSchemaFile` are
   Effects. There is no `{ ok }` Result type. When something must throw, throw an
   `Error` with a message; name the catch binding `error`.

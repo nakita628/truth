@@ -3,14 +3,14 @@ import { valueToCode } from '../../helper/ref-resolver.js'
 import { makeSchemaReplacements } from '../../helper/schema-replacements.js'
 import type { Components } from '../../openapi/index.js'
 import { declarationFileName, toIdentifierPascalCase } from '../../utils/index.js'
-import type { ComponentCodeOptions, ComponentDeclaration } from './declaration.js'
+import type { ComponentCodeOptions } from './declaration.js'
 import { joinDeclarations } from './declaration.js'
 
 export function makeCallbacksDeclarations(
   components: Components,
   adapter: ComponentAdapter,
   options?: ComponentCodeOptions,
-): readonly ComponentDeclaration[] {
+) {
   const { callbacks } = components
   if (!callbacks) return []
   const asConst = options?.readonly === true ? ' as const' : ''
