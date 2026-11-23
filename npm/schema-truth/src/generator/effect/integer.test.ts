@@ -84,3 +84,34 @@ describe('effect integer', () => {
     })
   })
 })
+
+describe('effect integer: bigint bounds and divisors a bigint can take', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'integer', format: 'bigint', minimum: 0.5, maximum: 2.5 },
+      'Schema.BigInt.check(Schema.isGreaterThanOrEqualToBigInt(BigInt(1)),Schema.isLessThanOrEqualToBigInt(BigInt(2)))',
+    ],
+    [
+      { type: 'integer', format: 'bigint', exclusiveMinimum: 0.5, exclusiveMaximum: 2.5 },
+      'Schema.BigInt.check(Schema.isGreaterThanBigInt(BigInt(0)),Schema.isLessThanBigInt(BigInt(3)))',
+    ],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 0.5 },
+      'Schema.BigInt.check(Schema.makeFilter((input)=>input%BigInt(1)===0n))',
+    ],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 0, 'x-multipleOf-message': 'm' },
+      'Schema.BigInt',
+    ],
+    [
+      { type: 'integer', format: 'int64', minimum: 0.5, multipleOf: 2.5 },
+      String.raw`Schema.Union([Schema.BigInt,Schema.Number.check(Schema.isInt()),Schema.String.check(Schema.isPattern(/^-?\d+$/))]).pipe(Schema.decodeTo(Schema.BigInt,SchemaTransformation.transform({decode:(input)=>BigInt(input),encode:(output)=>output}))).check(Schema.isBetweenBigInt({minimum:-9223372036854775808n,maximum:9223372036854775807n}),Schema.isGreaterThanOrEqualToBigInt(1n),Schema.makeFilter((input)=>input%5n===0n))`,
+    ],
+    [
+      { type: 'integer', format: 'int64', maximum: 1e21 },
+      String.raw`Schema.Union([Schema.BigInt,Schema.Number.check(Schema.isInt()),Schema.String.check(Schema.isPattern(/^-?\d+$/))]).pipe(Schema.decodeTo(Schema.BigInt,SchemaTransformation.transform({decode:(input)=>BigInt(input),encode:(output)=>output}))).check(Schema.isBetweenBigInt({minimum:-9223372036854775808n,maximum:9223372036854775807n}),Schema.isLessThanOrEqualToBigInt(1000000000000000000000n))`,
+    ],
+  ])('integer(%o) -> %s', (schema, expected) => {
+    expect(integer(schema)).toBe(expected)
+  })
+})

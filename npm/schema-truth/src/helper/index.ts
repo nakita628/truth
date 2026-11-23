@@ -1,5 +1,6 @@
 export * from './all-of.js'
 export * from './arktype-wrap.js'
+export * from './bigint.js'
 export * from './code-extensions.js'
 export * from './cyclic.js'
 export * from './discriminator.js'

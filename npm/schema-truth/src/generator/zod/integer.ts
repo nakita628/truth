@@ -1,3 +1,4 @@
+import { bigintBounds } from '../../helper/bigint.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { zodBaseError, zodError, zodErrorPart } from '../../utils/index.js'
 import { zodWireNumber } from './number.js'
@@ -23,7 +24,9 @@ export function int64Input(isWire: boolean, baseErrorArg = '') {
  * min/max/multipleOf constraints and `x-*-message` vendor extensions translated
  * to Zod v4 `{error: "msg"}` parameters.
  */
-export function integer(schema: JSONSchema, options?: { readonly wire?: boolean }) {
+export function integer(node: JSONSchema, options?: { readonly wire?: boolean }) {
+  // A bigint check takes integer bounds and a positive integer divisor.
+  const schema = node.format === 'bigint' || isInt64(node) ? bigintBounds(node) : node
   const isWire = options?.wire === true
   const errorMessage = schema['x-error-message']
   const requiredMessage = schema['x-required-message']
@@ -49,7 +52,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
           : `z.int(${baseErrorArg})`
   const lit = (n: number) => {
     if (schema.format === 'bigint') return `BigInt(${n})`
-    if (is64) return `${n}n`
+    if (is64) return `${BigInt(n)}n`
     return `${n}`
   }
   const minimumMessage = schema['x-minimum-message'] ?? errorMessage

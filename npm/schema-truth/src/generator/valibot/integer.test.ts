@@ -64,3 +64,34 @@ describe('valibot integer', () => {
     })
   })
 })
+
+describe('valibot integer: bigint bounds and divisors a bigint can take', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'integer', format: 'bigint', minimum: 0.5, maximum: 2.5 },
+      'v.pipe(v.bigint(),v.minValue(BigInt(1)),v.maxValue(BigInt(2)))',
+    ],
+    [
+      { type: 'integer', format: 'bigint', exclusiveMinimum: 0.5, exclusiveMaximum: 2.5 },
+      'v.pipe(v.bigint(),v.gtValue(BigInt(0)),v.ltValue(BigInt(3)))',
+    ],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 0.5 },
+      'v.pipe(v.bigint(),v.multipleOf(BigInt(1)))',
+    ],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 0, 'x-multipleOf-message': 'm' },
+      'v.bigint()',
+    ],
+    [
+      { type: 'integer', format: 'int64', minimum: 0.5, multipleOf: 2.5 },
+      String.raw`v.pipe(v.union([v.bigint(),v.pipe(v.number(),v.integer()),v.pipe(v.string(),v.regex(/^-?\d+$/))]),v.transform((input)=>BigInt(input)),v.minValue(-9223372036854775808n),v.maxValue(9223372036854775807n),v.minValue(1n),v.multipleOf(5n))`,
+    ],
+    [
+      { type: 'integer', format: 'int64', maximum: 1e21 },
+      String.raw`v.pipe(v.union([v.bigint(),v.pipe(v.number(),v.integer()),v.pipe(v.string(),v.regex(/^-?\d+$/))]),v.transform((input)=>BigInt(input)),v.minValue(-9223372036854775808n),v.maxValue(9223372036854775807n),v.maxValue(1000000000000000000000n))`,
+    ],
+  ])('integer(%o) -> %s', (schema, expected) => {
+    expect(integer(schema)).toBe(expected)
+  })
+})

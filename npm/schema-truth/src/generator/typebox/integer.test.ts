@@ -176,3 +176,24 @@ describe('typebox integer', () => {
     })
   })
 })
+
+describe('typebox integer: bigint bounds and divisors a bigint can take', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'integer', format: 'bigint', minimum: 0.5, maximum: 2.5 },
+      'Type.BigInt({minimum:1,maximum:2})',
+    ],
+    [
+      { type: 'integer', format: 'bigint', exclusiveMinimum: 0.5, exclusiveMaximum: 2.5 },
+      'Type.BigInt({exclusiveMinimum:0,exclusiveMaximum:3})',
+    ],
+    [{ type: 'integer', format: 'bigint', multipleOf: 0.5 }, 'Type.BigInt({multipleOf:1})'],
+    [
+      { type: 'integer', format: 'bigint', multipleOf: 0, 'x-multipleOf-message': 'm' },
+      'Type.BigInt()',
+    ],
+    [{ type: 'integer', format: 'bigint', default: 5 }, 'Type.BigInt({default:BigInt(5)})'],
+  ])('integer(%o) -> %s', (schema, expected) => {
+    expect(integer(schema)).toBe(expected)
+  })
+})

@@ -1,4 +1,5 @@
 import { INTEGER_TEXT_PATTERN, NUMBER_RANGES } from '../../constants/index.js'
+import { bigintBounds } from '../../helper/bigint.js'
 import { regexSource } from '../../helper/format.js'
 import type { JSONSchema } from '../../parser/index.js'
 import {
@@ -72,7 +73,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
   const describe = errorMessage ? `.describe(${JSON.stringify(errorMessage)})` : ''
 
   if (schema.format === 'bigint') {
-    const narrows = bigintNarrows(schema, (n) => `BigInt(${n})`)
+    const narrows = bigintNarrows(bigintBounds(schema), (n) => `BigInt(${n})`)
     const base =
       options?.wire === true
         ? bigintMorph(true)
@@ -82,7 +83,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
     return `${base}${narrows}${describe}`
   }
   if (isInt64(schema)) {
-    return `${bigintMorph(options?.wire === true)}${bigintNarrows(schema, (n) => `${n}n`)}${describe}`
+    return `${bigintMorph(options?.wire === true)}${bigintNarrows(bigintBounds(schema), (n) => `${BigInt(n)}n`)}${describe}`
   }
 
   const range = rangeConstraints(schema.format)

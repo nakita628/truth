@@ -1,4 +1,5 @@
 import { INTEGER_TEXT_PATTERN, NUMBER_RANGES } from '../../constants/index.js'
+import { bigintBounds } from '../../helper/bigint.js'
 import { regexSource } from '../../helper/format.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { effectError } from '../../utils/index.js'
@@ -38,10 +39,10 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
   const annotate = (base: string) =>
     errorMessage ? `${base}.annotate(${effectError(errorMessage)})` : base
   if (schema.format === 'bigint' || isInt64(schema)) {
-    const lit = (n: number) => (schema.format === 'bigint' ? `BigInt(${n})` : `${n}n`)
+    const lit = (n: number) => (schema.format === 'bigint' ? `BigInt(${n})` : `${BigInt(n)}n`)
     const checks = [
       ...(schema.format === 'bigint' ? [] : [int64Range(schema.format ?? '')]),
-      ...numberChecks(schema, lit, 'BigInt'),
+      ...numberChecks(bigintBounds(schema), lit, 'BigInt'),
     ].filter((check) => check !== '')
     const input =
       schema.format === 'bigint'
