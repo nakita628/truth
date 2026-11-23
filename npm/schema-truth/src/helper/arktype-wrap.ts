@@ -29,7 +29,8 @@ export function arktypeUnionLimit(members: readonly string[]) {
 
 /**
  * The top-level members of a string-DSL definition (its text without the outer quotes):
- * the text split at each ` | ` outside a quoted literal and outside brackets.
+ * the text split at each ` | ` outside a quoted literal (where a backslash escapes the next
+ * character) and outside brackets.
  */
 export function dslUnionMembers(definition: string) {
   const members: string[] = []
@@ -39,7 +40,8 @@ export function dslUnionMembers(definition: string) {
   for (let i = 0; i < definition.length; i += 1) {
     const char = definition[i]
     if (quote !== '') {
-      if (char === quote) quote = ''
+      if (char === '\\') i += 1
+      else if (char === quote) quote = ''
     } else if (char === "'" || char === '"') {
       quote = char
     } else if (char === '(' || char === '[' || char === '{') {

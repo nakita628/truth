@@ -695,19 +695,39 @@ describe('nullable-default', () => {
 })
 
 describe('nullable-long-enum', () => {
-  const valid = { typeArray: 'v11', nullableType: null, anyOfNull: 'v0', anyOfStringNull: 'other' }
+  const valid = {
+    typeArray: 'v11',
+    nullableType: null,
+    anyOfNull: 'v0',
+    anyOfStringNull: 'other',
+    formatUnion: 'a@example.com',
+    longFormatUnion: 1,
+    tupleRest: ['x', 'v0', null],
+    nullableTupleRest: ['x', 'v11', null],
+  }
 
   it('valid: a member, null and a string', () => {
     expect(NullableLongEnum(valid)).toStrictEqual(valid)
-    expect(
-      NullableLongEnum({ typeArray: null, nullableType: 'v5', anyOfNull: null, anyOfStringNull: null }),
-    ).toStrictEqual({ typeArray: null, nullableType: 'v5', anyOfNull: null, anyOfStringNull: null })
+    const other = {
+      ...valid,
+      typeArray: null,
+      nullableType: 'v5',
+      anyOfNull: null,
+      anyOfStringNull: null,
+      formatUnion: 'v10',
+      longFormatUnion: 'v11',
+      tupleRest: ['x'],
+    }
+    expect(NullableLongEnum(other)).toStrictEqual(other)
   })
 
   it('invalid: a value outside the enum', () => {
     expect(NullableLongEnum({ ...valid, typeArray: 'v12' })).toBeInstanceOf(type.errors)
     expect(NullableLongEnum({ ...valid, nullableType: 'v12' })).toBeInstanceOf(type.errors)
     expect(NullableLongEnum({ ...valid, anyOfNull: 'v12' })).toBeInstanceOf(type.errors)
+    expect(NullableLongEnum({ ...valid, formatUnion: 'v11' })).toBeInstanceOf(type.errors)
+    expect(NullableLongEnum({ ...valid, tupleRest: ['x', 'v12'] })).toBeInstanceOf(type.errors)
+    expect(NullableLongEnum({ ...valid, nullableTupleRest: ['x', 1] })).toBeInstanceOf(type.errors)
   })
 })
 

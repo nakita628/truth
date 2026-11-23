@@ -1036,3 +1036,30 @@ describe('a union with a member that is not a string literal is shorter in the s
     expect(arktype(input)).toBe(expected)
   })
 })
+
+describe('an unevaluatedItems rest that is an expression stays an expression (#58)', () => {
+  const literals = Array.from({ length: 12 }, (_, i) => `'v${i}'`)
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      {
+        type: 'array',
+        prefixItems: [{ type: 'string' }],
+        unevaluatedItems: { enum: [...Array.from({ length: 12 }, (_, i) => `v${i}`), null] },
+      },
+      `type(["string","...",type.enumerated(${literals.join(',')},null).array()])`,
+    ],
+    [
+      {
+        type: 'array',
+        prefixItems: [{ type: 'string' }],
+        unevaluatedItems: {
+          type: ['string', 'null'],
+          enum: Array.from({ length: 12 }, (_, i) => `v${i}`),
+        },
+      },
+      `type(["string","...",type("${literals.join(' | ')}").or("null").array()])`,
+    ],
+  ])('arktype(%o) → %s', (input, expected) => {
+    expect(arktype(input)).toBe(expected)
+  })
+})

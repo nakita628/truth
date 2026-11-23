@@ -486,8 +486,14 @@ function node(
       const tupleExpr = isSchemaObject(unevaluatedItems)
         ? (() => {
             const rest = arktype(unevaluatedItems, rootName, isArktype, options)
-            const restInner = isQuoted(rest) ? rest.slice(1, -1) : rest
-            return `type([${items.join(',')},"...","${restInner}[]"])`
+            // A rest that is an expression rather than a quoted definition — a long union
+            // written as `type.enumerated(...)` or an `.or` chain — becomes an array value.
+            const restArray = isQuoted(rest)
+              ? `"${rest.slice(1, -1)}[]"`
+              : isArktypeDefinition(rest)
+                ? `[${rest},"[]"]`
+                : `${rest}.array()`
+            return `type([${items.join(',')},"...",${restArray}])`
           })()
         : `type([${items.join(',')}])`
       const baseTuple = arktypeWrap(
