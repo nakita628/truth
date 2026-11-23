@@ -84,7 +84,7 @@ gh label create claude -R nakita628/truth --description "Hand this issue to the 
 
 ## Contributing
 
-Pull requests follow [the template](./.github/pull_request_template.md). CI is `pnpm check` plus `bazel test //...`; both must pass. The conventions the linters enforce, and the reasons behind them, are in [AGENTS.md](./AGENTS.md) and the per-package rule files under [`docs/rules/`](./docs/rules).
+Pull requests follow [the template](./.github/pull_request_template.md). CI is `pnpm check` plus `bazel test //...`; both must pass. The conventions the linters enforce, and the reasons behind them, are in [CONTRIBUTING.md](./CONTRIBUTING.md) and the per-package rule files under [`docs/rules/`](./docs/rules).
 
 ## License
 
