@@ -26,6 +26,7 @@ import { User as MetaUser } from '../meta/output.ts'
 import { Order as NestedOrder } from '../nested/output.ts'
 import { NotString } from '../not/output.ts'
 import { MaybeString } from '../nullable-default/output.ts'
+import { Schema as NullableLongEnum } from '../nullable-long-enum/output.ts'
 import { Shape as OneofShape } from '../oneof/output.ts'
 import { PatternBag } from '../pattern-properties/output.ts'
 import { Tuple } from '../prefix-items-unevaluated/output.ts'
@@ -690,6 +691,43 @@ describe('nullable-default', () => {
     expect(issues(result)).toStrictEqual([
       { path: [], code: 'predicate', message: 'must be a string or null (was a number)' },
     ])
+  })
+})
+
+describe('nullable-long-enum', () => {
+  const valid = {
+    typeArray: 'v11',
+    nullableType: null,
+    anyOfNull: 'v0',
+    anyOfStringNull: 'other',
+    formatUnion: 'a@example.com',
+    longFormatUnion: 1,
+    tupleRest: ['x', 'v0', null],
+    nullableTupleRest: ['x', 'v11', null],
+  }
+
+  it('valid: a member, null and a string', () => {
+    expect(NullableLongEnum(valid)).toStrictEqual(valid)
+    const other = {
+      ...valid,
+      typeArray: null,
+      nullableType: 'v5',
+      anyOfNull: null,
+      anyOfStringNull: null,
+      formatUnion: 'v10',
+      longFormatUnion: 'v11',
+      tupleRest: ['x'],
+    }
+    expect(NullableLongEnum(other)).toStrictEqual(other)
+  })
+
+  it('invalid: a value outside the enum', () => {
+    expect(NullableLongEnum({ ...valid, typeArray: 'v12' })).toBeInstanceOf(type.errors)
+    expect(NullableLongEnum({ ...valid, nullableType: 'v12' })).toBeInstanceOf(type.errors)
+    expect(NullableLongEnum({ ...valid, anyOfNull: 'v12' })).toBeInstanceOf(type.errors)
+    expect(NullableLongEnum({ ...valid, formatUnion: 'v11' })).toBeInstanceOf(type.errors)
+    expect(NullableLongEnum({ ...valid, tupleRest: ['x', 'v12'] })).toBeInstanceOf(type.errors)
+    expect(NullableLongEnum({ ...valid, nullableTupleRest: ['x', 1] })).toBeInstanceOf(type.errors)
   })
 })
 

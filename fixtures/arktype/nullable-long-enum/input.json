@@ -1,0 +1,212 @@
+{
+  "type": "object",
+  "properties": {
+    "typeArray": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "v0",
+        "v1",
+        "v2",
+        "v3",
+        "v4",
+        "v5",
+        "v6",
+        "v7",
+        "v8",
+        "v9",
+        "v10",
+        "v11",
+        null
+      ]
+    },
+    "nullableType": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "v0",
+        "v1",
+        "v2",
+        "v3",
+        "v4",
+        "v5",
+        "v6",
+        "v7",
+        "v8",
+        "v9",
+        "v10",
+        "v11"
+      ]
+    },
+    "anyOfNull": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "v0",
+            "v1",
+            "v2",
+            "v3",
+            "v4",
+            "v5",
+            "v6",
+            "v7",
+            "v8",
+            "v9",
+            "v10",
+            "v11"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "anyOfStringNull": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "string",
+          "enum": [
+            "v0",
+            "v1",
+            "v2",
+            "v3",
+            "v4",
+            "v5",
+            "v6",
+            "v7",
+            "v8",
+            "v9",
+            "v10",
+            "v11"
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "formatUnion": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "v0",
+            "v1",
+            "v2",
+            "v3",
+            "v4",
+            "v5",
+            "v6",
+            "v7",
+            "v8",
+            "v9",
+            "v10"
+          ]
+        },
+        {
+          "type": "string",
+          "format": "email"
+        }
+      ]
+    },
+    "longFormatUnion": {
+      "anyOf": [
+        {
+          "type": "string",
+          "enum": [
+            "v0",
+            "v1",
+            "v2",
+            "v3",
+            "v4",
+            "v5",
+            "v6",
+            "v7",
+            "v8",
+            "v9",
+            "v10",
+            "v11"
+          ]
+        },
+        {
+          "type": "string",
+          "format": "email"
+        },
+        {
+          "type": "integer"
+        }
+      ]
+    },
+    "tupleRest": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "string"
+        }
+      ],
+      "unevaluatedItems": {
+        "enum": [
+          "v0",
+          "v1",
+          "v2",
+          "v3",
+          "v4",
+          "v5",
+          "v6",
+          "v7",
+          "v8",
+          "v9",
+          "v10",
+          "v11",
+          null
+        ]
+      }
+    },
+    "nullableTupleRest": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "type": "string"
+        }
+      ],
+      "unevaluatedItems": {
+        "type": [
+          "string",
+          "null"
+        ],
+        "enum": [
+          "v0",
+          "v1",
+          "v2",
+          "v3",
+          "v4",
+          "v5",
+          "v6",
+          "v7",
+          "v8",
+          "v9",
+          "v10",
+          "v11"
+        ]
+      }
+    }
+  },
+  "required": [
+    "typeArray",
+    "nullableType",
+    "anyOfNull",
+    "anyOfStringNull",
+    "formatUnion",
+    "longFormatUnion",
+    "tupleRest",
+    "nullableTupleRest"
+  ]
+}

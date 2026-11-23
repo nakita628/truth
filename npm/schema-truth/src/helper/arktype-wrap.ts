@@ -4,6 +4,61 @@ import { readCodeExtension } from './code-extensions.js'
 import type { CodeExtensionOptions } from './code-extensions.js'
 
 /**
+ * The most members a string-DSL union of string literals (`"'a' | 'b' | ..."`) may have.
+ * ArkType parses the string at the type level, and a longer union exceeds TypeScript's
+ * instantiation depth (TS2589), so a longer one is written another way.
+ */
+const ARKTYPE_STRING_UNION_LIMIT = 16
+
+/**
+ * The most members a string-DSL union may have when one of them is not a string literal
+ * (`null`, a number, a keyword such as `string`): such a union exceeds TypeScript's
+ * instantiation depth sooner, at 13 members.
+ */
+const ARKTYPE_MIXED_UNION_LIMIT = 12
+
+/** A string-DSL member that is one string literal. */
+const DSL_STRING_LITERAL_PATTERN = /^'[^'\\]*'$/u
+
+/** The most members a string-DSL union of `members` may have. */
+export function arktypeUnionLimit(members: readonly string[]) {
+  return members.every((member) => DSL_STRING_LITERAL_PATTERN.test(member))
+    ? ARKTYPE_STRING_UNION_LIMIT
+    : ARKTYPE_MIXED_UNION_LIMIT
+}
+
+/**
+ * The top-level members of a string-DSL definition (its text without the outer quotes):
+ * the text split at each ` | ` outside a quoted literal (where a backslash escapes the next
+ * character) and outside brackets.
+ */
+export function dslUnionMembers(definition: string) {
+  const members: string[] = []
+  let depth = 0
+  let quote = ''
+  let start = 0
+  for (let i = 0; i < definition.length; i += 1) {
+    const char = definition[i]
+    if (quote !== '') {
+      if (char === '\\') i += 1
+      else if (char === quote) quote = ''
+    } else if (char === "'" || char === '"') {
+      quote = char
+    } else if (char === '(' || char === '[' || char === '{') {
+      depth += 1
+    } else if (char === ')' || char === ']' || char === '}') {
+      depth -= 1
+    } else if (depth === 0 && definition.startsWith(' | ', i)) {
+      members.push(definition.slice(start, i))
+      start = i + 3
+      i += 2
+    }
+  }
+  members.push(definition.slice(start))
+  return members
+}
+
+/**
  * A definition a callback checks values against at validation time. Inside
  * `scope({...})` it goes through the scope (bound to `$`), which resolves the aliases
  * it may name; the global `type(...)` cannot. An expression that already evaluates to a
@@ -77,10 +132,12 @@ export function arktypePreprocess(
 export function arktypeWrap(arktypeStr: string, schema: JSONSchema, options?: ArktypeWrapOptions) {
   const inScope = options?.scopeMode === true
   const isDefinition = isArktypeDefinition
-  // A quoted definition takes the string-union shortcut instead of `.or`.
+  // A quoted definition takes the string-union shortcut instead of `.or`, unless the
+  // union with `null` would be too long for the string DSL.
   const withNullable =
     isNullable(schema) && options?.nullSchema !== true
-      ? isQuoted(arktypeStr)
+      ? isQuoted(arktypeStr) &&
+        dslUnionMembers(arktypeStr.slice(1, -1)).length < ARKTYPE_MIXED_UNION_LIMIT
         ? `"${arktypeStr.slice(1, -1)} | null"`
         : inScope && isDefinition(arktypeStr)
           ? `[${arktypeStr},"|","null"]`

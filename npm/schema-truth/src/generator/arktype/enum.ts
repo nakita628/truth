@@ -1,5 +1,6 @@
 import { QUOTE_OR_BACKSLASH_PATTERN } from '../../constants/index.js'
 import { isComposite } from '../../guard/index.js'
+import { arktypeUnionLimit } from '../../helper/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { isInt64 } from './integer.js'
 
@@ -12,13 +13,6 @@ function lit(v: unknown, isBigint: boolean) {
   return JSON.stringify(v) ?? 'null'
 }
 
-/**
- * The most members a string-DSL union (`"'a' | 'b' | ..."`) may have. ArkType parses the
- * string at the type level, and a longer union exceeds TypeScript's instantiation depth
- * (TS2589), so a longer one is written another way.
- */
-export const ARKTYPE_STRING_UNION_LIMIT = 16
-
 /** A member of a string-DSL union that is one literal, and the same text as a JS literal. */
 const DSL_LITERAL_PATTERN = /^(?:'[^'\\]*'|-?\d+(?:\.\d+)?(?:e[+-]?\d+)?n?|true|false|null)$/u
 
@@ -29,7 +23,7 @@ export function isDslLiteralUnion(members: readonly string[]) {
 
 /**
  * The ArkType definition of an enum: a `"a | b | c"` string union, or
- * `type.enumerated(a, b, c)` past {@link ARKTYPE_STRING_UNION_LIMIT} members. The members of an
+ * `type.enumerated(a, b, c)` past the members {@link arktypeUnionLimit} allows. The members of an
  * int64 / uint64 enum are bigint literals, as the value they match is.
  */
 export function _enum(schema: JSONSchema) {
@@ -64,7 +58,7 @@ export function _enum(schema: JSONSchema) {
   }
 
   const members = schema.enum.map((v) => lit(v, isBigint))
-  if (members.length > ARKTYPE_STRING_UNION_LIMIT) {
+  if (members.length > arktypeUnionLimit(members)) {
     return `type.enumerated(${members.join(',')})${describe}`
   }
   const expr = `"${members.join(' | ')}"`
