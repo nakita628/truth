@@ -95,3 +95,18 @@ describe('valibot integer: bigint bounds and divisors a bigint can take', () => 
     expect(integer(schema)).toBe(expected)
   })
 })
+
+describe('valibot integer read from wire text', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'integer', minimum: 1, maximum: 100 },
+      "v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.metadata({type:'integer',minimum:1,maximum:100}),v.transform((input)=>Number(input)),v.number(),v.safeInteger(),v.minValue(1),v.maxValue(100))",
+    ],
+    [
+      { type: 'integer', format: 'int32' },
+      "v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.metadata({type:'integer',minimum:-2147483648,maximum:2147483647}),v.transform((input)=>Number(input)),v.number(),v.safeInteger(),v.minValue(-2147483648),v.maxValue(2147483647))",
+    ],
+  ])('integer(%o, { wire: true }) → %s', (input, expected) => {
+    expect(integer(input, { wire: true })).toBe(expected)
+  })
+})

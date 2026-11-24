@@ -4,7 +4,7 @@ import { regexSource } from '../../helper/format.js'
 import { integerWirePattern } from '../../helper/wire.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { valibotError } from '../../utils/index.js'
-import { numberActions, rangeActions } from './number.js'
+import { numberActions, rangeActions, wireNumberMetadata } from './number.js'
 
 /** Whether a node is a 64-bit integer: a value beyond 2^53 that is read as a bigint. */
 export function isInt64(schema: JSONSchema) {
@@ -76,6 +76,7 @@ export function integer(schema: JSONSchema, options?: { readonly wire?: boolean 
     ? [
         'v.string()',
         `v.regex(${integerWirePattern()}${regexError})`,
+        wireNumberMetadata('integer', schema),
         'v.transform((input)=>Number(input))',
       ]
     : []

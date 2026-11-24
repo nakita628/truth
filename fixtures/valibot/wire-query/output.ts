@@ -12,6 +12,7 @@ export const Query = v.pipe(
       v.pipe(
         v.string(),
         v.regex(/^-?(?:0|[1-9]\d*)$/),
+        v.metadata({ type: 'integer', minimum: 1 }),
         v.transform((input) => Number(input)),
         v.number(),
         v.safeInteger(),
@@ -27,6 +28,7 @@ export const Query = v.pipe(
           v.pipe(
             v.string(),
             v.regex(/^-?(?:0|[1-9]\d*)$/),
+            v.metadata({ type: 'integer' }),
             v.transform((input) => Number(input)),
             v.number(),
             v.safeInteger(),
@@ -38,6 +40,7 @@ export const Query = v.pipe(
       v.pipe(
         v.string(),
         v.regex(/^-?(?:0|[1-9]\d*)$/),
+        v.metadata({ type: 'integer', enum: [1, -1] }),
         v.transform((input) => Number(input)),
         v.union([v.literal(1), v.literal(-1)]),
       ),
@@ -58,6 +61,7 @@ export const Query = v.pipe(
           v.pipe(
             v.string(),
             v.regex(/^-?(?:0|[1-9]\d*)$/),
+            v.metadata({ type: 'integer' }),
             v.transform((input) => Number(input)),
             v.number(),
             v.safeInteger(),
@@ -78,6 +82,7 @@ export const Query = v.pipe(
       v.pipe(
         v.string(),
         v.regex(/^-?(?:0|[1-9]\d*)(?:\.\d+)?(?:[eE][+-]?\d+)?$/),
+        v.metadata({ type: 'number', minimum: 0 }),
         v.transform((input) => Number(input)),
         v.number(),
         v.finite(),
@@ -88,6 +93,7 @@ export const Query = v.pipe(
       v.pipe(
         v.string(),
         v.regex(/^-?(?:0|[1-9]\d*)$/),
+        v.metadata({ type: 'integer' }),
         v.transform((input) => Number(input)),
         v.number(),
         v.safeInteger(),
@@ -99,6 +105,7 @@ export const Query = v.pipe(
         v.pipe(
           v.string(),
           v.regex(/^-?(?:0|[1-9]\d*)$/),
+          v.metadata({ type: 'integer' }),
           v.transform((input) => Number(input)),
           v.number(),
           v.safeInteger(),
@@ -114,6 +121,7 @@ export const Query = v.pipe(
       v.pipe(
         v.string(),
         v.regex(/^-?(?:0|[1-9]\d*)$/),
+        v.metadata({ type: 'integer' }),
         v.transform((input) => Number(input)),
         v.number(),
         v.safeInteger(),

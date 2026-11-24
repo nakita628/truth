@@ -66,6 +66,14 @@ text is split (`form` with `explode: false` reads `1,2,3`, `deepObject` gathers 
 `toExpression(schema, paramIn, { style, explode, allowEmptyValue })` takes the same options, and
 `isParamStyle` narrows a free-form `style` to one it reads. TypeBox ignores the three options.
 
+A Valibot `integer` / `number` parameter is a pipe that checks the text, then reads it with
+`Number`. `@valibot/to-json-schema` documents the input side of a pipe only up to its
+`v.transform`, so the pipe carries a `v.metadata({ type, minimum, ... })` that gives the document
+the spec's type and bounds back; the text's `pattern` stays beside them, and a `default` is
+still the text. An exclusive bound is written as a number, the form of the converter's default
+target (draft-07); a target that spells it another way, such as OpenAPI 3.0's boolean
+`exclusiveMinimum`, is not followed. A 64-bit integer, read into a `bigint`, is not annotated.
+
 `wrapSchema(expr, slot)` is slot-aware (`response-content`, `request-content`, `header`,
 `parameter`, `media-type`). TypeBox imports from `typebox` and reserves `Compile`. Pass
 `{ ref: true }` to `makeSchemaDeclarations` to register the OpenAPI key — TypeBox writes it

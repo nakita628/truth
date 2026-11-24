@@ -1337,6 +1337,17 @@ describe('valibot fixtures: wire-query runtime', () => {
     expect(v.safeParse(WireQuery, { page: '1', offset: '' }).success).toBe(false)
   })
 
+  it('annotates each number read from text with the type and bounds the spec gives it', () => {
+    // `@valibot/to-json-schema` copies this metadata into the document of the input side,
+    // which otherwise stops at the `v.transform` and says `string`.
+    const { entries } = WireQuery.pipe[2]
+    expect(v.getMetadata(entries.page.wrapped)).toStrictEqual({ type: 'integer', minimum: 1 })
+    expect(v.getMetadata(entries.ids.wrapped.pipe[2].item)).toStrictEqual({ type: 'integer' })
+    expect(v.getMetadata(entries.sort.wrapped)).toStrictEqual({ type: 'integer', enum: [1, -1] })
+    expect(v.getMetadata(entries.offset.wrapped)).toStrictEqual({ type: 'number', minimum: 0 })
+    expect(v.getMetadata(entries.email.wrapped)).toStrictEqual({})
+  })
+
   it('reports a bad array element at its index', () => {
     const result = v.safeParse(WireQuery, { ids: ['1', 'x'] })
     expect(result.issues?.map((issue) => issue.path?.map((item) => item.key))).toStrictEqual([

@@ -37,7 +37,7 @@ describe('makeParametersCode', () => {
       },
     } as unknown as Components
     expect(makeParametersCode(components, valibot, true)).toBe(
-      "import * as v from 'valibot'\n\nexport const LimitParamsSchema=v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.transform((input)=>Number(input)),v.number(),v.safeInteger(),v.minValue(1))\n\nexport type LimitParamsSchema=v.InferOutput<typeof LimitParamsSchema>\n",
+      "import * as v from 'valibot'\n\nexport const LimitParamsSchema=v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.metadata({type:'integer',minimum:1}),v.transform((input)=>Number(input)),v.number(),v.safeInteger(),v.minValue(1))\n\nexport type LimitParamsSchema=v.InferOutput<typeof LimitParamsSchema>\n",
     )
   })
 

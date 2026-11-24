@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test'
 
 import type { JSONSchema } from '../../parser/index.js'
-import { number } from './number.js'
+import { number, wireNumberMetadata } from './number.js'
 
 describe('valibot number', () => {
   it.concurrent.each<[JSONSchema, string]>([
@@ -73,5 +73,50 @@ describe('valibot number with both an inclusive and a numeric exclusive bound', 
     ],
   ])('number(%o) → %s', (input, expected) => {
     expect(number(input)).toBe(expected)
+  })
+})
+
+describe('valibot wireNumberMetadata', () => {
+  it.concurrent.each<[Parameters<typeof wireNumberMetadata>, string]>([
+    [['integer', { type: 'integer' }], "v.metadata({type:'integer'})"],
+    [
+      ['integer', { type: 'integer', minimum: 1, maximum: 100 }],
+      "v.metadata({type:'integer',minimum:1,maximum:100})",
+    ],
+    // An OpenAPI 3.0 boolean exclusive bound is written as the number draft-07 and 2020-12 use.
+    [
+      ['number', { type: 'number', minimum: 0, exclusiveMinimum: true, maximum: 1 }],
+      "v.metadata({type:'number',exclusiveMinimum:0,maximum:1})",
+    ],
+    [
+      ['number', { type: 'number', maximum: 1, exclusiveMaximum: true }],
+      "v.metadata({type:'number',exclusiveMaximum:1})",
+    ],
+    [
+      ['number', { type: 'number', minimum: 1, exclusiveMinimum: 5, exclusiveMaximum: 8 }],
+      "v.metadata({type:'number',minimum:1,exclusiveMinimum:5,exclusiveMaximum:8})",
+    ],
+    [['number', { type: 'number', multipleOf: 0.5 }], "v.metadata({type:'number',multipleOf:0.5})"],
+    // The range of a fixed-width format is documented, narrowed by the spec's own bound.
+    [
+      ['integer', { type: 'integer', format: 'int32', minimum: 0 }],
+      "v.metadata({type:'integer',minimum:0,maximum:2147483647})",
+    ],
+    [
+      ['number', { type: 'number', format: 'float' }],
+      "v.metadata({type:'number',minimum:-3.4028234663852886e+38,maximum:3.4028234663852886e+38})",
+    ],
+    [['integer', {}, [1, -1]], "v.metadata({type:'integer',enum:[1,-1]})"],
+  ])('wireNumberMetadata(%o) → %s', (args, expected) => {
+    expect(wireNumberMetadata(...args)).toBe(expected)
+  })
+
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'number', minimum: 0 },
+      "v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/),v.metadata({type:'number',minimum:0}),v.transform((input)=>Number(input)),v.number(),v.finite(),v.minValue(0))",
+    ],
+  ])('number(%o, { wire: true }) → %s', (input, expected) => {
+    expect(number(input, { wire: true })).toBe(expected)
   })
 })
