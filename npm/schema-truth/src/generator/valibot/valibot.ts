@@ -54,7 +54,7 @@ import {
 } from '../../utils/index.js'
 import { _enum } from './enum.js'
 import { int64Input, integer, isInt64 } from './integer.js'
-import { number } from './number.js'
+import { number, wireNumberMetadata } from './number.js'
 import { object } from './object.js'
 import { string } from './string.js'
 
@@ -213,9 +213,14 @@ function node(
     if (values.every((v) => typeof v === 'number')) {
       if (isInt64(schema)) return int64Input(isWireCoerced)
       if (isWireCoerced) {
-        const pattern =
-          wireNumericKind(schema, values) === 'integer' ? integerWirePattern() : numberWirePattern()
-        return ['v.string()', `v.regex(${pattern})`, 'v.transform((input)=>Number(input))']
+        const kind = wireNumericKind(schema, values)
+        const pattern = kind === 'integer' ? integerWirePattern() : numberWirePattern()
+        return [
+          'v.string()',
+          `v.regex(${pattern})`,
+          wireNumberMetadata(kind, {}, values),
+          'v.transform((input)=>Number(input))',
+        ]
       }
     }
     if (isWireCoerced && values.every((v) => typeof v === 'boolean')) return stringboolItems('')

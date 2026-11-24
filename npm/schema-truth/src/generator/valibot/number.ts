@@ -63,6 +63,54 @@ export function rangeActions(format: string | undefined) {
 }
 
 /**
+ * The `v.metadata` that documents wire text as the number it is read into. A JSON Schema
+ * converter that describes the input side (`@valibot/to-json-schema` with
+ * `typeMode: 'input'`) stops at the pipe's `v.transform`, so without it the parameter is a
+ * `string` with a `pattern`; the metadata gives it the spec's `type` and bounds back. An
+ * exclusive bound is the number draft-07 and 2020-12 write, the converter's default target;
+ * OpenAPI 3.0's boolean form is not followed.
+ */
+export function wireNumberMetadata(
+  kind: 'integer' | 'number',
+  schema: JSONSchema,
+  values?: readonly unknown[],
+) {
+  const isExclusiveMinimum = schema.exclusiveMinimum === true
+  const isExclusiveMaximum = schema.exclusiveMaximum === true
+  const exclusiveMinimum = isExclusiveMinimum ? schema.minimum : schema.exclusiveMinimum
+  const exclusiveMaximum = isExclusiveMaximum ? schema.maximum : schema.exclusiveMaximum
+  // The range of a fixed-width `format` is a bound the pipe checks as well, so the tighter
+  // of it and the spec's own inclusive bound is the one documented.
+  const isFloat32 = schema.format === 'float' || schema.format === 'float32'
+  const range =
+    kind === 'number'
+      ? isFloat32
+        ? NUMBER_RANGES.float32
+        : undefined
+      : schema.format === 'int32' || schema.format === 'uint32'
+        ? NUMBER_RANGES[schema.format]
+        : undefined
+  const minimums = [
+    ...(schema.minimum !== undefined && !isExclusiveMinimum ? [schema.minimum] : []),
+    ...(range === undefined ? [] : [Number(range.minimum)]),
+  ]
+  const maximums = [
+    ...(schema.maximum !== undefined && !isExclusiveMaximum ? [schema.maximum] : []),
+    ...(range === undefined ? [] : [Number(range.maximum)]),
+  ]
+  const entries = [
+    `type:'${kind}'`,
+    ...(values === undefined ? [] : [`enum:${JSON.stringify(values)}`]),
+    ...(minimums.length > 0 ? [`minimum:${Math.max(...minimums)}`] : []),
+    ...(typeof exclusiveMinimum === 'number' ? [`exclusiveMinimum:${exclusiveMinimum}`] : []),
+    ...(maximums.length > 0 ? [`maximum:${Math.min(...maximums)}`] : []),
+    ...(typeof exclusiveMaximum === 'number' ? [`exclusiveMaximum:${exclusiveMaximum}`] : []),
+    ...(schema.multipleOf !== undefined ? [`multipleOf:${schema.multipleOf}`] : []),
+  ]
+  return `v.metadata({${entries.join(',')}})`
+}
+
+/**
  * The Valibot schema of a number node. On the string wire the text has to match the JSON
  * number grammar before `Number` reads it, then it is checked finite; `float` / `float32`
  * carries its range.
@@ -84,7 +132,7 @@ export function number(schema: JSONSchema, options?: { readonly wire?: boolean }
   const base = `v.number(${baseErrorArg})`
   if (options?.wire === true) {
     const regexError = baseErrorArg === '' ? '' : `,${baseErrorArg}`
-    return `v.pipe(v.string(),v.regex(${numberWirePattern()}${regexError}),v.transform((input)=>Number(input)),${base},${actions.join(',')})`
+    return `v.pipe(v.string(),v.regex(${numberWirePattern()}${regexError}),${wireNumberMetadata('number', schema)},v.transform((input)=>Number(input)),${base},${actions.join(',')})`
   }
   if (actions.length > 0) return `v.pipe(${base},${actions.join(',')})`
   return errorMessage ? base : 'v.number()'
