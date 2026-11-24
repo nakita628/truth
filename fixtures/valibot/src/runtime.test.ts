@@ -1338,10 +1338,15 @@ describe('valibot fixtures: wire-query runtime', () => {
   })
 
   it('annotates each number read from text with the type and bounds the spec gives it', () => {
-    // `@valibot/to-json-schema` copies this metadata into the document of the input side,
-    // which otherwise stops at the `v.transform` and says `string`.
+    // The metadata the generator emits, read back with `v.getMetadata`. A converter of the
+    // input side copies it where it reaches the pipe; it does not reach `ids`, whose outer
+    // pipe starts with a transform.
     const { entries } = WireQuery.pipe[2]
-    expect(v.getMetadata(entries.page.wrapped)).toStrictEqual({ type: 'integer', minimum: 1 })
+    expect(v.getMetadata(entries.page)).toStrictEqual({ default: 1 })
+    expect(v.getMetadata(entries.page.pipe[0].wrapped)).toStrictEqual({
+      type: 'integer',
+      minimum: 1,
+    })
     expect(v.getMetadata(entries.ids.wrapped.pipe[2].item)).toStrictEqual({ type: 'integer' })
     expect(v.getMetadata(entries.sort.wrapped)).toStrictEqual({ type: 'integer', enum: [1, -1] })
     expect(v.getMetadata(entries.offset.wrapped)).toStrictEqual({ type: 'number', minimum: 0 })

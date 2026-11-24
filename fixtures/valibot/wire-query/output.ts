@@ -8,17 +8,20 @@ export const Query = v.pipe(
       : input,
   ),
   v.object({
-    page: v.optional(
-      v.pipe(
-        v.string(),
-        v.regex(/^-?(?:0|[1-9]\d*)$/),
-        v.metadata({ type: 'integer', minimum: 1 }),
-        v.transform((input) => Number(input)),
-        v.number(),
-        v.safeInteger(),
-        v.minValue(1),
+    page: v.pipe(
+      v.optional(
+        v.pipe(
+          v.string(),
+          v.regex(/^-?(?:0|[1-9]\d*)$/),
+          v.metadata({ type: 'integer', minimum: 1 }),
+          v.transform((input) => Number(input)),
+          v.number(),
+          v.safeInteger(),
+          v.minValue(1),
+        ),
+        '1',
       ),
-      '1',
+      v.metadata({ default: 1 }),
     ),
     ids: v.optional(
       v.pipe(

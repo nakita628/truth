@@ -1147,13 +1147,13 @@ describe('valibot', () => {
       expect(
         valibot({ type: 'integer', default: 1, minimum: 1 }, 'Schema', false, { paramIn: 'query' }),
       ).toBe(
-        'v.optional(v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.metadata({type:\'integer\',minimum:1}),v.transform((input)=>Number(input)),v.number(),v.safeInteger(),v.minValue(1)),"1")',
+        'v.pipe(v.optional(v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.metadata({type:\'integer\',minimum:1}),v.transform((input)=>Number(input)),v.number(),v.safeInteger(),v.minValue(1)),"1"),v.metadata({default:1}))',
       )
     })
 
     it('query: number with default → default emitted as string-wire literal', () => {
       expect(valibot({ type: 'number', default: 2.5 }, 'Schema', false, { paramIn: 'query' })).toBe(
-        'v.optional(v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/),v.metadata({type:\'number\'}),v.transform((input)=>Number(input)),v.number(),v.finite()),"2.5")',
+        'v.pipe(v.optional(v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$/),v.metadata({type:\'number\'}),v.transform((input)=>Number(input)),v.number(),v.finite()),"2.5"),v.metadata({default:2.5}))',
       )
     })
 
@@ -1441,7 +1441,7 @@ describe('valibot contains / minContains / maxContains', () => {
       [
         { type: 'object', properties: { int_def: { type: 'integer', default: 20 } } },
         { paramIn: 'query' },
-        'v.object({int_def:v.optional(v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.metadata({type:\'integer\'}),v.transform((input)=>Number(input)),v.number(),v.safeInteger()),"20")})',
+        'v.object({int_def:v.pipe(v.optional(v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.metadata({type:\'integer\'}),v.transform((input)=>Number(input)),v.number(),v.safeInteger()),"20"),v.metadata({default:20}))})',
       ],
       [
         {
@@ -1551,7 +1551,7 @@ describe('valibot contains / minContains / maxContains', () => {
           properties: { ref_def: { $ref: '#/components/schemas/Count', default: 3 } },
         },
         { paramIn: 'query' },
-        'v.object({ref_def:v.optional(CountSchema,"3")})',
+        'v.object({ref_def:v.pipe(v.optional(CountSchema,"3"),v.metadata({default:3}))})',
       ],
       [{ $ref: '#/components/schemas/Count', default: 3 }, undefined, 'v.optional(CountSchema,3)'],
       [

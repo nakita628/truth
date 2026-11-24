@@ -83,10 +83,11 @@ export function valibotWrap(valibotStr: string, schema: JSONSchema, options?: Va
     typeof defaultResult?.value === 'number'
       ? bigintFormatOf(schema, options?.definitions, isBigintSchema)
       : undefined
-  const withDefault =
+  const hasDefault =
     defaultResult?.keep === true && isWritableBigintDefault(defaultResult.value, defaultFormat)
-      ? `v.optional(${withNullText},${defaultLiteral(defaultFormat, defaultResult.value, options?.stringWire === true)})`
-      : withNullText
+  const withDefault = hasDefault
+    ? `v.optional(${withNullText},${defaultLiteral(defaultFormat, defaultResult.value, options?.stringWire === true)})`
+    : withNullText
 
   const examples = examplesOf(schema)
   const actions: string[] = []
@@ -99,6 +100,16 @@ export function valibotWrap(valibotStr: string, schema: JSONSchema, options?: Va
   if (schema.externalDocs !== undefined) metaObj.externalDocs = schema.externalDocs
   if (schema.readOnly !== undefined) metaObj.readOnly = schema.readOnly
   if (schema.writeOnly !== undefined) metaObj.writeOnly = schema.writeOnly
+  // A wire number is documented as the number it is read into (`wireNumberMetadata`), so its
+  // default is documented as that number too, over the text `v.optional` holds.
+  if (
+    hasDefault &&
+    options?.stringWire === true &&
+    typeof defaultResult.value === 'number' &&
+    defaultFormat === undefined
+  ) {
+    metaObj.default = defaultResult.value
+  }
   if (Object.keys(metaObj).length > 0) {
     actions.push(`v.metadata(${serializeJSValue(metaObj)})`)
   }
