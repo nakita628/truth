@@ -121,6 +121,11 @@ function rewriteCollisionRef(node: Schema, identifiers: ReadonlyMap<string, stri
   return { ...node, $ref: `#/components/schemas/${ident}` }
 }
 
+/** The component key a `#/components/schemas/...` reference names; undefined for any other reference. */
+function componentSchemaKey(ref: string) {
+  return ref.startsWith('#/components/schemas/') ? schemaRefToName(ref) : undefined
+}
+
 function makeCyclicContainer(
   varName: string,
   group: readonly string[],
@@ -130,9 +135,49 @@ function makeCyclicContainer(
   ref?: string,
 ) {
   const groupIdentifiers = new Map(group.map((name) => [name, identifiers.get(name) ?? name]))
+  const localRef = (key: string) => {
+    const groupIdent = groupIdentifiers.get(key)
+    return groupIdent === undefined ? undefined : `#/$defs/${groupIdent}Schema`
+  }
+  const keyByLocalRef = new Map(group.map((name) => [localRef(name), name]))
+  /**
+   * A member localized to `#/$defs/<Ident>Schema` would take that name as its implicit
+   * discriminator value, so the schema name is pinned in the mapping, and mapping targets
+   * that point into the cycle follow the members to their local refs.
+   */
+  const localizeDiscriminator = (node: Schema) => {
+    const { discriminator } = node
+    if (discriminator?.propertyName === undefined) return node
+    const mapping = Object.entries(discriminator.mapping ?? {})
+    const mapped = new Set(mapping.map(([, target]) => componentSchemaKey(target)))
+    // An explicit value is never replaced by an implicit one spelled the same.
+    const values = new Set(mapping.map(([value]) => value))
+    const implicit = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].flatMap((member) => {
+      const key = member.$ref === undefined ? undefined : keyByLocalRef.get(member.$ref)
+      return key === undefined || mapped.has(key) || values.has(key)
+        ? []
+        : [[key, member.$ref] as const]
+    })
+    const localized = mapping.map(([value, target]) => {
+      const key = componentSchemaKey(target)
+      return [value, (key === undefined ? undefined : localRef(key)) ?? target] as const
+    })
+    const isUnchanged =
+      implicit.length === 0 &&
+      localized.every(([, target], index) => target === mapping[index]?.[1])
+    if (isUnchanged) return node
+    const local = Object.fromEntries([
+      ...Object.entries(node),
+      [
+        'discriminator',
+        { ...discriminator, mapping: Object.fromEntries([...localized, ...implicit]) },
+      ],
+    ])
+    return isSchema(local) ? local : node
+  }
   const localize = (node: Schema) => {
     const key = node.$ref ? schemaRefToName(node.$ref) : undefined
-    if (key === undefined) return node
+    if (key === undefined) return localizeDiscriminator(node)
     const groupIdent = groupIdentifiers.get(key)
     if (groupIdent !== undefined) {
       const local = Object.fromEntries([

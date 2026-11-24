@@ -1,4 +1,4 @@
-import { scope, type } from 'arktype'
+import { scope } from 'arktype'
 
 const $ = scope({
   Base: { meta: 'string' },
@@ -9,13 +9,13 @@ const $ = scope({
         [
           {
             'a?': 'string',
-            'list?': type({})
-              .array()
-              .narrow(
-                (data: unknown[], ctx): boolean =>
-                  data.filter((item) => $.type('Base').allows(item)).length >= 1 ||
-                  ctx.mustBe('must contain at least 1 matching items'),
-              ),
+            'list?': [
+              [{}, '[]'],
+              ':',
+              (data: unknown[], ctx): boolean =>
+                data.filter((item) => $.type('Base').allows(item)).length >= 1 ||
+                ctx.mustBe('must contain at least 1 matching items'),
+            ],
             'kind?': 'string',
           },
           ':',

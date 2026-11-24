@@ -225,6 +225,74 @@ describe('makeSchemaDeclarations', () => {
     ).toStrictEqual(expected)
   })
 
+  it('arktype: a discriminated array inside a cycle keeps the scope aliases and the schema names', () => {
+    const filters = {
+      ComparisonFilter: {
+        type: 'object',
+        required: ['type', 'key'],
+        properties: { type: { type: 'string', enum: ['eq', 'ne'] }, key: { type: 'string' } },
+      },
+      CompoundFilter: {
+        type: 'object',
+        required: ['type', 'filters'],
+        properties: {
+          type: { type: 'string', enum: ['and', 'or'] },
+          filters: {
+            type: 'array',
+            items: {
+              oneOf: [
+                { $ref: '#/components/schemas/ComparisonFilter' },
+                { $ref: '#/components/schemas/CompoundFilter' },
+              ],
+              discriminator: { propertyName: 'type' },
+            },
+          },
+        },
+      },
+    }
+    expect(
+      makeSchemaDeclarations(filters as never, makeAdapter('arktype')).map((d) => d.code),
+    ).toStrictEqual([
+      `export const ComparisonFilterSchema=type({type:"'eq' | 'ne'",key:"string"})`,
+      `export const CompoundFilterSchema=scope({ComparisonFilterSchema:ComparisonFilterSchema,CompoundFilterSchema:{type:"'and' | 'or'",filters:[[["ComparisonFilterSchema","&",{"type":"'ComparisonFilter'"}],"|",["CompoundFilterSchema","&",{"type":"'CompoundFilter'"}]],"[]"]}}).export().CompoundFilterSchema`,
+    ])
+  })
+
+  it('arktype: an explicit discriminator value is not replaced by a cycle member name', () => {
+    const filters = {
+      ComparisonFilter: {
+        type: 'object',
+        required: ['type'],
+        properties: { type: { type: 'string' } },
+      },
+      CompoundFilter: {
+        type: 'object',
+        required: ['type', 'filters'],
+        properties: {
+          type: { type: 'string' },
+          filters: {
+            type: 'array',
+            items: {
+              oneOf: [
+                { $ref: '#/components/schemas/ComparisonFilter' },
+                { $ref: '#/components/schemas/CompoundFilter' },
+              ],
+              discriminator: {
+                propertyName: 'type',
+                mapping: { CompoundFilter: '#/components/schemas/ComparisonFilter' },
+              },
+            },
+          },
+        },
+      },
+    }
+    // The explicit value stays with the schema it names. What the cycle member that lost
+    // its implicit name accepts is undecided (#74), so it is not pinned here.
+    expect(
+      makeSchemaDeclarations(filters as never, makeAdapter('arktype')).map((d) => d.code)[1],
+    ).toContain(`["ComparisonFilterSchema","&",{"type":"'CompoundFilter'"}]`)
+  })
+
   it.each(libs)('%s: colliding keys get a numeric suffix', (lib) => {
     const declarations = makeSchemaDeclarations(colliding, makeAdapter(lib))
     expect(declarations.map((d) => [d.name, d.varName, d.fileName])).toStrictEqual([
