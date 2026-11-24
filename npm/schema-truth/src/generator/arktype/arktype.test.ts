@@ -40,6 +40,18 @@ describe('arktype', () => {
         },
         '"A & B"',
       ],
+      // An array of a discriminated union stays a definition the scope resolves; the
+      // global `type(...)` cannot see the scope's aliases.
+      [
+        {
+          type: 'array',
+          items: {
+            oneOf: [{ $ref: '#/$defs/A' }, { $ref: '#/$defs/B' }],
+            discriminator: { propertyName: 'kind' },
+          },
+        },
+        '[[["A","&",{"kind":"\'A\'"}],"|",["B","&",{"kind":"\'B\'"}]],"[]"]',
+      ],
     ])('arktype(%o, "Schema", true) → %s', (input, expected) => {
       expect(arktype(input, 'Schema', true)).toBe(expected)
     })

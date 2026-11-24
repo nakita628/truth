@@ -225,6 +225,39 @@ describe('makeSchemaDeclarations', () => {
     ).toStrictEqual(expected)
   })
 
+  it('arktype: a discriminated array inside a cycle keeps the scope aliases and the schema names', () => {
+    const filters = {
+      ComparisonFilter: {
+        type: 'object',
+        required: ['type', 'key'],
+        properties: { type: { type: 'string', enum: ['eq', 'ne'] }, key: { type: 'string' } },
+      },
+      CompoundFilter: {
+        type: 'object',
+        required: ['type', 'filters'],
+        properties: {
+          type: { type: 'string', enum: ['and', 'or'] },
+          filters: {
+            type: 'array',
+            items: {
+              oneOf: [
+                { $ref: '#/components/schemas/ComparisonFilter' },
+                { $ref: '#/components/schemas/CompoundFilter' },
+              ],
+              discriminator: { propertyName: 'type' },
+            },
+          },
+        },
+      },
+    }
+    expect(
+      makeSchemaDeclarations(filters as never, makeAdapter('arktype')).map((d) => d.code),
+    ).toStrictEqual([
+      `export const ComparisonFilterSchema=type({type:"'eq' | 'ne'",key:"string"})`,
+      `export const CompoundFilterSchema=scope({ComparisonFilterSchema:ComparisonFilterSchema,CompoundFilterSchema:{type:"'and' | 'or'",filters:[[["ComparisonFilterSchema","&",{"type":"'ComparisonFilter'"}],"|",["CompoundFilterSchema","&",{"type":"'CompoundFilter'"}]],"[]"]}}).export().CompoundFilterSchema`,
+    ])
+  })
+
   it.each(libs)('%s: colliding keys get a numeric suffix', (lib) => {
     const declarations = makeSchemaDeclarations(colliding, makeAdapter(lib))
     expect(declarations.map((d) => [d.name, d.varName, d.fileName])).toStrictEqual([

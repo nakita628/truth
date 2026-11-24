@@ -509,8 +509,14 @@ function node(
     const itemSchema = itemsSchemaOf(schema.items)
     const items = itemSchema ? arktype(itemSchema, rootName, isArktype, options) : '"unknown"'
     // An item that is an expression rather than a definition — a morph on the wire, a
-    // narrowed object — makes the array one too, and its constraints chain onto it.
-    const base = isQuoted(items) ? `"${items.slice(1, -1)}[]"` : `type(${items}).array()`
+    // narrowed object — makes the array one too, and its constraints chain onto it. Inside
+    // a scope a definition that may name a scope alias stays a tuple expression, which the
+    // scope resolves; the global `type(...)` cannot.
+    const base = isQuoted(items)
+      ? `"${items.slice(1, -1)}[]"`
+      : isArktype && isArktypeDefinition(items)
+        ? `[${items},"[]"]`
+        : `type(${items}).array()`
     const { minItems, maxItems } = schema
     const isFixedLength = hasFixedItemCount(schema)
     // Per-keyword array messages via .narrow() with ctx.mustBe.
