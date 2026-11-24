@@ -150,9 +150,13 @@ function makeCyclicContainer(
     if (discriminator?.propertyName === undefined) return node
     const mapping = Object.entries(discriminator.mapping ?? {})
     const mapped = new Set(mapping.map(([, target]) => componentSchemaKey(target)))
+    // An explicit value is never replaced by an implicit one spelled the same.
+    const values = new Set(mapping.map(([value]) => value))
     const implicit = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].flatMap((member) => {
       const key = member.$ref === undefined ? undefined : keyByLocalRef.get(member.$ref)
-      return key === undefined || mapped.has(key) ? [] : [[key, member.$ref] as const]
+      return key === undefined || mapped.has(key) || values.has(key)
+        ? []
+        : [[key, member.$ref] as const]
     })
     const localized = mapping.map(([value, target]) => {
       const key = componentSchemaKey(target)

@@ -258,6 +258,41 @@ describe('makeSchemaDeclarations', () => {
     ])
   })
 
+  it('arktype: an explicit discriminator value is not replaced by a cycle member name', () => {
+    const filters = {
+      ComparisonFilter: {
+        type: 'object',
+        required: ['type'],
+        properties: { type: { type: 'string' } },
+      },
+      CompoundFilter: {
+        type: 'object',
+        required: ['type', 'filters'],
+        properties: {
+          type: { type: 'string' },
+          filters: {
+            type: 'array',
+            items: {
+              oneOf: [
+                { $ref: '#/components/schemas/ComparisonFilter' },
+                { $ref: '#/components/schemas/CompoundFilter' },
+              ],
+              discriminator: {
+                propertyName: 'type',
+                mapping: { CompoundFilter: '#/components/schemas/ComparisonFilter' },
+              },
+            },
+          },
+        },
+      },
+    }
+    expect(
+      makeSchemaDeclarations(filters as never, makeAdapter('arktype')).map((d) => d.code)[1],
+    ).toBe(
+      `export const CompoundFilterSchema=scope({ComparisonFilterSchema:ComparisonFilterSchema,CompoundFilterSchema:{type:"string",filters:[[["ComparisonFilterSchema","&",{"type":"'CompoundFilter'"}],"|",["CompoundFilterSchema","&",{"type":"'CompoundFilterSchema'"}]],"[]"]}}).export().CompoundFilterSchema`,
+    )
+  })
+
   it.each(libs)('%s: colliding keys get a numeric suffix', (lib) => {
     const declarations = makeSchemaDeclarations(colliding, makeAdapter(lib))
     expect(declarations.map((d) => [d.name, d.varName, d.fileName])).toStrictEqual([
