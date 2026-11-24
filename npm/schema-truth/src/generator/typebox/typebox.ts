@@ -21,7 +21,7 @@ import {
   isKeywordOnlyMember,
   itemsSchemaOf,
   schemaNamer,
-  stringboolPattern,
+  stringboolPatternText,
   stringboolTruthyPattern,
   typeboxWrap,
   discriminatedMembers,
@@ -455,7 +455,7 @@ export function typebox(
   }
   if (types.includes('boolean')) {
     if (isStringWireParam) {
-      const wire = wireString(schema, hostRef, stringboolPattern())
+      const wire = wireString(schema, hostRef, JSON.stringify(stringboolPatternText()))
       return typeboxWrap(
         `Codec(${wire}).Decode((value)=>${stringboolTruthyPattern()}.test(value)).Encode((value)=>value?'true':'false')`,
         schema,
