@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.8.16
+
+### Patch Changes
+
+- [#76](https://github.com/nakita628/truth/pull/76) [`235f3ac`](https://github.com/nakita628/truth/commit/235f3ac05b5b0b6e074d9decc3b543c4d1f95ca3) Thanks [@nakita628](https://github.com/nakita628)! - Valibot: annotate an `integer` / `number` parameter read from wire text with `v.metadata({ type, ...bounds })`, so a JSON Schema converter that documents the input side (`@valibot/to-json-schema` with `typeMode: 'input'`, as hono-openapi uses it) describes it as the spec's `integer` / `number` with its bounds, not only as a `string` with a `pattern`. Validation is unchanged.
+
 ## 0.8.15
 
 ### Patch Changes
