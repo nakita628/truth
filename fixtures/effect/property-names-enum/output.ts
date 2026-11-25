@@ -23,12 +23,51 @@ export const Schema_ = Schema.Struct({
   ),
   pattern: Schema.optionalKey(
     Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
-      Schema.makeFilter((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
+      Schema.makeFilter((input) =>
+        ((re) => Object.keys(input).every((key) => re.test(key)))(new RegExp('^a')),
+      ),
     ),
   ),
   open: Schema.optionalKey(
     Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
-      Schema.makeFilter((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
+      Schema.makeFilter((input) =>
+        ((re) => Object.keys(input).every((key) => re.test(key)))(new RegExp('^a')),
+      ),
+    ),
+  ),
+  both: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter(
+        (input) =>
+          ((re) => Object.keys(input).every((key) => re.test(key)))(new RegExp('^[a-z]+$')) &&
+          Object.keys(input).every((key) => ['a', 'B'].includes(key)),
+      ),
+    ),
+  ),
+  closed: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter((input) => Object.keys(input).length === 0),
+    ),
+  ),
+  single: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter((input) => Object.keys(input).every((key) => ['a'].includes(key))),
+    ),
+  ),
+  letters: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter((input) =>
+        ((re) => Object.keys(input).every((key) => re.test(key)))(new RegExp('^\\p{L}+$', 'u')),
+      ),
+    ),
+  ),
+  short: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter(
+        (input) =>
+          Object.keys(input).every((key) => Array.from(key).length >= 1) &&
+          Object.keys(input).every((key) => Array.from(key).length <= 2),
+      ),
     ),
   ),
 })

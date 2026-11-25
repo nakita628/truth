@@ -11,7 +11,7 @@ import {
   objectEvaluatedKeys,
   ownProperties,
   propertyEmitOptions,
-  propertyNamesEnumCheck,
+  propertyNamesKeyCheck,
 } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
@@ -68,13 +68,8 @@ export function object(
   const strictExtrasMessage = addlPropsMessage ?? unevalPropsMessage
 
   const propertyNamesCheck = () => {
-    if (schema.propertyNames?.pattern) {
-      return `v.check((input)=>Object.keys(input).every((key)=>new RegExp(${JSON.stringify(schema.propertyNames.pattern)}).test(key))${propNamesErrorArg})`
-    }
-    if (schema.propertyNames?.enum) {
-      return `v.check((input)=>${propertyNamesEnumCheck(schema.propertyNames.enum, 'input')}${propNamesErrorArg})`
-    }
-    return ''
+    const check = propertyNamesKeyCheck(schema.propertyNames, 'input')
+    return check === undefined ? '' : `v.check((input)=>${check}${propNamesErrorArg})`
   }
 
   const patternPropertiesChecks = () =>

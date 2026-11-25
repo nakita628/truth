@@ -9,7 +9,7 @@ import {
   hasBranchKeys,
   isEvaluatedObjectKeyExpression,
   objectEvaluatedKeys,
-  propertyNamesEnumCheck,
+  propertyNamesKeyCheck,
 } from '../../helper/unevaluated.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
@@ -52,6 +52,11 @@ export function object(
   const patternErrorArg = zodErrorPart(patternPropsMessage)
   const propNamesMessage = schema['x-propertyNames-message']
   const propNamesErrorArg = zodErrorPart(propNamesMessage)
+  const propertyNamesCheck = propertyNamesKeyCheck(schema.propertyNames, 'val')
+  const propertyNamesRefine =
+    propertyNamesCheck === undefined
+      ? ''
+      : `.refine((val)=>${propertyNamesCheck}${propNamesErrorArg})`
   const depReqMessage = schema['x-dependentRequired-message']
   const depReqErrorArg = depReqMessage ? `,${zodError(depReqMessage)}` : errorArg
   const depSchMessage = schema['x-dependentSchemas-message']
@@ -71,12 +76,7 @@ export function object(
     schema.patternProperties === undefined
   ) {
     const record = `z.record(z.string(),${zod(schema.additionalProperties, rootName, isZod, options)})`
-    const recordPropNames = schema.propertyNames?.pattern
-      ? `.refine((val)=>Object.keys(val).every((key)=>new RegExp(${JSON.stringify(schema.propertyNames.pattern)}).test(key))${propNamesErrorArg})`
-      : schema.propertyNames?.enum
-        ? `.refine((val)=>${propertyNamesEnumCheck(schema.propertyNames.enum, 'val')}${propNamesErrorArg})`
-        : ''
-    return `${record}${recordPropNames}`
+    return `${record}${propertyNamesRefine}`
   }
 
   const properties = schema.properties ?? {}
@@ -175,11 +175,6 @@ export function object(
     typeof schema.maxProperties === 'number'
       ? `.refine((val)=>Object.keys(val).length<=${schema.maxProperties}${maxErrorArg})`
       : ''
-  const propertyNames = schema.propertyNames?.pattern
-    ? `.refine((val)=>Object.keys(val).every((key)=>new RegExp(${JSON.stringify(schema.propertyNames.pattern)}).test(key))${propNamesErrorArg})`
-    : schema.propertyNames?.enum
-      ? `.refine((val)=>${propertyNamesEnumCheck(schema.propertyNames.enum, 'val')}${propNamesErrorArg})`
-      : ''
   const patternProperties = schema.patternProperties
     ? Object.entries(schema.patternProperties)
         .map(([pattern, propSchema]) => {
@@ -249,7 +244,7 @@ export function object(
     : extraSchema !== undefined
       ? `.refine((val)=>${isEvaluated === undefined ? 'Object.values(val).every((value)=>' : `Object.entries(val).every(([key,value])=>${isEvaluated}||`}${zod(extraSchema, rootName, isZod, options)}.safeParse(value).success)${zodErrorPart(extraMessage ?? errorMessage)})`
       : ''
-  const objectExpr = `${partialBase}${minProperties}${maxProperties}${propertyNames}${patternProperties}${requiredPresent}${unevaluatedKeys}${dependentRequired}${dependentSchemas}${ifThenElse}`
+  const objectExpr = `${partialBase}${minProperties}${maxProperties}${propertyNamesRefine}${patternProperties}${requiredPresent}${unevaluatedKeys}${dependentRequired}${dependentSchemas}${ifThenElse}`
   const hasInheritedName = Object.keys(properties).some(isObjectPrototypeProperty)
   return isStringWireLocation(options?.paramIn) && hasInheritedName
     ? `z.preprocess(${OWN_PROPERTIES_PREPROCESS},${objectExpr})`

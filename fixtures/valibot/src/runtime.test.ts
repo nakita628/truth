@@ -1497,11 +1497,11 @@ describe('valibot fixtures: wire-number runtime', () => {
 })
 
 describe('valibot fixtures: property-names-enum runtime', () => {
-  it.each([{}, { none: {} }, { mixed: { a: 'x' } }, { record: {} }, { bare: {} }, { pattern: { ab: 1 } }, { open: { a: 1, ab: 'x' } }])('accepts %j', (value) => {
+  it.each([{}, { none: {} }, { mixed: { a: 'x' } }, { record: {} }, { bare: {} }, { pattern: { ab: 1 } }, { open: { a: 1, ab: 'x' } }, { both: { a: 1 } }, { closed: {} }, { single: { a: 1 } }, { letters: { é: 1, 名前: 2 } }, { short: { ab: 1, 名前: 2, '😀😀': 3 } }])('accepts %j', (value) => {
     expect(v.safeParse(PropertyNamesEnumSchema, value).success).toBe(true)
   })
 
-  it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }, { bare: { a: 1 } }, { pattern: { b: 1 } }, { open: { a: 1, b: 2 } }])('rejects %j, whose key propertyNames does not allow', (value) => {
+  it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }, { bare: { a: 1 } }, { pattern: { b: 1 } }, { open: { a: 1, b: 2 } }, { both: { b: 1 } }, { both: { B: 1 } }, { closed: { x: 1 } }, { single: { b: 1 } }, { letters: { 'p{L}': 1 } }, { letters: { a1: 1 } }, { short: { abc: 1 } }, { short: { '': 1 } }])('rejects %j, whose key propertyNames does not allow', (value) => {
     expect(v.safeParse(PropertyNamesEnumSchema, value).success).toBe(false)
   })
 })
