@@ -138,28 +138,49 @@ function isStringHost(schema: JSONSchema) {
   return true
 }
 
+/**
+ * The message a member's keyword reports: its own `x-<keyword>-message`, or else the
+ * member's `x-error-message`, which covers every check the member adds once it is folded
+ * into a host or merged with other leftovers.
+ */
+type MessageKeyword =
+  | 'minimum'
+  | 'maximum'
+  | 'exclusiveMinimum'
+  | 'exclusiveMaximum'
+  | 'multipleOf'
+  | 'minLength'
+  | 'maxLength'
+  | 'pattern'
+
+function keywordMessage(schema: JSONSchema, keyword: MessageKeyword) {
+  const message = schema[`x-${keyword}-message`] ?? schema['x-error-message']
+  return typeof message === 'string' ? { [`x-${keyword}-message`]: message } : {}
+}
+
 function numericPart(schema: JSONSchema) {
   if (!hasNumericKeyword(schema)) return undefined
   return {
-    ...(schema.minimum !== undefined ? { minimum: schema.minimum } : {}),
-    ...(schema.maximum !== undefined ? { maximum: schema.maximum } : {}),
-    ...(schema.exclusiveMinimum !== undefined ? { exclusiveMinimum: schema.exclusiveMinimum } : {}),
-    ...(schema.exclusiveMaximum !== undefined ? { exclusiveMaximum: schema.exclusiveMaximum } : {}),
-    ...(schema.multipleOf !== undefined ? { multipleOf: schema.multipleOf } : {}),
-    ...(schema['x-minimum-message'] !== undefined
-      ? { 'x-minimum-message': schema['x-minimum-message'] }
+    ...(schema.minimum !== undefined
+      ? { minimum: schema.minimum, ...keywordMessage(schema, 'minimum') }
       : {}),
-    ...(schema['x-maximum-message'] !== undefined
-      ? { 'x-maximum-message': schema['x-maximum-message'] }
+    ...(schema.maximum !== undefined
+      ? { maximum: schema.maximum, ...keywordMessage(schema, 'maximum') }
       : {}),
-    ...(schema['x-exclusiveMinimum-message'] !== undefined
-      ? { 'x-exclusiveMinimum-message': schema['x-exclusiveMinimum-message'] }
+    ...(schema.exclusiveMinimum !== undefined
+      ? {
+          exclusiveMinimum: schema.exclusiveMinimum,
+          ...keywordMessage(schema, 'exclusiveMinimum'),
+        }
       : {}),
-    ...(schema['x-exclusiveMaximum-message'] !== undefined
-      ? { 'x-exclusiveMaximum-message': schema['x-exclusiveMaximum-message'] }
+    ...(schema.exclusiveMaximum !== undefined
+      ? {
+          exclusiveMaximum: schema.exclusiveMaximum,
+          ...keywordMessage(schema, 'exclusiveMaximum'),
+        }
       : {}),
-    ...(schema['x-multipleOf-message'] !== undefined
-      ? { 'x-multipleOf-message': schema['x-multipleOf-message'] }
+    ...(schema.multipleOf !== undefined
+      ? { multipleOf: schema.multipleOf, ...keywordMessage(schema, 'multipleOf') }
       : {}),
   }
 }
@@ -167,17 +188,14 @@ function numericPart(schema: JSONSchema) {
 function stringPart(schema: JSONSchema) {
   if (!hasStringKeyword(schema)) return undefined
   return {
-    ...(schema.minLength !== undefined ? { minLength: schema.minLength } : {}),
-    ...(schema.maxLength !== undefined ? { maxLength: schema.maxLength } : {}),
-    ...(schema.pattern !== undefined ? { pattern: schema.pattern } : {}),
-    ...(schema['x-minLength-message'] !== undefined
-      ? { 'x-minLength-message': schema['x-minLength-message'] }
+    ...(schema.minLength !== undefined
+      ? { minLength: schema.minLength, ...keywordMessage(schema, 'minLength') }
       : {}),
-    ...(schema['x-maxLength-message'] !== undefined
-      ? { 'x-maxLength-message': schema['x-maxLength-message'] }
+    ...(schema.maxLength !== undefined
+      ? { maxLength: schema.maxLength, ...keywordMessage(schema, 'maxLength') }
       : {}),
-    ...(schema['x-pattern-message'] !== undefined
-      ? { 'x-pattern-message': schema['x-pattern-message'] }
+    ...(schema.pattern !== undefined
+      ? { pattern: schema.pattern, ...keywordMessage(schema, 'pattern') }
       : {}),
   }
 }
@@ -204,20 +222,50 @@ function canAbsorbMultipleOf(host: JSONSchema, extra: JSONSchema) {
   return leastCommonMultiple(host.multipleOf, extra.multipleOf) !== undefined
 }
 
+/**
+ * The host with the member's lower bound when it is the stricter. On an equal bound the
+ * host keeps its own, and takes the member's message when it has none of its own.
+ */
 function absorbLower(host: JSONSchema, extra: JSONSchema) {
   const extraBound = lowerBound(extra)
   if (extraBound === undefined) return host
   const hostBound = lowerBound(host)
-  if (hostBound !== undefined && !isStricter(extraBound, hostBound, 'lower')) return host
-  return withLower(host, extraBound, boundMessage(extra, extraBound, 'lower'))
+  const extraMessage = boundMessage(extra, extraBound, 'lower')
+  if (hostBound !== undefined && !isStricter(extraBound, hostBound, 'lower')) {
+    return isSameBound(hostBound, extraBound) &&
+      boundMessage(host, hostBound, 'lower') === undefined &&
+      extraMessage !== undefined
+      ? withLower(host, hostBound, extraMessage)
+      : host
+  }
+  return withLower(host, extraBound, extraMessage)
 }
 
+/** {@link absorbLower} for the upper bound. */
 function absorbUpper(host: JSONSchema, extra: JSONSchema) {
   const extraBound = upperBound(extra)
   if (extraBound === undefined) return host
   const hostBound = upperBound(host)
-  if (hostBound !== undefined && !isStricter(extraBound, hostBound, 'upper')) return host
-  return withUpper(host, extraBound, boundMessage(extra, extraBound, 'upper'))
+  const extraMessage = boundMessage(extra, extraBound, 'upper')
+  if (hostBound !== undefined && !isStricter(extraBound, hostBound, 'upper')) {
+    return isSameBound(hostBound, extraBound) &&
+      boundMessage(host, hostBound, 'upper') === undefined &&
+      extraMessage !== undefined
+      ? withUpper(host, hostBound, extraMessage)
+      : host
+  }
+  return withUpper(host, extraBound, extraMessage)
+}
+
+function isSameBound(left: Bound, right: Bound) {
+  return left.value === right.value && left.exclusive === right.exclusive
+}
+
+/** The member's message for `keyword` when the host has an equal value but no message. */
+function equalValueMessage(host: JSONSchema, extra: JSONSchema, keyword: MessageKeyword) {
+  const key = `x-${keyword}-message` as const
+  const message = extra[key]
+  return host[key] === undefined && typeof message === 'string' ? { [key]: message } : {}
 }
 
 function absorbMultipleOf(host: JSONSchema, extra: JSONSchema) {
@@ -231,7 +279,9 @@ function absorbMultipleOf(host: JSONSchema, extra: JSONSchema) {
         : {}),
     }
   }
-  if (host.multipleOf === extra.multipleOf) return host
+  if (host.multipleOf === extra.multipleOf) {
+    return { ...host, ...equalValueMessage(host, extra, 'multipleOf') }
+  }
   const multiple = leastCommonMultiple(host.multipleOf, extra.multipleOf)
   if (multiple === undefined) return host
   const { 'x-multipleOf-message': message, ...rest } = host
@@ -241,37 +291,43 @@ function absorbMultipleOf(host: JSONSchema, extra: JSONSchema) {
 
 function absorbString(host: JSONSchema, extra: JSONSchema) {
   let next = host
-  if (
-    typeof extra.minLength === 'number' &&
-    (next.minLength === undefined || extra.minLength > next.minLength)
-  ) {
-    next = {
-      ...next,
-      minLength: extra.minLength,
-      ...(extra['x-minLength-message'] !== undefined
-        ? { 'x-minLength-message': extra['x-minLength-message'] }
-        : {}),
+  if (typeof extra.minLength === 'number') {
+    if (next.minLength === undefined || extra.minLength > next.minLength) {
+      next = {
+        ...next,
+        minLength: extra.minLength,
+        ...(extra['x-minLength-message'] !== undefined
+          ? { 'x-minLength-message': extra['x-minLength-message'] }
+          : {}),
+      }
+    } else if (extra.minLength === next.minLength) {
+      next = { ...next, ...equalValueMessage(next, extra, 'minLength') }
     }
   }
-  if (
-    typeof extra.maxLength === 'number' &&
-    (next.maxLength === undefined || extra.maxLength < next.maxLength)
-  ) {
-    next = {
-      ...next,
-      maxLength: extra.maxLength,
-      ...(extra['x-maxLength-message'] !== undefined
-        ? { 'x-maxLength-message': extra['x-maxLength-message'] }
-        : {}),
+  if (typeof extra.maxLength === 'number') {
+    if (next.maxLength === undefined || extra.maxLength < next.maxLength) {
+      next = {
+        ...next,
+        maxLength: extra.maxLength,
+        ...(extra['x-maxLength-message'] !== undefined
+          ? { 'x-maxLength-message': extra['x-maxLength-message'] }
+          : {}),
+      }
+    } else if (extra.maxLength === next.maxLength) {
+      next = { ...next, ...equalValueMessage(next, extra, 'maxLength') }
     }
   }
-  if (typeof extra.pattern === 'string' && next.pattern === undefined) {
-    next = {
-      ...next,
-      pattern: extra.pattern,
-      ...(extra['x-pattern-message'] !== undefined
-        ? { 'x-pattern-message': extra['x-pattern-message'] }
-        : {}),
+  if (typeof extra.pattern === 'string') {
+    if (next.pattern === undefined) {
+      next = {
+        ...next,
+        pattern: extra.pattern,
+        ...(extra['x-pattern-message'] !== undefined
+          ? { 'x-pattern-message': extra['x-pattern-message'] }
+          : {}),
+      }
+    } else if (extra.pattern === next.pattern) {
+      next = { ...next, ...equalValueMessage(next, extra, 'pattern') }
     }
   }
   return next

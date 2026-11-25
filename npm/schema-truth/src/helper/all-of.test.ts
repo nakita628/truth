@@ -63,3 +63,73 @@ describe('foldAllOfMembers with both bounds in one member (#69)', () => {
     expect(foldAllOfMembers(members, false)).toStrictEqual(expected)
   })
 })
+
+describe('foldAllOfMembers keeps a member message (#100)', () => {
+  it.each<[readonly JSONSchema[], readonly JSONSchema[]]>([
+    [
+      [
+        { type: 'integer', minimum: 5 },
+        { minimum: 5, 'x-minimum-message': 'need 5' },
+      ],
+      [{ type: 'integer', minimum: 5, 'x-minimum-message': 'need 5' }],
+    ],
+    [
+      [
+        { type: 'integer', minimum: 5, 'x-minimum-message': 'own' },
+        { minimum: 5, 'x-minimum-message': 'need 5' },
+      ],
+      [{ type: 'integer', minimum: 5, 'x-minimum-message': 'own' }],
+    ],
+    [
+      [
+        { type: 'number', maximum: 9 },
+        { maximum: 9, 'x-maximum-message': 'at most 9' },
+      ],
+      [{ type: 'number', maximum: 9, 'x-maximum-message': 'at most 9' }],
+    ],
+    [
+      [
+        { type: 'number', multipleOf: 2 },
+        { multipleOf: 2, 'x-multipleOf-message': 'even' },
+      ],
+      [{ type: 'number', multipleOf: 2, 'x-multipleOf-message': 'even' }],
+    ],
+    [
+      [
+        { type: 'string', minLength: 2 },
+        { minLength: 2, 'x-minLength-message': 'short' },
+      ],
+      [{ type: 'string', minLength: 2, 'x-minLength-message': 'short' }],
+    ],
+    [
+      [
+        { type: 'string', pattern: '^a' },
+        { pattern: '^a', 'x-pattern-message': 'a first' },
+      ],
+      [{ type: 'string', pattern: '^a', 'x-pattern-message': 'a first' }],
+    ],
+    [
+      [{ type: 'integer' }, { minimum: 5, 'x-error-message': 'bad' }],
+      [{ type: 'integer', minimum: 5, 'x-minimum-message': 'bad' }],
+    ],
+    [
+      [{ type: 'string' }, { minLength: 1, maxLength: 3, 'x-error-message': 'bad' }],
+      [
+        {
+          type: 'string',
+          minLength: 1,
+          'x-minLength-message': 'bad',
+          maxLength: 3,
+          'x-maxLength-message': 'bad',
+        },
+      ],
+    ],
+    [
+      [{ minimum: 5, 'x-error-message': 'bad', 'x-minimum-message': 'own' }],
+      [{ minimum: 5, 'x-minimum-message': 'own' }],
+    ],
+    [[{ minimum: 5, 'x-error-message': 'bad' }], [{ minimum: 5, 'x-minimum-message': 'bad' }]],
+  ])('foldAllOfMembers(%j) → %j', (members, expected) => {
+    expect(foldAllOfMembers(members, false)).toStrictEqual(expected)
+  })
+})
