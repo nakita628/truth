@@ -2,7 +2,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Effect } from 'effect'
 import { fmt, parseSchemaFile, schemaToTypebox } from 'schema-truth'
-import type { GenerateOptions } from 'schema-truth'
+import type { TypeboxGenerateOptions } from 'schema-truth'
 
 const fixturesDir = join(import.meta.dirname, '..')
 
@@ -14,7 +14,7 @@ const REF_FIXTURES: { readonly [name: string]: string } = {
   'ref-codec': 'Name',
 }
 /** Fixtures generated as an OpenAPI parameter, with the options its Parameter Object implies. */
-const PARAM_FIXTURES: { readonly [name: string]: GenerateOptions } = {
+const PARAM_FIXTURES: { readonly [name: string]: TypeboxGenerateOptions } = {
   'wire-boolean': { paramIn: 'query' },
 }
 
