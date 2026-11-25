@@ -240,6 +240,14 @@ describe('withoutShadowedUnevaluated (#93)', () => {
       },
       { additionalProperties: false, 'x-additionalProperties-message': 'own' },
     ],
+    [
+      {
+        additionalProperties: false,
+        unevaluatedProperties: { type: 'integer' },
+        'x-unevaluatedProperties-message': 'must be an integer',
+      },
+      { additionalProperties: false },
+    ],
     [{ unevaluatedProperties: false }, { unevaluatedProperties: false }],
     [{ additionalProperties: true }, { additionalProperties: true }],
   ])('withoutShadowedUnevaluated(%o) → %o', (schema, expected) => {

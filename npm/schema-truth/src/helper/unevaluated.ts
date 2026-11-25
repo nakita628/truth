@@ -138,8 +138,9 @@ export function propertyNamesKeyCheck(
  * The object schema with an `unevaluatedProperties` that `additionalProperties` shadows left
  * out (JSON Schema 2020-12 §11.3): `additionalProperties` evaluates every key no property
  * or pattern names, so an `unevaluatedProperties` beside it refuses nothing, and is not
- * read as closing the object or holding the rest to a schema. Its message carries over to
- * an `additionalProperties: false` that has none of its own.
+ * read as closing the object or holding the rest to a schema. The message of an
+ * `unevaluatedProperties: false` carries over to an `additionalProperties: false` that has
+ * none of its own.
  */
 export function withoutShadowedUnevaluated(schema: JSONSchema): JSONSchema {
   if (schema.additionalProperties === undefined || schema.unevaluatedProperties === undefined) {
@@ -153,6 +154,7 @@ export function withoutShadowedUnevaluated(schema: JSONSchema): JSONSchema {
   // Both keywords refuse the same keys when `additionalProperties` closes the object, so the
   // message given for either still applies.
   return rest.additionalProperties === false &&
+    schema.unevaluatedProperties === false &&
     rest['x-additionalProperties-message'] === undefined &&
     message !== undefined
     ? { ...rest, 'x-additionalProperties-message': message }
