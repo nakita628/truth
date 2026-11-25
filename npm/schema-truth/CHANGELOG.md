@@ -1,5 +1,15 @@
 # schema-truth
 
+## 0.9.0
+
+### Minor Changes
+
+- [#85](https://github.com/nakita628/truth/pull/85) [`9bf2913`](https://github.com/nakita628/truth/commit/9bf2913ce39aefc808cceb946142cc597d9c050d) Thanks [@nakita628](https://github.com/nakita628)! - TypeBox: an integer with `format: bigint` no longer carries its `default`, on the node or beside a `$ref` or `allOf` to one (a parameter read from text keeps it as its text). A bigint `default` made the schema throw in `JSON.stringify`, so OpenAPI emission, Fastify route schemas and Ajv could not use it. `Value.Default` now leaves such a field empty, and a required key with such a default is no longer `Type.Optional`, so input that omits it fails `Value.Check`.
+
+### Patch Changes
+
+- [#82](https://github.com/nakita628/truth/pull/82) [`c4eabb4`](https://github.com/nakita628/truth/commit/c4eabb449511227067b25da1f42af95f66f6edf3) Thanks [@nakita628](https://github.com/nakita628)! - TypeBox: a `number` read from text (query, path, header, cookie) now rejects text that overflows to `Infinity`, such as `1e999`, and an `integer` read from text rejects text beyond the safe integer range, such as `9007199254740993`, which `Number` would round, as Zod, Valibot, Effect and ArkType already do. This includes an `int64`, `uint64` or `bigint` integer, which the TypeBox wire decodes to a `number`.
+
 ## 0.8.17
 
 ### Patch Changes
