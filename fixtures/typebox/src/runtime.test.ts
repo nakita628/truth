@@ -923,6 +923,9 @@ describe('wire-number', () => {
     ['small', '-2147483649'],
     ['single', '1e39'],
     ['single', '-1e39'],
+    // The text Java prints for `Float.MAX_VALUE` reads as a double above the bound, which
+    // Zod's `z.float32()` and Valibot's `v.maxValue` reject as well.
+    ['single', '3.4028235E38'],
   ])('rejects %s=%s, outside the range of its format', (key, text) => {
     expect(Value.Check(WireNumberQuery, { [key]: text })).toBe(false)
     expect(() => Value.Decode(WireNumberQuery, { [key]: text })).toThrow()

@@ -167,11 +167,13 @@ function numericRange(kind: 'integer' | 'number'): NumericBound {
 
 /**
  * The range of a fixed-width `format` on `Number(value)`: `int32` / `uint32` on an integer
- * wire, `float` / `float32` on a number wire, as the other generators check them. Its
- * messages are the `x-error-message`, since it is the format's range, not a keyword's.
+ * wire, `float` / `float32` on a number wire, with the bounds the other generators' wires
+ * check (`float32` is bounded by the double nearest `FLT_MAX`, as `z.float32()` is). A
+ * side the schema already bounds as tightly is left to that keyword's check and message.
+ * Its messages are the `x-error-message`, since it is the format's range, not a keyword's.
  */
 function formatRange(schema: JSONSchema, kind: 'integer' | 'number'): readonly NumericBound[] {
-  const { format } = schema
+  const { format, minimum, maximum, exclusiveMinimum, exclusiveMaximum } = schema
   const range =
     kind === 'integer'
       ? format === 'int32' || format === 'uint32'
@@ -181,9 +183,23 @@ function formatRange(schema: JSONSchema, kind: 'integer' | 'number'): readonly N
         ? NUMBER_RANGES.float32
         : undefined
   if (range === undefined) return []
+  const low = Number(range.minimum)
+  const high = Number(range.maximum)
+  const lowerBounds = [
+    ...(minimum === undefined ? [] : [minimum]),
+    ...(typeof exclusiveMinimum === 'number' ? [exclusiveMinimum] : []),
+  ]
+  const upperBounds = [
+    ...(maximum === undefined ? [] : [maximum]),
+    ...(typeof exclusiveMaximum === 'number' ? [exclusiveMaximum] : []),
+  ]
   return [
-    [`Number(value)>=${range.minimum}`, 'error', `must be >= ${range.minimum}`],
-    [`Number(value)<=${range.maximum}`, 'error', `must be <= ${range.maximum}`],
+    ...(lowerBounds.some((bound) => bound >= low)
+      ? []
+      : [[`Number(value)>=${range.minimum}`, 'error', `must be >= ${range.minimum}`] as const]),
+    ...(upperBounds.some((bound) => bound <= high)
+      ? []
+      : [[`Number(value)<=${range.maximum}`, 'error', `must be <= ${range.maximum}`] as const]),
   ]
 }
 

@@ -732,7 +732,17 @@ describe('typebox', () => {
       ],
       [
         { type: 'integer', format: 'uint32', maximum: 10 },
-        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer"),(value)=>Number(value)>=0,()=>"must be >= 0"),(value)=>Number(value)<=4294967295,()=>"must be <= 4294967295"),(value)=>Number(value)<=10,()=>"must be <= 10")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer"),(value)=>Number(value)>=0,()=>"must be >= 0"),(value)=>Number(value)<=10,()=>"must be <= 10")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        {
+          type: 'integer',
+          format: 'int32',
+          exclusiveMinimum: 0,
+          maximum: 100,
+          'x-maximum-message': 'too big',
+        },
+        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer"),(value)=>Number(value)>0,()=>"must be > 0"),(value)=>Number(value)<=100,()=>"too big")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
       ],
       [
         { type: 'number', format: 'float' },
