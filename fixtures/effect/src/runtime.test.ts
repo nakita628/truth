@@ -29,6 +29,7 @@ import { Order as SplitNestedOrder } from '../split-nested/output.ts'
 import { User as SplitRefsUser } from '../split-refs/output.ts'
 import { User as TitleUser } from '../title/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Schema_ as PropertyNamesEnumSchema } from '../property-names-enum/output.ts'
 import { Query as WireNumberQuery } from '../wire-number/output.ts'
 import { Formats as StringFormats } from '../string-formats/output.ts'
 import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts'
@@ -742,5 +743,15 @@ describe('wire-number runtime', () => {
     ['count', '9007199254740993'],
   ])('rejects %s=%s, which overflows or loses precision', (key, text) => {
     expect(() => Schema.decodeUnknownSync(WireNumberQuery)({ [key]: text })).toThrow()
+  })
+})
+
+describe('property-names-enum runtime', () => {
+  it.each([{}, { none: {} }, { mixed: { a: 'x' } }, { record: {} }])('accepts %j', (value) => {
+    expect(() => Schema.decodeUnknownSync(PropertyNamesEnumSchema)(value)).not.toThrow()
+  })
+
+  it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }])('rejects %j, whose key the enum does not list', (value) => {
+    expect(() => Schema.decodeUnknownSync(PropertyNamesEnumSchema)(value)).toThrow()
   })
 })

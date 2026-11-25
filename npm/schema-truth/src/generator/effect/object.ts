@@ -9,6 +9,7 @@ import {
   isEvaluatedKeyExpression,
   ownProperties,
   propertyEmitOptions,
+  propertyNamesEnumCheck,
 } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
@@ -59,7 +60,7 @@ export function object(
       return `Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp(${JSON.stringify(schema.propertyNames.pattern)}).test(key))${propNamesErrorArg})`
     }
     if (schema.propertyNames?.enum) {
-      return `Schema.makeFilter((input)=>Object.keys(input).every((key)=>${JSON.stringify(schema.propertyNames.enum)}.includes(key))${propNamesErrorArg})`
+      return `Schema.makeFilter((input)=>${propertyNamesEnumCheck(schema.propertyNames.enum, 'input')}${propNamesErrorArg})`
     }
     return ''
   }
