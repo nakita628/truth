@@ -1,5 +1,6 @@
+import { NUMBER_RANGES } from '../constants/index.js'
 import type { JSONSchema } from '../parser/index.js'
-import { coerceDefault, makeSafeKey } from '../utils/index.js'
+import { coerceDefault, makeSafeKey, normalizeTypes } from '../utils/index.js'
 import type { DefaultSchema } from '../utils/index.js'
 import { bigintFormatOf, isBigintSchema } from './bigint.js'
 import { examplesOf } from './schema.js'
@@ -56,7 +57,8 @@ export function typeboxDefaultOpt(
   if (schema.default === undefined) return []
   const result = coerceDefault(schema, schema.default, definitions)
   if (!result.keep) return []
-  const value = stringWire ? String(result.value) : result.value
+  const value = stringWire ? wireDefaultText(schema, result.value) : result.value
+  if (value === undefined) return []
   // A `Type.BigInt` (on the node, or beside a `$ref` or `allOf` to one) carries no default.
   // A number default is one `Value.Default` puts in and `Type.BigInt` then rejects, and a
   // bigint default is not JSON, so the schema would no longer go through `JSON.stringify`
@@ -70,6 +72,33 @@ export function typeboxDefaultOpt(
   const formatLiteral =
     typeof value === 'boolean' || typeof value === 'number' ? `${value}` : JSON.stringify(value)
   return [`default:${formatLiteral}`]
+}
+
+/**
+ * A default as the text a string wire reads. An integer of `format: int64`, `uint64` or
+ * `bigint` is decoded with `BigInt`, so its default is spelled in digits (`1e21` is
+ * `1000000000000000000000`, not `1e+21`), and one outside the `int64` / `uint64` range,
+ * such as a `uint64` maximum a number rounds up, has no text the wire takes: `undefined`.
+ */
+function wireDefaultText(schema: JSONSchema, value: unknown) {
+  const { format } = schema
+  if (
+    typeof value !== 'number' ||
+    !Number.isInteger(value) ||
+    !normalizeTypes(schema.type).includes('integer') ||
+    (format !== 'int64' && format !== 'uint64' && format !== 'bigint')
+  ) {
+    return String(value)
+  }
+  const digits = BigInt(value)
+  const range = NUMBER_RANGES[format]
+  if (
+    range !== undefined &&
+    (digits < BigInt(range.minimum.slice(0, -1)) || digits > BigInt(range.maximum.slice(0, -1)))
+  ) {
+    return undefined
+  }
+  return String(digits)
 }
 
 /**
