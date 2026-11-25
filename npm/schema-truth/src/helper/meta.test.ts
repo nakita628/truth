@@ -269,10 +269,8 @@ describe('a 64-bit or bigint default', () => {
     )
   })
   it('typeboxDefaultOpt', () => {
-    expect(typeboxDefaultOpt({ type: 'integer', format: 'bigint', default: 5 })).toStrictEqual([
-      'default:5n',
-    ])
-    expect(typeboxDefaultOpt(big, false, definitions)).toStrictEqual(['default:5n'])
+    expect(typeboxDefaultOpt({ type: 'integer', format: 'bigint', default: 5 })).toStrictEqual([])
+    expect(typeboxDefaultOpt(big, false, definitions)).toStrictEqual([])
     expect(typeboxDefaultOpt(allOf, false, definitions)).toStrictEqual(['default:7'])
     expect(typeboxDefaultOpt(level, false, definitions)).toStrictEqual(['default:1'])
     expect(typeboxDefaultOpt({ type: 'number', format: 'bigint', default: 5 })).toStrictEqual([

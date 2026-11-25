@@ -868,7 +868,7 @@ describe('the bounds of a number read from text run as TypeBox checks a number (
 })
 
 describe('typebox nullable anyOf default beside a $ref to a bigint', () => {
-  it('writes the default as a bigint', () => {
+  it('leaves the default out, so the schema stays serializable', () => {
     const definitions = { Big: { type: 'integer', format: 'bigint' } } satisfies {
       [name: string]: JSONSchema
     }
@@ -876,6 +876,6 @@ describe('typebox nullable anyOf default beside a $ref to a bigint', () => {
       typebox({ anyOf: [{ $ref: '#/$defs/Big' }, { type: 'null' }], default: 5 }, 'Schema', false, {
         definitions,
       }),
-    ).toBe('Type.Optional(Type.Union([Big,Type.Null()],{default:5n}))')
+    ).toBe('Type.Optional(Type.Union([Big,Type.Null()]))')
   })
 })

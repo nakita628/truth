@@ -37,7 +37,9 @@ The pins live in `fixtures/zod/package.json` and its siblings — those are what
 - **Valibot** composes with `v.pipe(base, ...actions)`; a base validator never chains.
 - **Effect v4** attaches constraints with `.check(...)` and messages with
   `.annotate({ message })`; brands go through `.pipe(Schema.brand('X'))`.
-- **TypeBox** has no lazy combinator: a cycle becomes one `Type.Cyclic` map.
+- **TypeBox** has no lazy combinator: a cycle becomes one `Type.Cyclic` map. A
+  `Type.BigInt` carries no `default`: a number default fails its check after
+  `Value.Default`, and a bigint one does not serialize (#56).
 - **ArkType** is string-syntax first (`'string.email'`, `'number.integer >= 0'`), and a
   cycle becomes a `scope`.
 - **Ajv** consumes JSON Schema: emit a reconstructed draft-07 object literal plus

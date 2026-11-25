@@ -8,8 +8,8 @@ export const Limits = Type.Object({
   ),
   large: Type.Optional(Type.Integer({ default: 9007199254740992 })),
   level: Type.Optional(Type.Union([Type.Literal(9007199254740992), Type.Literal(2)])),
-  big: Type.Optional(Type.Intersect([Big], { default: 5n })),
-  maybe: Type.Optional(Type.Union([Big, Type.Null()], { default: 6n })),
+  big: Type.Optional(Big),
+  maybe: Type.Optional(Type.Union([Big, Type.Null()])),
 })
 
 export type Limits = Static<typeof Limits>
