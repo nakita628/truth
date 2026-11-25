@@ -34,6 +34,7 @@ import { Config as ReadonlyConfig } from '../readonly/output.ts'
 import { Organization as ScopeMetadataOrganization } from '../scope-metadata/output.ts'
 import { Schema as SimpleSchema } from '../simple/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Query as WireNumberQuery } from '../wire-number/output.ts'
 import { Formats as StringFormats } from '../string-formats/output.ts'
 import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts'
 import { Filter as ParamDeepObjectFilter } from '../param-deep-object/output.ts'
@@ -987,5 +988,28 @@ describe('string length counts code points', () => {
   it('counts an astral character once', () => {
     expect(LengthMessageCode({ code: '🔥🔥🔥🔥🔥🔥' })).toStrictEqual({ code: '🔥🔥🔥🔥🔥🔥' })
     expect(LengthMessageCode({ code: '🔥🔥🔥' })).toBeInstanceOf(type.errors)
+  })
+})
+
+describe('wire-number', () => {
+  it.each<[string, string, number]>([
+    ['ratio', '1.5', 1.5],
+    ['ratio', '9007199254740993', 9007199254740992],
+    ['score', '1e3', 1000],
+    ['id', '-9007199254740991', -9007199254740991],
+    ['count', '9007199254740991', 9007199254740991],
+  ])('decodes %s=%s to %d', (key, text, expected) => {
+    expect(WireNumberQuery({ [key]: text })).toStrictEqual({ [key]: expected })
+  })
+
+  it.each<[string, string]>([
+    ['ratio', '1e999'],
+    ['ratio', '-1e999'],
+    ['score', '1e999'],
+    ['id', '9007199254740992'],
+    ['id', '-9007199254740993'],
+    ['count', '9007199254740993'],
+  ])('rejects %s=%s, which overflows or loses precision', (key, text) => {
+    expect(WireNumberQuery({ [key]: text })).toBeInstanceOf(type.errors)
   })
 })

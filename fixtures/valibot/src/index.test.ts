@@ -12,6 +12,7 @@ const READONLY_FIXTURES = ['readonly']
 /** Fixtures generated as an OpenAPI parameter, with the options its Parameter Object implies. */
 const PARAM_FIXTURES: { readonly [name: string]: GenerateOptions } = {
   'wire-query': { paramIn: 'query' },
+  'wire-number': { paramIn: 'query' },
   'param-form-no-explode': { paramIn: 'query', explode: false },
   'param-deep-object': { paramIn: 'query', style: 'deepObject' },
   'param-json-content': { paramIn: 'query', contentType: 'application/json' },

@@ -29,6 +29,7 @@ import { Order as SplitNestedOrder } from '../split-nested/output.ts'
 import { User as SplitRefsUser } from '../split-refs/output.ts'
 import { User as TitleUser } from '../title/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Query as WireNumberQuery } from '../wire-number/output.ts'
 import { Formats as StringFormats } from '../string-formats/output.ts'
 import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts'
 import { Filter as ParamDeepObjectFilter } from '../param-deep-object/output.ts'
@@ -1437,5 +1438,28 @@ describe('valibot fixtures: string length counts code points', () => {
   it('counts an astral character once', () => {
     expect(v.safeParse(LengthMessageCode, { code: '🔥🔥🔥🔥🔥🔥' }).success).toBe(true)
     expect(v.safeParse(LengthMessageCode, { code: '🔥🔥🔥' }).success).toBe(false)
+  })
+})
+
+describe('valibot fixtures: wire-number runtime', () => {
+  it.each<[string, string, number]>([
+    ['ratio', '1.5', 1.5],
+    ['ratio', '9007199254740993', 9007199254740992],
+    ['score', '1e3', 1000],
+    ['id', '-9007199254740991', -9007199254740991],
+    ['count', '9007199254740991', 9007199254740991],
+  ])('decodes %s=%s to %d', (key, text, expected) => {
+    expect(v.parse(WireNumberQuery, { [key]: text })).toStrictEqual({ [key]: expected })
+  })
+
+  it.each<[string, string]>([
+    ['ratio', '1e999'],
+    ['ratio', '-1e999'],
+    ['score', '1e999'],
+    ['id', '9007199254740992'],
+    ['id', '-9007199254740993'],
+    ['count', '9007199254740993'],
+  ])('rejects %s=%s, which overflows or loses precision', (key, text) => {
+    expect(v.safeParse(WireNumberQuery, { [key]: text }).success).toBe(false)
   })
 })

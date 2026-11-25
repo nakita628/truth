@@ -14,6 +14,7 @@ import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts
 import { Payload as ParamJsonContentPayload } from '../param-json-content/output.ts'
 import { Formats as StringFormats } from '../string-formats/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Query as WireNumberQuery } from '../wire-number/output.ts'
 import { Merged } from '../allof-message/output.ts'
 import { StringOrNumber } from '../anyof/output.ts'
 import { BrandedTypes } from '../brand/output.ts'
@@ -881,5 +882,28 @@ describe('bigint-defaults', () => {
 
   it('reads an int64 enum member beyond 2^53', () => {
     expect(Limits.parse({ level: "9007199254740992" }).level).toBe(9007199254740992n)
+  })
+})
+
+describe('zod fixtures: wire-number runtime', () => {
+  it.each<[string, string, number]>([
+    ['ratio', '1.5', 1.5],
+    ['ratio', '9007199254740993', 9007199254740992],
+    ['score', '1e3', 1000],
+    ['id', '-9007199254740991', -9007199254740991],
+    ['count', '9007199254740991', 9007199254740991],
+  ])('decodes %s=%s to %d', (key, text, expected) => {
+    expect(WireNumberQuery.parse({ [key]: text })).toStrictEqual({ [key]: expected })
+  })
+
+  it.each<[string, string]>([
+    ['ratio', '1e999'],
+    ['ratio', '-1e999'],
+    ['score', '1e999'],
+    ['id', '9007199254740992'],
+    ['id', '-9007199254740993'],
+    ['count', '9007199254740993'],
+  ])('rejects %s=%s, which overflows or loses precision', (key, text) => {
+    expect(WireNumberQuery.safeParse({ [key]: text }).success).toBe(false)
   })
 })
