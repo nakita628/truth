@@ -737,6 +737,21 @@ describe('arktype', () => {
       ).toBe('type(["string","boolean"]).describe("no extras")')
     })
 
+    it('describes the tuple in definition syntax inside a scope', () => {
+      expect(
+        arktype(
+          {
+            type: 'array',
+            prefixItems: [{ $ref: '#/$defs/A' }],
+            unevaluatedItems: false,
+            'x-unevaluatedItems-message': 'no extras',
+          },
+          'Schema',
+          true,
+        ),
+      ).toBe('[["A"],"@","no extras"]')
+    })
+
     it('emits a variadic tuple when unevaluatedItems is a schema', () => {
       expect(
         arktype({
@@ -1111,5 +1126,24 @@ describe('a quoted union that gets `[]` or `&` is combined at runtime (#66)', ()
     [{ type: 'array', items: { type: 'string' } }, false, '"string[]"'],
   ])('%o (in a scope: %s) → %s', (schema, isArktype, expected) => {
     expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
+  })
+})
+
+describe('an array inside a scope stays a definition the scope resolves (#72)', () => {
+  it.each<[JSONSchema, string]>([
+    [{ type: 'array', prefixItems: [{ $ref: '#/$defs/A' }] }, '["A"]'],
+    [
+      { type: 'array', prefixItems: [{ $ref: '#/$defs/A' }], unevaluatedItems: { $ref: '#' } },
+      '["A","...","Schema[]"]',
+    ],
+    [{ $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' } }, '"A[]"'],
+  ])('%o → %s', (schema, expected) => {
+    expect(arktype(schema, 'Schema', true)).toBe(expected)
+  })
+
+  it('wraps a tuple outside a scope in type(...)', () => {
+    expect(arktype({ type: 'array', prefixItems: [{ type: 'string' }] }, 'Schema', false)).toBe(
+      'type(["string"])',
+    )
   })
 })

@@ -1,0 +1,63 @@
+{
+  "title": "Node",
+  "type": "object",
+  "properties": {
+    "ids": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Leaf"
+      }
+    },
+    "children": {
+      "type": "array",
+      "items": {
+        "$ref": "#"
+      }
+    },
+    "pair": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Leaf"
+        }
+      ]
+    },
+    "path": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Leaf"
+        }
+      ],
+      "unevaluatedItems": {
+        "$ref": "#"
+      }
+    },
+    "refList": {
+      "$ref": "#/$defs/Leaves",
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Leaf"
+      }
+    }
+  },
+  "$defs": {
+    "Leaf": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        }
+      },
+      "required": [
+        "id"
+      ]
+    },
+    "Leaves": {
+      "type": "array",
+      "items": {
+        "$ref": "#/$defs/Leaf"
+      }
+    }
+  }
+}

@@ -34,6 +34,7 @@ import { Config as ReadonlyConfig } from '../readonly/output.ts'
 import { Organization as ScopeMetadataOrganization } from '../scope-metadata/output.ts'
 import { Schema as SimpleSchema } from '../simple/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Node as ScopeArraysNode } from '../scope-arrays/output.ts'
 import { Schema as UnionOperandSchema } from '../union-operand/output.ts'
 import { Schema as UnevaluatedBranchesSchema } from '../unevaluated-branches/output.ts'
 import { Schema as PropertyNamesEnumSchema } from '../property-names-enum/output.ts'
@@ -1083,5 +1084,27 @@ describe('unevaluated-branches', () => {
     { c2: 1 },
   ])('rejects %j, which has a key nothing declares', (value) => {
     expect(UnevaluatedBranchesSchema(value)).toBeInstanceOf(type.errors)
+  })
+})
+
+describe('scope-arrays', () => {
+  it.each([
+    { ids: [{ id: 'a' }] },
+    { children: [{ ids: [] }] },
+    { pair: [{ id: 'a' }] },
+    { path: [{ id: 'a' }, { children: [] }] },
+    { refList: [{ id: 'a' }] },
+  ])('accepts %j', (value) => {
+    expect(ScopeArraysNode(value)).not.toBeInstanceOf(type.errors)
+  })
+
+  it.each([
+    { ids: [{ id: 1 }] },
+    { children: [{ ids: 'x' }] },
+    { pair: [{ id: 1 }] },
+    { path: [{ id: 'a' }, { ids: 'x' }] },
+    { refList: [{ id: 1 }] },
+  ])('rejects %j', (value) => {
+    expect(ScopeArraysNode(value)).toBeInstanceOf(type.errors)
   })
 })
