@@ -256,7 +256,9 @@ function node(
     const hasRefOrAllOf = schema.oneOf.some((s) => s.$ref !== undefined || s.allOf !== undefined)
     // A referenced member is held to the discriminator values that select it, so members
     // that overlap (subtypes of one base) do not both match.
-    const discriminated = hasRefOrAllOf ? discriminatedMembers(schema, schema.oneOf) : undefined
+    const discriminated = hasRefOrAllOf
+      ? discriminatedMembers(schema, schema.oneOf, options?.definitions)
+      : undefined
     const schemas = schema.oneOf.map((s, i) => {
       const member = zod(s, rootName, isZod, options)
       const values = discriminated?.members[i]?.values

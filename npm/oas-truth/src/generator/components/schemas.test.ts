@@ -225,7 +225,7 @@ describe('makeSchemaDeclarations', () => {
     ).toStrictEqual(expected)
   })
 
-  it('arktype: a discriminated array inside a cycle keeps the scope aliases and the schema names', () => {
+  it("arktype: a discriminated array inside a cycle keeps the scope aliases and the members' own values", () => {
     const filters = {
       ComparisonFilter: {
         type: 'object',
@@ -254,8 +254,112 @@ describe('makeSchemaDeclarations', () => {
       makeSchemaDeclarations(filters as never, makeAdapter('arktype')).map((d) => d.code),
     ).toStrictEqual([
       `export const ComparisonFilterSchema=type({type:"'eq' | 'ne'",key:"string"})`,
-      `export const CompoundFilterSchema=scope({ComparisonFilterSchema:ComparisonFilterSchema,CompoundFilterSchema:{type:"'and' | 'or'",filters:[[["ComparisonFilterSchema","&",{"type":"'ComparisonFilter'"}],"|",["CompoundFilterSchema","&",{"type":"'CompoundFilter'"}]],"[]"]}}).export().CompoundFilterSchema`,
+      `export const CompoundFilterSchema=scope({ComparisonFilterSchema:ComparisonFilterSchema,CompoundFilterSchema:{type:"'and' | 'or'",filters:[[["ComparisonFilterSchema","&",{"type":"'eq' | 'ne'"}],"|",["CompoundFilterSchema","&",{"type":"'and' | 'or'"}]],"[]"]}}).export().CompoundFilterSchema`,
     ])
+  })
+
+  it('zod: an implicit discriminator member takes its own values, outside a cycle too', () => {
+    const filters = {
+      Eq: {
+        type: 'object',
+        required: ['type'],
+        properties: { type: { type: 'string', enum: ['eq', 'ne'] } },
+      },
+      Open: { type: 'object', properties: { type: { type: 'string' } } },
+      Filter: {
+        oneOf: [{ $ref: '#/components/schemas/Eq' }, { $ref: '#/components/schemas/Open' }],
+        discriminator: { propertyName: 'type' },
+      },
+    }
+    const code = makeSchemaDeclarations(filters as never, makeAdapter('zod'))
+      .map((d) => d.code)
+      .join(';')
+    expect(code).toContain('z.object({type:z.enum(["eq","ne"])})')
+    expect(code).toContain('z.object({type:z.literal("Open")})')
+  })
+
+  it('arktype: readonly cycle members also take their own values', () => {
+    const filters = {
+      ComparisonFilter: {
+        type: 'object',
+        required: ['type'],
+        properties: { type: { type: 'string', enum: ['eq', 'ne'] } },
+      },
+      CompoundFilter: {
+        type: 'object',
+        required: ['type', 'filters'],
+        properties: {
+          type: { type: 'string', enum: ['and', 'or'] },
+          filters: {
+            type: 'array',
+            items: {
+              oneOf: [
+                { $ref: '#/components/schemas/ComparisonFilter' },
+                { $ref: '#/components/schemas/CompoundFilter' },
+              ],
+              discriminator: { propertyName: 'type' },
+            },
+          },
+        },
+      },
+    }
+    const code = makeSchemaDeclarations(filters as never, makeAdapter('arktype'), {
+      readonly: true,
+    })
+      .map((d) => d.code)
+      .join(';')
+    expect(code).toContain(`{"type":"'eq' | 'ne'"}`)
+    expect(code).toContain(`{"type":"'and' | 'or'"}`)
+  })
+
+  it('zod: members that share a discriminator value keep their schema names', () => {
+    const pets = {
+      Cat: { type: 'object', properties: { petType: { enum: ['Cat', 'Dog'] } } },
+      Dog: { type: 'object', properties: { petType: { enum: ['Cat', 'Dog'] } } },
+      Pet: {
+        oneOf: [{ $ref: '#/components/schemas/Cat' }, { $ref: '#/components/schemas/Dog' }],
+        discriminator: { propertyName: 'petType' },
+      },
+    }
+    const code = makeSchemaDeclarations(pets as never, makeAdapter('zod'))
+      .map((d) => d.code)
+      .join(';')
+    expect(code).toContain('z.object({petType:z.literal("Cat")})')
+    expect(code).toContain('z.object({petType:z.literal("Dog")})')
+  })
+
+  it('zod: a member keeps its distinct own values and a fallback name is claimed', () => {
+    const pets = {
+      Cat: { type: 'object', properties: { petType: { enum: ['cat', 'animal'] } } },
+      Dog: { type: 'object', properties: { petType: { enum: ['dog', 'animal'] } } },
+      Cmp: { type: 'object', properties: { petType: { const: 'Open' } } },
+      Open: { type: 'object', properties: { petType: { type: 'string' } } },
+      Pet: {
+        oneOf: ['Cat', 'Dog', 'Cmp', 'Open'].map((name) => ({
+          $ref: `#/components/schemas/${name}`,
+        })),
+        discriminator: { propertyName: 'petType' },
+      },
+    }
+    const code = makeSchemaDeclarations(pets as never, makeAdapter('zod'))
+      .map((d) => d.code)
+      .join(';')
+    expect(code).toContain('z.object({petType:z.literal("cat")})')
+    expect(code).toContain('z.object({petType:z.literal("dog")})')
+    expect(code).toContain('z.object({petType:z.literal("Cmp")})')
+    expect(code).toContain('z.object({petType:z.literal("Open")})')
+  })
+
+  it('does not throw on a malformed discriminated union', () => {
+    const malformed = {
+      Odd: { type: 'object', allOf: {}, properties: { type: { enum: 'eq' } } },
+      Union: {
+        oneOf: [null, { $ref: '#/components/schemas/Odd' }],
+        anyOf: {},
+        discriminator: { propertyName: 'type' },
+      },
+    }
+    expect(() => makeSchemaDeclarations(malformed as never, makeAdapter('zod'))).not.toThrow()
   })
 
   it('arktype: an explicit discriminator value is not replaced by a cycle member name', () => {

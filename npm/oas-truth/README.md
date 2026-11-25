@@ -91,6 +91,10 @@ const declarations = makeSchemaDeclarations(schemas, makeAdapter('arktype'))
 const source = `${declarations[0]?.importLine}\n\n${declarations[0]?.code}`
 ```
 
+## Discriminator values
+
+A `discriminator` member that no `mapping` entry names takes its own discriminator property's `const` / `enum` values before its schema name, as in schema-truth. This departs from the specification's implicit mapping on purpose, so that documents such as OpenAI's `CompoundFilter` validate as intended.
+
 ## License
 
 [MIT](https://github.com/nakita628/truth/blob/main/LICENSE)

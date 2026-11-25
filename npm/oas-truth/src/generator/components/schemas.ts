@@ -126,6 +126,103 @@ function componentSchemaKey(ref: string) {
   return ref.startsWith('#/components/schemas/') ? schemaRefToName(ref) : undefined
 }
 
+/** A keyword's value as a list, or none when the unsanitized document holds something else. */
+function listOf(value: unknown): readonly unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
+/** The string values a schema's own `propertyName` property is held to (`const` / `enum`). */
+function ownDiscriminatorValues(schema: Schema, propertyName: string) {
+  // The document is not sanitized yet, so a keyword may hold the wrong kind of value.
+  const holders = [schema, ...listOf(schema.allOf)]
+  for (const holder of holders) {
+    if (!isSchema(holder)) continue
+    const property = holder.properties?.[propertyName]
+    if (!isSchema(property)) continue
+    if (typeof property.const === 'string') return [property.const]
+    const values = listOf(property.enum).filter(
+      (value): value is string => typeof value === 'string',
+    )
+    if (values.length > 0) return values
+  }
+  return undefined
+}
+
+/**
+ * The own values each unmapped member keeps: those no other member, mapping key or
+ * fallback name also claims, as schema-truth's `discriminatedMembers` decides. A member
+ * left with none keeps its schema name (`undefined` here), which is then claimed too.
+ */
+function distinctOwnValues(
+  mappingKeys: readonly string[],
+  members: readonly { readonly name: string; readonly own: readonly string[] | undefined }[],
+) {
+  const counts = new Map<string, number>()
+  for (const value of [...mappingKeys, ...members.flatMap(({ own }) => [...new Set(own)])]) {
+    counts.set(value, (counts.get(value) ?? 0) + 1)
+  }
+  const settle = (chosen: readonly (readonly string[] | undefined)[]): typeof chosen => {
+    const fallbacks = new Set(
+      members.flatMap(({ name }, index) => (chosen[index] === undefined ? [name] : [])),
+    )
+    const next = chosen.map((values) => {
+      const kept = values?.filter((value) => !fallbacks.has(value)) ?? []
+      return kept.length > 0 ? kept : undefined
+    })
+    return next.every((values, index) => values?.length === chosen[index]?.length)
+      ? next
+      : settle(next)
+  }
+  return settle(
+    members.map(({ own }) => {
+      const kept = own?.filter((value) => counts.get(value) === 1) ?? []
+      return kept.length > 0 ? kept : undefined
+    }),
+  )
+}
+
+/**
+ * Pins, in a discriminator's mapping, the values a member's own discriminator property is
+ * held to (`const` / `enum`) for a member the mapping names nowhere. The specification's
+ * implicit value is the schema name, but a document such as OpenAI's `CompoundFilter`,
+ * whose member declares `type: { enum: [eq, ne] }`, means those values, and the name
+ * could never match (#73). schema-truth reads the same values from `$defs`; oas-truth
+ * generates each component on its own, so it writes them into the mapping first.
+ */
+function pinOwnDiscriminatorValues(node: Schema, schemas: { readonly [k: string]: Schema }) {
+  const { discriminator } = node
+  if (!isSchema(discriminator) || typeof discriminator.propertyName !== 'string') return node
+  const { propertyName } = discriminator
+  const mapping = Object.entries(isRecord(discriminator.mapping) ? discriminator.mapping : {})
+  const mapped = new Set(
+    mapping.map(([, target]) =>
+      typeof target === 'string' ? componentSchemaKey(target) : undefined,
+    ),
+  )
+  const members = [...listOf(node.oneOf), ...listOf(node.anyOf)]
+  const unmapped = members.flatMap((member) => {
+    if (!isSchema(member) || typeof member.$ref !== 'string') return []
+    const ref = member.$ref
+    const key = componentSchemaKey(ref)
+    if (key === undefined || mapped.has(key)) return []
+    const target = Object.hasOwn(schemas, key) ? schemas[key] : undefined
+    const own = target === undefined ? undefined : ownDiscriminatorValues(target, propertyName)
+    return [{ ref, name: key, own }]
+  })
+  const chosen = distinctOwnValues(
+    mapping.map(([value]) => value),
+    unmapped,
+  )
+  const pinned = unmapped.flatMap(({ ref }, index) =>
+    (chosen[index] ?? []).map((value) => [value, ref] as const),
+  )
+  if (pinned.length === 0) return node
+  return {
+    ...node,
+    discriminator: { ...discriminator, mapping: Object.fromEntries([...mapping, ...pinned]) },
+  }
+}
+
 function makeCyclicContainer(
   varName: string,
   group: readonly string[],
@@ -258,8 +355,14 @@ export function makeSchemaDeclarations(
   adapter: ComponentAdapter,
   options?: SchemasOptions,
 ) {
-  const prepared = Object.fromEntries(
+  const pinned = Object.fromEntries(
     Object.entries(schemas).map(([name, schema]) => [
+      name,
+      mapSchema(schema, (node) => pinOwnDiscriminatorValues(node, schemas)),
+    ]),
+  )
+  const prepared = Object.fromEntries(
+    Object.entries(pinned).map(([name, schema]) => [
       name,
       options?.readonly === true ? markReadonly(schema) : schema,
     ]),
@@ -287,7 +390,7 @@ export function makeSchemaDeclarations(
         ? makeCyclicContainer(
             varName,
             group,
-            arktypeReadonly ? schemas : prepared,
+            arktypeReadonly ? pinned : prepared,
             identifiers,
             adapter,
             adapter.withRef === undefined ? hostRef : undefined,

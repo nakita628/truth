@@ -14,6 +14,7 @@ import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts
 import { Payload as ParamJsonContentPayload } from '../param-json-content/output.ts'
 import { Formats as StringFormats } from '../string-formats/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Filter as DiscriminatorOwnValuesFilter } from '../discriminator-own-values/output.ts'
 import { Schema as UnevaluatedBranchesSchema } from '../unevaluated-branches/output.ts'
 import { Schema as PropertyNamesEnumSchema } from '../property-names-enum/output.ts'
 import { Query as WireNumberQuery } from '../wire-number/output.ts'
@@ -935,5 +936,15 @@ describe('zod fixtures: unevaluated-branches runtime', () => {
     { c2: 1 },
   ])('rejects %j, which has a key nothing declares', (value) => {
     expect(UnevaluatedBranchesSchema.safeParse(value).success).toBe(false)
+  })
+})
+
+describe('zod fixtures: discriminator-own-values runtime', () => {
+  it.each([{ type: 'eq', key: 'k' }, { type: 'ne', key: 'k' }, { type: 'and' }, { type: 'or' }])("accepts %j, whose type is a member's own value", (value) => {
+    expect(DiscriminatorOwnValuesFilter.safeParse(value).success).toBe(true)
+  })
+
+  it.each([{ type: 'Comparison', key: 'k' }, { type: 'Compound' }, { type: 'xor' }])('rejects %j', (value) => {
+    expect(DiscriminatorOwnValuesFilter.safeParse(value).success).toBe(false)
   })
 })

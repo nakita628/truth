@@ -1,0 +1,17 @@
+{
+  "title": "Filter",
+  "oneOf": [{ "$ref": "#/$defs/Comparison" }, { "$ref": "#/$defs/Compound" }],
+  "discriminator": { "propertyName": "type" },
+  "$defs": {
+    "Comparison": {
+      "type": "object",
+      "required": ["type", "key"],
+      "properties": { "type": { "type": "string", "enum": ["eq", "ne"] }, "key": { "type": "string" } }
+    },
+    "Compound": {
+      "type": "object",
+      "required": ["type"],
+      "properties": { "type": { "type": "string", "enum": ["and", "or"] } }
+    }
+  }
+}
