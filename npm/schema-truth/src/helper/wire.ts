@@ -139,6 +139,18 @@ export function stringboolTruthyPattern() {
 }
 
 /**
+ * {@link STRINGBOOL_PATTERN} as a JSON Schema `pattern`, which is a string and has no
+ * flags: each letter is spelled as a class of both its cases (`[Tt][Rr][Uu][Ee]`), so the
+ * text matches exactly what the `i` flag matches.
+ */
+export function stringboolPatternText() {
+  return STRINGBOOL_PATTERN.source.replaceAll(
+    /[a-z]/g,
+    (letter) => `[${letter.toUpperCase()}${letter}]`,
+  )
+}
+
+/**
  * A default value as it is spelled on the string wire, where a coerced schema's input
  * is text: a scalar as its text, an array element by element, `null` and objects as
  * they are.

@@ -727,7 +727,7 @@ describe('typebox', () => {
 
     it("path: boolean → Type.Transform decode 'true'|'false'", () => {
       expect(typebox({ type: 'boolean' }, 'Schema', false, { paramIn: 'path' })).toBe(
-        "Codec(Type.String({pattern:/^(?:true|1|yes|on|y|enabled|false|0|no|off|n|disabled)$/i})).Decode((value)=>/^(?:true|1|yes|on|y|enabled)$/i.test(value)).Encode((value)=>value?'true':'false')",
+        `Codec(Type.String({pattern:"^(?:[Tt][Rr][Uu][Ee]|1|[Yy][Ee][Ss]|[Oo][Nn]|[Yy]|[Ee][Nn][Aa][Bb][Ll][Ee][Dd]|[Ff][Aa][Ll][Ss][Ee]|0|[Nn][Oo]|[Oo][Ff][Ff]|[Nn]|[Dd][Ii][Ss][Aa][Bb][Ll][Ee][Dd])$"})).Decode((value)=>/^(?:true|1|yes|on|y|enabled)$/i.test(value)).Encode((value)=>value?'true':'false')`,
       )
     })
 
@@ -812,7 +812,7 @@ describe('allOf keyword members', () => {
     [
       { type: 'boolean' },
       { paramIn: 'path' },
-      "Codec(Type.String({pattern:/^(?:true|1|yes|on|y|enabled|false|0|no|off|n|disabled)$/i})).Decode((value)=>/^(?:true|1|yes|on|y|enabled)$/i.test(value)).Encode((value)=>value?'true':'false')",
+      `Codec(Type.String({pattern:"^(?:[Tt][Rr][Uu][Ee]|1|[Yy][Ee][Ss]|[Oo][Nn]|[Yy]|[Ee][Nn][Aa][Bb][Ll][Ee][Dd]|[Ff][Aa][Ll][Ss][Ee]|0|[Nn][Oo]|[Oo][Ff][Ff]|[Nn]|[Dd][Ii][Ss][Aa][Bb][Ll][Ee][Dd])$"})).Decode((value)=>/^(?:true|1|yes|on|y|enabled)$/i.test(value)).Encode((value)=>value?'true':'false')`,
     ],
   ])('typebox(%o, %o) → %s', (schema, options, expected) => {
     expect(typebox(schema, 'Schema', false, options)).toBe(expected)

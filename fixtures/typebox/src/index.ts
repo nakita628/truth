@@ -2,6 +2,7 @@ import { readdirSync, readFileSync, writeFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Effect } from 'effect'
 import { fmt, parseSchemaFile, schemaToTypebox } from 'schema-truth'
+import type { TypeboxGenerateOptions } from 'schema-truth'
 
 const fixturesDir = join(import.meta.dirname, '..')
 
@@ -11,6 +12,10 @@ const REF_FIXTURES: { readonly [name: string]: string } = {
   ref: 'Pet',
   'ref-cyclic': 'Node',
   'ref-codec': 'Name',
+}
+/** Fixtures generated as an OpenAPI parameter, with the options its Parameter Object implies. */
+const PARAM_FIXTURES: { readonly [name: string]: TypeboxGenerateOptions } = {
+  'wire-boolean': { paramIn: 'query' },
 }
 
 const fixtures = readdirSync(fixturesDir, { withFileTypes: true })
@@ -33,7 +38,7 @@ for (const name of fixtures) {
     raw = schemaToTypebox(input, { ref: REF_FIXTURES[name] })
   } else {
     const input = JSON.parse(readFileSync(inputPath, 'utf-8'))
-    raw = schemaToTypebox(input)
+    raw = schemaToTypebox(input, PARAM_FIXTURES[name])
   }
 
   writeFileSync(outputPath, await Effect.runPromise(fmt(raw)))

@@ -1,0 +1,8 @@
+{
+  "title": "Query",
+  "type": "object",
+  "properties": {
+    "active": { "type": "boolean" }
+  },
+  "required": ["active"]
+}

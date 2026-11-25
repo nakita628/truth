@@ -2,6 +2,7 @@ import { readdirSync, readFileSync } from 'node:fs'
 import { join } from 'node:path'
 import { Effect } from 'effect'
 import { fmt, parseSchemaFile, schemaToTypebox } from 'schema-truth'
+import type { TypeboxGenerateOptions } from 'schema-truth'
 import { describe, expect, it } from 'vite-plus/test'
 
 const fixturesDir = join(import.meta.dirname, '..')
@@ -12,6 +13,10 @@ const REF_FIXTURES: { readonly [name: string]: string } = {
   ref: 'Pet',
   'ref-cyclic': 'Node',
   'ref-codec': 'Name',
+}
+/** Fixtures generated as an OpenAPI parameter, with the options its Parameter Object implies. */
+const PARAM_FIXTURES: { readonly [name: string]: TypeboxGenerateOptions } = {
+  'wire-boolean': { paramIn: 'query' },
 }
 
 const fixtures = readdirSync(fixturesDir, { withFileTypes: true })
@@ -31,7 +36,9 @@ describe('schemaToTypebox fixtures', () => {
     const dir = join(fixturesDir, name)
     const input = JSON.parse(readFileSync(join(dir, 'input.json'), 'utf-8'))
     const expected = readFileSync(join(dir, 'output.ts'), 'utf-8')
-    expect(await Effect.runPromise(fmt(schemaToTypebox(input)))).toBe(expected)
+    expect(await Effect.runPromise(fmt(schemaToTypebox(input, PARAM_FIXTURES[name])))).toBe(
+      expected,
+    )
   })
 })
 

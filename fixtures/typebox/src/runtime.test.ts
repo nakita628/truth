@@ -24,6 +24,7 @@ import { Order as SplitNestedOrder } from '../split-nested/output.ts'
 import { Schema as SelfReferenceSchema } from '../self-reference/output.ts'
 import { User as SplitRefsUser } from '../split-refs/output.ts'
 import { User as TitleUser } from '../title/output.ts'
+import { Query as WireBooleanQuery } from '../wire-boolean/output.ts'
 
 describe('simple', () => {
   it('valid', () => {
@@ -840,5 +841,41 @@ describe('bigint-defaults', () => {
   // A bigint default is not JSON: the trade-off for a default the schema accepts.
   it('does not serialize once it carries a bigint default', () => {
     expect(() => JSON.stringify(Limits)).toThrow(TypeError)
+  })
+})
+
+describe('wire-boolean', () => {
+  it('serializes the wire pattern as a JSON Schema string', () => {
+    expect(JSON.parse(JSON.stringify(WireBooleanQuery)).properties.active.pattern).toBe(
+      '^(?:[Tt][Rr][Uu][Ee]|1|[Yy][Ee][Ss]|[Oo][Nn]|[Yy]|[Ee][Nn][Aa][Bb][Ll][Ee][Dd]|[Ff][Aa][Ll][Ss][Ee]|0|[Nn][Oo]|[Oo][Ff][Ff]|[Nn]|[Dd][Ii][Ss][Aa][Bb][Ll][Ee][Dd])$',
+    )
+  })
+
+  it.each<[string, boolean]>([
+    ['true', true],
+    ['TRUE', true],
+    ['1', true],
+    ['Yes', true],
+    ['oN', true],
+    ['Y', true],
+    ['Enabled', true],
+    ['false', false],
+    ['False', false],
+    ['0', false],
+    ['NO', false],
+    ['Off', false],
+    ['n', false],
+    ['DISABLED', false],
+  ])('decodes %s to %s', (text, expected) => {
+    expect(Value.Decode(WireBooleanQuery, { active: text })).toStrictEqual({ active: expected })
+  })
+
+  it.each(['', 'maybe', 'true1', ' true', '2', 'yes\n'])('rejects %j', (text) => {
+    expect(Value.Check(WireBooleanQuery, { active: text })).toBe(false)
+  })
+
+  it('encodes a boolean to its text', () => {
+    expect(Value.Encode(WireBooleanQuery, { active: true })).toStrictEqual({ active: 'true' })
+    expect(Value.Encode(WireBooleanQuery, { active: false })).toStrictEqual({ active: 'false' })
   })
 })
