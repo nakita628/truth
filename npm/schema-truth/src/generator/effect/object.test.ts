@@ -83,15 +83,15 @@ describe('object', () => {
       ],
       [
         { type: 'object', propertyNames: { pattern: '^a' } },
-        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
+        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>((re)=>Object.keys(input).every((key)=>re.test(key)))(new RegExp("^a"))))',
       ],
       [
         { type: 'object', additionalProperties: true, propertyNames: { pattern: '^a' } },
-        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
+        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>((re)=>Object.keys(input).every((key)=>re.test(key)))(new RegExp("^a"))))',
       ],
       [
         { type: 'object', propertyNames: { pattern: '^a' }, minProperties: 1 },
-        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).length>=1),Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
+        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).length>=1),Schema.makeFilter((input)=>((re)=>Object.keys(input).every((key)=>re.test(key)))(new RegExp("^a"))))',
       ],
     ])(
       'checks the keys of an object with no properties or additionalProperties schema (#88): %o → %s',
@@ -113,7 +113,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'Schema.StructWithRest(Schema.Struct({a:Schema.String}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^[a-z]+$").test(key))))',
+        'Schema.StructWithRest(Schema.Struct({a:Schema.String}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>((re)=>Object.keys(input).every((key)=>re.test(key)))(new RegExp("^[a-z]+$"))))',
       )
     })
 
@@ -148,7 +148,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'Schema.StructWithRest(Schema.Struct({a:Schema.String}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^[a-z]+$").test(key)),{message:"lowercase only"}))',
+        'Schema.StructWithRest(Schema.Struct({a:Schema.String}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>((re)=>Object.keys(input).every((key)=>re.test(key)))(new RegExp("^[a-z]+$")),{message:"lowercase only"}))',
       )
     })
   })

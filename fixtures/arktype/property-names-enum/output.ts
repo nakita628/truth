@@ -8,18 +8,25 @@ export const Schema = type({
   'record?': type({ '[string]': 'string' }).narrow((data) => Object.keys(data).length === 0),
   'bare?': type({}).narrow((data) => Object.keys(data).length === 0),
   'pattern?': type({}).narrow((data) =>
-    Object.keys(data).every((key) => new RegExp('^a').test(key)),
+    ((re) => Object.keys(data).every((key) => re.test(key)))(new RegExp('^a')),
   ),
-  'open?': type({}).narrow((data) => Object.keys(data).every((key) => new RegExp('^a').test(key))),
+  'open?': type({}).narrow((data) =>
+    ((re) => Object.keys(data).every((key) => re.test(key)))(new RegExp('^a')),
+  ),
   'both?': type({}).narrow(
     (data) =>
-      Object.keys(data).every((key) => new RegExp('^[a-z]+$').test(key)) &&
+      ((re) => Object.keys(data).every((key) => re.test(key)))(new RegExp('^[a-z]+$')) &&
       Object.keys(data).every((key) => ['a', 'B'].includes(key)),
   ),
   'closed?': type({}).narrow((data) => Object.keys(data).length === 0),
   'single?': type({}).narrow((data) => Object.keys(data).every((key) => ['a'].includes(key))),
   'letters?': type({}).narrow((data) =>
-    Object.keys(data).every((key) => new RegExp('^\\p{L}+$', 'u').test(key)),
+    ((re) => Object.keys(data).every((key) => re.test(key)))(new RegExp('^\\p{L}+$', 'u')),
+  ),
+  'short?': type({}).narrow(
+    (data) =>
+      Object.keys(data).every((key) => Array.from(key).length >= 1) &&
+      Object.keys(data).every((key) => Array.from(key).length <= 2),
   ),
 })
 

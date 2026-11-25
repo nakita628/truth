@@ -80,6 +80,13 @@
       "propertyNames": {
         "pattern": "^\\p{L}+$"
       }
+    },
+    "short": {
+      "type": "object",
+      "propertyNames": {
+        "minLength": 1,
+        "maxLength": 2
+      }
     }
   }
 }

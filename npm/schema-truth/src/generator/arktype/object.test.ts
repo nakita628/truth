@@ -74,15 +74,15 @@ describe('object', () => {
       ],
       [
         { type: 'object', propertyNames: { pattern: '^a' } },
-        'type({}).narrow((data) => Object.keys(data).every((key)=>new RegExp("^a").test(key)))',
+        'type({}).narrow((data) => ((re)=>Object.keys(data).every((key)=>re.test(key)))(new RegExp("^a")))',
       ],
       [
         { type: 'object', additionalProperties: true, propertyNames: { pattern: '^a' } },
-        'type({}).narrow((data) => Object.keys(data).every((key)=>new RegExp("^a").test(key)))',
+        'type({}).narrow((data) => ((re)=>Object.keys(data).every((key)=>re.test(key)))(new RegExp("^a")))',
       ],
       [
         { type: 'object', propertyNames: { pattern: '^a' }, minProperties: 1 },
-        'type({}).narrow((data) => Object.keys(data).length >= 1).narrow((data) => Object.keys(data).every((key)=>new RegExp("^a").test(key)))',
+        'type({}).narrow((data) => Object.keys(data).length >= 1).narrow((data) => ((re)=>Object.keys(data).every((key)=>re.test(key)))(new RegExp("^a")))',
       ],
     ])(
       'checks the keys of an object with no properties or additionalProperties schema (#88): %o → %s',
@@ -104,7 +104,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'type({a:"string"}).narrow((data) => Object.keys(data).every((key)=>new RegExp("^[a-z]+$").test(key)))',
+        'type({a:"string"}).narrow((data) => ((re)=>Object.keys(data).every((key)=>re.test(key)))(new RegExp("^[a-z]+$")))',
       )
     })
 
@@ -139,7 +139,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'type({a:"string"}).narrow((data, ctx) => Object.keys(data).every((key)=>new RegExp("^[a-z]+$").test(key)) || ctx.mustBe("lowercase only"))',
+        'type({a:"string"}).narrow((data, ctx) => ((re)=>Object.keys(data).every((key)=>re.test(key)))(new RegExp("^[a-z]+$")) || ctx.mustBe("lowercase only"))',
       )
     })
   })
@@ -359,7 +359,7 @@ describe('object dependent / unevaluated / conditional keywords', () => {
         properties: { a: { type: 'string' } },
         propertyNames: { pattern: '^[a-z]+$' },
       },
-      'type({"a?":"string"}).narrow((data) => Object.keys(data).every((key)=>new RegExp("^[a-z]+$").test(key)))',
+      'type({"a?":"string"}).narrow((data) => ((re)=>Object.keys(data).every((key)=>re.test(key)))(new RegExp("^[a-z]+$")))',
     ],
     [
       {
@@ -383,7 +383,7 @@ describe('object dependent / unevaluated / conditional keywords', () => {
         additionalProperties: { type: 'string' },
         propertyNames: { pattern: '^x' },
       },
-      'type({"[string]":"string"}).narrow((data) => Object.keys(data).every((key)=>new RegExp("^x").test(key)))',
+      'type({"[string]":"string"}).narrow((data) => ((re)=>Object.keys(data).every((key)=>re.test(key)))(new RegExp("^x")))',
     ],
   ])('object(%o) → %s', (input, expected) => {
     expect(object(input, 'Schema', false)).toBe(expected)

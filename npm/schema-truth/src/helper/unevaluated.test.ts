@@ -66,20 +66,29 @@ describe('propertyNamesKeyCheck (#90)', () => {
     [false, 'Object.keys(input).length===0'],
     [{ const: 'a' }, 'Object.keys(input).every((key)=>["a"].includes(key))'],
     [{ const: 1 }, 'Object.keys(input).length===0'],
-    [{ pattern: '^[a-z]+$' }, 'Object.keys(input).every((key)=>new RegExp("^[a-z]+$").test(key))'],
+    [
+      { pattern: '^[a-z]+$' },
+      '((re)=>Object.keys(input).every((key)=>re.test(key)))(new RegExp("^[a-z]+$"))',
+    ],
     [
       { pattern: '^\\p{L}+$' },
-      'Object.keys(input).every((key)=>new RegExp("^\\\\p{L}+$","u").test(key))',
+      '((re)=>Object.keys(input).every((key)=>re.test(key)))(new RegExp("^\\\\p{L}+$","u"))',
     ],
-    [{ pattern: '\\\\/' }, 'Object.keys(input).every((key)=>new RegExp("\\\\\\\\/").test(key))'],
-    [{ pattern: 'a\nb' }, 'Object.keys(input).every((key)=>new RegExp("a\\nb").test(key))'],
+    [
+      { pattern: '\\\\/' },
+      '((re)=>Object.keys(input).every((key)=>re.test(key)))(new RegExp("\\\\\\\\/"))',
+    ],
+    [
+      { pattern: 'a\nb' },
+      '((re)=>Object.keys(input).every((key)=>re.test(key)))(new RegExp("a\\nb"))',
+    ],
     [
       { minLength: 1, maxLength: 3 },
-      'Object.keys(input).every((key)=>[...key].length>=1)&&Object.keys(input).every((key)=>[...key].length<=3)',
+      'Object.keys(input).every((key)=>Array.from(key).length>=1)&&Object.keys(input).every((key)=>Array.from(key).length<=3)',
     ],
     [
       { pattern: '^[a-z]+$', enum: ['a', 'B'] },
-      'Object.keys(input).every((key)=>new RegExp("^[a-z]+$").test(key))&&Object.keys(input).every((key)=>["a","B"].includes(key))',
+      '((re)=>Object.keys(input).every((key)=>re.test(key)))(new RegExp("^[a-z]+$"))&&Object.keys(input).every((key)=>["a","B"].includes(key))',
     ],
     [
       { enum: ['a', 'b'], const: 'a' },
@@ -89,14 +98,19 @@ describe('propertyNamesKeyCheck (#90)', () => {
     expect(propertyNamesKeyCheck(propertyNames, 'input')).toBe(expected)
   })
 
-  it.each(['\\\\/', 'a\nb', 'a\u2028b', '^\\p{L}+$', '^\\x{1F600}$'])(
-    'emits a check that parses and runs for the pattern %j',
-    (pattern) => {
-      const check = propertyNamesKeyCheck({ pattern }, 'input')
-      // oxlint-disable-next-line eslint/no-new-func, typescript/no-implied-eval -- the emitted code is what is under test
-      expect(() => new Function('input', `return ${check}`)({})).not.toThrow()
-    },
-  )
+  it.each([
+    '\\\\/',
+    'a\nb',
+    'a\u2028b',
+    '^\\p{L}+$',
+    '^\\x{1F600}$',
+    '^\\\\p{x}$',
+    "^\\p{L}[\\w\\s\\']*$",
+  ])('emits a check that parses and runs for the pattern %j', (pattern) => {
+    const check = propertyNamesKeyCheck({ pattern }, 'input')
+    // oxlint-disable-next-line eslint/no-new-func, typescript/no-implied-eval -- the emitted code is what is under test
+    expect(() => new Function('input', `return ${check}`)({})).not.toThrow()
+  })
 })
 
 describe('propertyNamesEnumCheck', () => {

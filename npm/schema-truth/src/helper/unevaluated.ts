@@ -110,8 +110,8 @@ export function propertyNamesEnumCheck(values: readonly unknown[], input: string
  * The emitted check that every key of `input` holds a `propertyNames` schema, or `undefined`
  * when it does not constrain keys. The keywords read are ANDed: `false` allows no key and
  * `const` allows one (as an enum of that value), `enum` is {@link propertyNamesEnumCheck},
- * `minLength` / `maxLength` count code points, and `pattern` is a `regexConstructor` (an
- * empty one matches every key). Other keywords (`format`, `$ref`, composition) are not read.
+ * `minLength` / `maxLength` count code points, and `pattern` is a `regexConstructor`
+ * compiled once per check (an empty one matches every key). Other keywords (`format`, `$ref`, composition) are not read.
  */
 export function propertyNamesKeyCheck(
   propertyNames: JSONSchema | boolean | undefined,
@@ -122,11 +122,12 @@ export function propertyNamesKeyCheck(
   const { pattern, enum: values, const: constValue, minLength, maxLength } = propertyNames
   const every = (predicate: string) => `Object.keys(${input}).every((key)=>${predicate})`
   const checks = [
+    // The pattern is compiled once per check, outside the per-key callback.
     ...(typeof pattern === 'string' && pattern !== ''
-      ? [every(`${regexConstructor(pattern)}.test(key)`)]
+      ? [`((re)=>${every('re.test(key)')})(${regexConstructor(pattern)})`]
       : []),
-    ...(typeof minLength === 'number' ? [every(`[...key].length>=${minLength}`)] : []),
-    ...(typeof maxLength === 'number' ? [every(`[...key].length<=${maxLength}`)] : []),
+    ...(typeof minLength === 'number' ? [every(`Array.from(key).length>=${minLength}`)] : []),
+    ...(typeof maxLength === 'number' ? [every(`Array.from(key).length<=${maxLength}`)] : []),
     ...(Array.isArray(values) ? [propertyNamesEnumCheck(values, input)] : []),
     ...(constValue !== undefined ? [propertyNamesEnumCheck([constValue], input)] : []),
   ]

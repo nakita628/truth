@@ -30,8 +30,10 @@ export function regexLiteral(pattern: string) {
  * A `new RegExp(...)` expression for a JSON Schema `pattern`, for a check built inside a
  * callback: the pattern is a JSON string, so a `/`, an escaped backslash or a line
  * terminator needs no rewriting, and a pattern the engine rejects throws when the check
- * runs instead of when the generated module loads. Braced hex escapes are rewritten and
- * the `u` flag set as in {@link regexLiteral}.
+ * runs instead of when the generated module loads. Braced hex escapes are rewritten as in
+ * {@link regexLiteral}. The `u` flag is set for an unescaped `\p{` / `\u{` (or a code
+ * point above U+FFFF), unless the pattern compiles only without it: `u` refuses identity
+ * escapes such as `\_` that the pattern may also use.
  *
  * @example
  * ```ts
@@ -41,8 +43,29 @@ export function regexLiteral(pattern: string) {
  */
 export function regexConstructor(pattern: string) {
   const rewritten = rewriteBracedHex(pattern)
-  const unicode = rewritten.unicode || UNICODE_ESCAPE_PATTERN.test(rewritten.pattern)
+  const wantsUnicode = rewritten.unicode || hasUnicodeEscape(rewritten.pattern)
+  const unicode =
+    wantsUnicode && (compiles(rewritten.pattern, 'u') || !compiles(rewritten.pattern, ''))
   return `new RegExp(${JSON.stringify(rewritten.pattern)}${unicode ? ',"u"' : ''})`
+}
+
+/** Whether `pattern` has a `\p{`, `\P{` or `\u{` whose backslash is not itself escaped. */
+function hasUnicodeEscape(pattern: string) {
+  for (let index = 0; index < pattern.length; index++) {
+    if (pattern.charAt(index) !== '\\') continue
+    const next = pattern.charAt(index + 1)
+    if ('pPu'.includes(next) && next !== '' && pattern.charAt(index + 2) === '{') return true
+    index += 1
+  }
+  return false
+}
+
+function compiles(pattern: string, flags: string) {
+  try {
+    return new RegExp(pattern, flags).flags === flags
+  } catch {
+    return false
+  }
 }
 
 /**
