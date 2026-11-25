@@ -341,11 +341,16 @@ function isStricter(next: Bound, current: Bound, direction: 'lower' | 'upper') {
   return next.exclusive && !current.exclusive
 }
 
+/**
+ * The message of the keyword that gives `bound`, or else of the other keyword in the same
+ * direction: a member with both bounds keeps its message whichever bound is the stricter.
+ */
 function boundMessage(schema: JSONSchema, bound: Bound, direction: 'lower' | 'upper') {
-  if (direction === 'lower') {
-    return bound.exclusive ? schema['x-exclusiveMinimum-message'] : schema['x-minimum-message']
-  }
-  return bound.exclusive ? schema['x-exclusiveMaximum-message'] : schema['x-maximum-message']
+  const [inclusive, exclusive] =
+    direction === 'lower'
+      ? [schema['x-minimum-message'], schema['x-exclusiveMinimum-message']]
+      : [schema['x-maximum-message'], schema['x-exclusiveMaximum-message']]
+  return bound.exclusive ? (exclusive ?? inclusive) : (inclusive ?? exclusive)
 }
 
 function dropLower(schema: JSONSchema) {

@@ -52,6 +52,13 @@ describe('foldAllOfMembers with both bounds in one member (#69)', () => {
       ],
       [{ type: 'number', minimum: 20, exclusiveMinimum: 1 }],
     ],
+    [
+      [
+        { type: 'number' },
+        { minimum: 10, exclusiveMinimum: 5, 'x-exclusiveMinimum-message': 'too small' },
+      ],
+      [{ type: 'number', minimum: 10, 'x-minimum-message': 'too small' }],
+    ],
   ])('keeps the stricter bound: %j → %j', (members, expected) => {
     expect(foldAllOfMembers(members, false)).toStrictEqual(expected)
   })
