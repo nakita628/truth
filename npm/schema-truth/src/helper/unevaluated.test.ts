@@ -223,6 +223,23 @@ describe('withoutShadowedUnevaluated (#93)', () => {
       { additionalProperties: false, unevaluatedProperties: false },
       { additionalProperties: false },
     ],
+    [
+      {
+        additionalProperties: false,
+        unevaluatedProperties: false,
+        'x-unevaluatedProperties-message': 'nope',
+      },
+      { additionalProperties: false, 'x-additionalProperties-message': 'nope' },
+    ],
+    [
+      {
+        additionalProperties: false,
+        unevaluatedProperties: false,
+        'x-additionalProperties-message': 'own',
+        'x-unevaluatedProperties-message': 'nope',
+      },
+      { additionalProperties: false, 'x-additionalProperties-message': 'own' },
+    ],
     [{ unevaluatedProperties: false }, { unevaluatedProperties: false }],
     [{ additionalProperties: true }, { additionalProperties: true }],
   ])('withoutShadowedUnevaluated(%o) → %o', (schema, expected) => {
