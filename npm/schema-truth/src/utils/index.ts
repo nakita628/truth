@@ -289,9 +289,9 @@ function readObject(
 }
 
 /** The definition a local `$ref` names, when `definitions` has it. */
-export function definitionOf(
+export function definitionOf<T extends DefaultSchema>(
   ref: string,
-  definitions: { readonly [name: string]: DefaultSchema } | undefined,
+  definitions: { readonly [name: string]: T } | undefined,
 ) {
   if (definitions === undefined) return undefined
   for (const prefix of DEFINITION_REF_PREFIXES) {

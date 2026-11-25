@@ -1,6 +1,6 @@
 import { INTEGER_TEXT_PATTERN, NUMBER_RANGES } from '../constants/index.js'
 import type { JSONSchema } from '../parser/index.js'
-import { coerceDefault, makeSafeKey, normalizeTypes } from '../utils/index.js'
+import { coerceDefault, definitionOf, makeSafeKey, normalizeTypes } from '../utils/index.js'
 import type { DefaultSchema } from '../utils/index.js'
 import { bigintFormatOf, bigintWireText, isBigintSchema, isBigintWire } from './bigint.js'
 import { examplesOf } from './schema.js'
@@ -75,45 +75,68 @@ export function typeboxDefaultOpt(
   return [`default:${formatLiteral}`]
 }
 
-/** The primitive types in the order `typebox()` reads them: the first one it finds is emitted. */
-const TYPEBOX_PRIMITIVE_ORDER = ['string', 'number', 'integer', 'boolean'] as const
+/** The types in the order `typebox()` reads them: the first one it finds is emitted. */
+const TYPEBOX_TYPE_ORDER = [
+  'string',
+  'number',
+  'integer',
+  'boolean',
+  'array',
+  'object',
+  'date',
+] as const
 
 /**
  * The schema as the TypeBox node it is emitted as, for reading its default. A node of
- * several primitive types is the first one `typebox()` reads (`['integer', 'string']` is a
- * `Type.String`, which takes `"5"`, not `5`). A union is read from the keyword `typebox()`
- * emits (`oneOf` before `anyOf`; an empty one is a `Type.Any`), each member as it is
- * emitted, leaving out a member emitted as a `Type.BigInt`, which no number default fits,
- * so the default is read by a member that takes it. A union of nothing but such members
- * is left as it is, for the `Type.BigInt` check to leave its default out.
+ * several types is the first one `typebox()` reads (`['integer', 'string']` is a
+ * `Type.String`, which takes `"5"`, not `5`), and a node with `properties` is an object.
+ * A union is read from the keyword `typebox()` emits (`oneOf` before `anyOf`; an empty one
+ * is a `Type.Any`, nullable as the node is), each member as it is emitted, leaving out a
+ * member emitted as a `Type.BigInt`, which no number default fits, so the default is read
+ * by a member that takes it. A union of nothing but such members is left as it is, for
+ * the `Type.BigInt` check to leave its default out. A `$ref`, which `typebox()` reads
+ * first, is read as its target, nullable as the node is; a reference already being read
+ * ends there, as a cycle does.
  */
-function typeboxEmitted(schema: JSONSchema, definitions?: SchemaDefinitions): JSONSchema {
+function typeboxEmitted(
+  schema: JSONSchema,
+  definitions?: SchemaDefinitions,
+  reading: ReadonlySet<string> = new Set(),
+): JSONSchema {
+  const emitted = (node: JSONSchema) => typeboxEmitted(node, definitions, reading)
+  const types = normalizeTypes(schema.type)
+  if (schema.$ref !== undefined) {
+    const { $ref, nullable } = schema
+    const target = reading.has($ref) ? undefined : definitionOf($ref, definitions)
+    if (target === undefined) return schema
+    // The node is the target's; of the keywords beside it, `typebox()` emits only the wrap.
+    return typeboxEmitted(
+      nullable === undefined ? target : { ...target, nullable },
+      definitions,
+      new Set([...reading, $ref]),
+    )
+  }
   const key =
     schema.oneOf !== undefined ? 'oneOf' : schema.anyOf !== undefined ? 'anyOf' : undefined
   if (key !== undefined) {
     const { oneOf: _oneOf, anyOf: _anyOf, ...rest } = schema
-    const members = (schema[key] ?? []).map((member) => typeboxEmitted(member, definitions))
-    if (members.length === 0) return {}
+    const members = (schema[key] ?? []).map(emitted)
+    if (members.length === 0) {
+      return schema.nullable === true || types.includes('null') ? { nullable: true } : {}
+    }
     const takers = members.filter(
       (member) => bigintFormatOf(member, definitions, isTypeboxBigint) !== 'bigint',
     )
     return { ...rest, [key]: takers.length === 0 ? members : takers }
   }
-  if (schema.allOf !== undefined && schema.$ref === undefined) {
-    return { ...schema, allOf: schema.allOf.map((member) => typeboxEmitted(member, definitions)) }
+  if (schema.allOf !== undefined) return { ...schema, allOf: schema.allOf.map(emitted) }
+  if (schema.enum !== undefined || schema.const !== undefined) return schema
+  if (schema.properties !== undefined) {
+    return { ...schema, type: types.includes('null') ? ['object', 'null'] : 'object' }
   }
-  if (
-    schema.$ref !== undefined ||
-    schema.enum !== undefined ||
-    schema.const !== undefined ||
-    schema.properties !== undefined
-  ) {
-    return schema
-  }
-  const types = normalizeTypes(schema.type)
-  const primitive = TYPEBOX_PRIMITIVE_ORDER.find((type) => types.includes(type))
-  if (primitive === undefined || types.filter((type) => type !== 'null').length < 2) return schema
-  return { ...schema, type: types.includes('null') ? [primitive, 'null'] : primitive }
+  const first = TYPEBOX_TYPE_ORDER.find((type) => types.includes(type))
+  if (first === undefined || types.filter((type) => type !== 'null').length < 2) return schema
+  return { ...schema, type: types.includes('null') ? [first, 'null'] : first }
 }
 
 /**
@@ -148,10 +171,8 @@ function wireDefaultText(schema: JSONSchema, value: unknown) {
 function isTypeboxBigint(node: DefaultSchema) {
   if (node.format !== 'bigint' || !isBigintSchema(node)) return false
   // `typebox()` reads `string` and `number` before `integer`.
-  const types = node.type === undefined ? [] : [node.type].flat()
-  return node.enum !== undefined || node.const !== undefined
-    ? true
-    : !types.includes('string') && !types.includes('number')
+  const types = normalizeTypes(node.type)
+  return !types.includes('string') && !types.includes('number')
 }
 
 /**

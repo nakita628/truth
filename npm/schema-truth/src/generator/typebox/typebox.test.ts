@@ -1079,6 +1079,21 @@ describe('typebox default read by the node TypeBox emits (#86)', () => {
       { anyOf: [{ type: ['integer', 'string'] }, { type: 'boolean' }], default: 5 },
       'Type.Optional(Type.Union([Type.String(),Type.Boolean()],{default:"5"}))',
     ],
+    [{ $ref: '#/$defs/Big', anyOf: [{ type: 'string' }], default: 5 }, 'Big'],
+    [{ $ref: '#/$defs/Text', default: 5 }, 'Type.Optional(Type.Intersect([Text],{default:"5"}))'],
+    [
+      { anyOf: [{ $ref: '#/$defs/Text' }, { type: 'null' }], default: 5 },
+      'Type.Optional(Type.Union([Text,Type.Null()],{default:"5"}))',
+    ],
+    [
+      { oneOf: [], nullable: true, default: null },
+      'Type.Optional(Type.Union([Type.Any({default:null}),Type.Null()]))',
+    ],
+    [
+      { type: ['integer', 'string'], properties: { a: { type: 'string' } }, default: 'x' },
+      'Type.Object({a:Type.Optional(Type.String())})',
+    ],
+    [{ type: ['array', 'object'], default: {} }, 'Type.Array(Type.Any())'],
     [
       { allOf: [{ type: ['integer', 'string'] }], default: 5 },
       'Type.Optional(Type.Intersect([Type.String()],{default:"5"}))',
