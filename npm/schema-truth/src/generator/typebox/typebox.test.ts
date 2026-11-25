@@ -877,7 +877,7 @@ describe('the bounds of a number read from text run as TypeBox checks a number (
 })
 
 describe('typebox nullable anyOf default beside a $ref to a bigint', () => {
-  it('writes the default as a bigint', () => {
+  it('leaves the default out, so the schema stays serializable', () => {
     const definitions = { Big: { type: 'integer', format: 'bigint' } } satisfies {
       [name: string]: JSONSchema
     }
@@ -885,6 +885,60 @@ describe('typebox nullable anyOf default beside a $ref to a bigint', () => {
       typebox({ anyOf: [{ $ref: '#/$defs/Big' }, { type: 'null' }], default: 5 }, 'Schema', false, {
         definitions,
       }),
-    ).toBe('Type.Optional(Type.Union([Big,Type.Null()],{default:5n}))')
+    ).toBe('Type.Union([Big,Type.Null()])')
+  })
+})
+
+describe('typebox union default beside a bigint and an int64 member', () => {
+  it('keeps the default, which the int64 Type.Integer member takes', () => {
+    const definitions = { Big: { type: 'integer', format: 'bigint' } } satisfies {
+      [name: string]: JSONSchema
+    }
+    expect(
+      typebox(
+        { anyOf: [{ $ref: '#/$defs/Big' }, { type: 'integer', format: 'int64' }], default: 5 },
+        'Schema',
+        false,
+        { definitions },
+      ),
+    ).toBe('Type.Optional(Type.Union([Big,Type.Integer()],{default:5}))')
+  })
+})
+
+describe('typebox property whose bigint default is left out', () => {
+  const definitions = { Big: { type: 'integer', format: 'bigint' } } satisfies {
+    [name: string]: JSONSchema
+  }
+  const properties = {
+    plain: { type: 'integer', format: 'bigint', default: 5 },
+    ref: { $ref: '#/$defs/Big', default: 5 },
+    allOf: { allOf: [{ $ref: '#/$defs/Big' }, { default: 5 }] },
+    nullable: { anyOf: [{ $ref: '#/$defs/Big' }, { type: 'null' }], default: 5 },
+  } satisfies { [name: string]: JSONSchema }
+
+  it('stays required when the object requires it', () => {
+    expect(
+      typebox({ type: 'object', required: Object.keys(properties), properties }, 'Schema', false, {
+        definitions,
+      }),
+    ).toBe(
+      'Type.Object({plain:Type.BigInt(),ref:Big,allOf:Big,nullable:Type.Union([Big,Type.Null()])})',
+    )
+  })
+
+  it('is optional once, when the object does not require it', () => {
+    expect(typebox({ type: 'object', properties }, 'Schema', false, { definitions })).toBe(
+      'Type.Object({plain:Type.Optional(Type.BigInt()),ref:Type.Optional(Big),allOf:Type.Optional(Big),nullable:Type.Optional(Type.Union([Big,Type.Null()]))})',
+    )
+  })
+
+  it('keeps its text default and one Type.Optional on the string wire', () => {
+    expect(
+      typebox({ type: 'object', properties: { plain: properties.plain } }, 'Schema', false, {
+        paramIn: 'query',
+      }),
+    ).toBe(
+      'Type.Object({plain:Type.Optional(Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$",default:"5"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer")).Decode((value)=>Number(value)).Encode((value)=>String(value)))})',
+    )
   })
 })

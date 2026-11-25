@@ -46,7 +46,7 @@ export function examplesOf(schema: JSONSchema) {
  * Whether a node carries a `default` the generators keep, so a property holding it may be
  * left out of the input.
  */
-export function hasKeptDefault(schema: JSONSchema, definitions?: SchemaDefinitions) {
+function hasKeptDefault(schema: JSONSchema, definitions?: SchemaDefinitions) {
   return schema.default !== undefined && coerceDefault(schema, schema.default, definitions).keep
 }
 

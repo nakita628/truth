@@ -1,6 +1,7 @@
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault, makeSafeKey } from '../utils/index.js'
-import { bigintFormatOf, bigintLiteral, isBigintSchema } from './bigint.js'
+import type { DefaultSchema } from '../utils/index.js'
+import { bigintFormatOf, isBigintSchema } from './bigint.js'
 import { examplesOf } from './schema.js'
 import type { SchemaDefinitions } from './schema.js'
 
@@ -56,20 +57,42 @@ export function typeboxDefaultOpt(
   const result = coerceDefault(schema, schema.default, definitions)
   if (!result.keep) return []
   const value = stringWire ? String(result.value) : result.value
-  // `Type.BigInt` checks `typeof value === 'bigint'`, so the default `Value.Default` puts in
-  // has to be a bigint too, beside a `$ref` or `allOf` as much as on the node itself. A
-  // bigint is not JSON, so such a schema no longer goes through `JSON.stringify`: a default
-  // the schema rejects is the worse failure.
-  // A fraction there has no bigint spelling and is dropped.
+  // A `Type.BigInt` (on the node, or beside a `$ref` or `allOf` to one) carries no default.
+  // A number default is one `Value.Default` puts in and `Type.BigInt` then rejects, and a
+  // bigint default is not JSON, so the schema would no longer go through `JSON.stringify`
+  // (OpenAPI emission, Fastify route schemas, Ajv). Leaving it out keeps both right.
   if (
     typeof value === 'number' &&
-    bigintFormatOf(schema, definitions, isBigintSchema) === 'bigint'
+    bigintFormatOf(schema, definitions, isTypeboxBigint) === 'bigint'
   ) {
-    return Number.isInteger(value) ? [`default:${bigintLiteral(value)}`] : []
+    return []
   }
   const formatLiteral =
     typeof value === 'boolean' || typeof value === 'number' ? `${value}` : JSON.stringify(value)
   return [`default:${formatLiteral}`]
+}
+
+/**
+ * Whether TypeBox emits the node as a `Type.BigInt`: an integer of `format: bigint`. An
+ * int64 or uint64 integer is a `Type.Integer`, which takes a number default, so a union
+ * with such a member keeps its default.
+ */
+function isTypeboxBigint(node: DefaultSchema) {
+  return node.format === 'bigint' && isBigintSchema(node)
+}
+
+/**
+ * Whether the TypeBox output carries the node's `default` (see {@link typeboxDefaultOpt}):
+ * a kept default, except a number one on a `Type.BigInt`, which is left out. The node is
+ * `Type.Optional` exactly when this holds, so a required key whose default is left out
+ * stays required.
+ */
+export function hasTypeboxDefault(
+  schema: JSONSchema,
+  stringWire = false,
+  definitions?: SchemaDefinitions,
+) {
+  return typeboxDefaultOpt(schema, stringWire, definitions).length > 0
 }
 
 /**

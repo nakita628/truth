@@ -308,6 +308,7 @@ export function typebox(
         definitions,
       ),
       schema,
+      definitions,
     )
   }
 
@@ -327,6 +328,7 @@ export function typebox(
         definitions,
       ),
       schema,
+      definitions,
     )
   }
 
@@ -451,6 +453,8 @@ export function typebox(
       return typeboxWrap(
         `Codec(${wire}).Decode((value)=>Number(value)).Encode((value)=>String(value))`,
         schema,
+        undefined,
+        { stringWire: true },
       )
     }
     return typeboxWrap(number(schema, hostRef), schema)
@@ -461,6 +465,8 @@ export function typebox(
       return typeboxWrap(
         `Codec(${wire}).Decode((value)=>Number(value)).Encode((value)=>String(value))`,
         schema,
+        undefined,
+        { stringWire: true },
       )
     }
     return typeboxWrap(integer(schema, hostRef), schema)
@@ -471,6 +477,8 @@ export function typebox(
       return typeboxWrap(
         `Codec(${wire}).Decode((value)=>${stringboolTruthyPattern()}.test(value)).Encode((value)=>value?'true':'false')`,
         schema,
+        undefined,
+        { stringWire: true },
       )
     }
     return typeboxWrap(tbPrim('Type.Boolean', schema, [], hostRef), schema)
