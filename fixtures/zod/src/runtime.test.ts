@@ -921,11 +921,18 @@ describe('zod fixtures: property-names-enum runtime', () => {
 })
 
 describe('zod fixtures: unevaluated-branches runtime', () => {
-  it.each([{}, { a: 1, b: 2 }, { kind: 'x', x: 1 }, { kind: 'z', y: 1 }])('accepts %j, whose keys a property or a branch declares', (value) => {
+  it.each([{}, { a: 1, b: 2 }, { kind: 'x', x: 1 }, { kind: 'x', flag: true }, { kind: 'z', y: 1 }])('accepts %j, whose keys a property or a branch declares', (value) => {
     expect(UnevaluatedBranchesSchema.safeParse(value).success).toBe(true)
   })
 
-  it.each([{ c: 1 }, { a: 1, z: 1 }, { kind: 'x', x: 1, w: 1 }])('rejects %j, which has a key nothing declares', (value) => {
+  it.each([
+    { c: 1 },
+    { a: 1, z: 1 },
+    { kind: 'x', x: 1, w: 1 },
+    { b: 'not a number' },
+    { kind: 'x', y: 'str' },
+    { kind: 'z', flag: true },
+  ])('rejects %j, which has a key nothing declares', (value) => {
     expect(UnevaluatedBranchesSchema.safeParse(value).success).toBe(false)
   })
 })

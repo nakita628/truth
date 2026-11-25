@@ -2,14 +2,48 @@
   "title": "Schema",
   "type": "object",
   "properties": {
-    "a": { "type": "number" },
-    "kind": { "type": "string" }
+    "a": {
+      "type": "number"
+    },
+    "kind": {
+      "type": "string"
+    }
   },
   "dependentSchemas": {
-    "a": { "properties": { "b": { "type": "number" } } }
+    "a": {
+      "properties": {
+        "b": {
+          "type": "number"
+        }
+      }
+    }
   },
-  "if": { "properties": { "kind": { "const": "x" } }, "required": ["kind"] },
-  "then": { "properties": { "x": { "type": "number" } } },
-  "else": { "properties": { "y": { "type": "number" } } },
+  "if": {
+    "properties": {
+      "kind": {
+        "const": "x"
+      },
+      "flag": {
+        "const": true
+      }
+    },
+    "required": [
+      "kind"
+    ]
+  },
+  "then": {
+    "properties": {
+      "x": {
+        "type": "number"
+      }
+    }
+  },
+  "else": {
+    "properties": {
+      "y": {
+        "type": "number"
+      }
+    }
+  },
   "unevaluatedProperties": false
 }

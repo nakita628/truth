@@ -23,7 +23,8 @@ function definitionOf(ref: string, definitions: SchemaDefinitions | undefined) {
 /**
  * The properties a node evaluates for `unevaluatedProperties` (JSON Schema 2020-12 §11.3):
  * its own `properties` and `patternProperties`, and those of every `allOf` / `oneOf` /
- * `anyOf` / `then` / `else` / `dependentSchemas` member, a `$ref` read as the
+ * `anyOf` / `if` / `then` / `else` / `dependentSchemas` member (`then` and `else` only beside
+ * an `if`), a `$ref` read as the
  * definition it names. A branch that may not apply counts as evaluated, so a valid value
  * is never refused.
  *
@@ -40,8 +41,10 @@ export function evaluatedProperties(
     ...(schema.allOf ?? []),
     ...(schema.oneOf ?? []),
     ...(schema.anyOf ?? []),
-    ...(schema.then === undefined ? [] : [schema.then]),
-    ...(schema.else === undefined ? [] : [schema.else]),
+    // `then` and `else` do nothing without an `if`, and `if` evaluates what it declares.
+    ...(schema.if === undefined
+      ? []
+      : [schema.if, schema.then, schema.else].filter((member) => member !== undefined)),
     ...Object.values(schema.dependentSchemas ?? {}),
   ]
   const names = new Set(Object.keys(schema.properties ?? {}))
@@ -102,32 +105,113 @@ export function propertyNamesEnumCheck(values: readonly unknown[], input: string
     : `Object.keys(${input}).every((key)=>${JSON.stringify(names)}.includes(key))`
 }
 
+/** The keys a branch evaluates when it applies, or `all` when every key then is. */
+type BranchEvaluated = EvaluatedProperties | 'all'
+
 /**
- * The keys an object's own key check treats as evaluated. `additionalProperties` reads only
- * the object's own `properties` and `patternProperties`; `unevaluatedProperties` without it
- * also reads the keys its `then`, `else` and `dependentSchemas` declare
- * ({@link evaluatedProperties}). `undefined` when every key counts as evaluated, so no key
- * is checked.
+ * The keys an object's own key check reads, branch by branch (JSON Schema 2020-12 §11.3):
+ * its own `properties` and `patternProperties`, and, for `unevaluatedProperties` without
+ * `additionalProperties`, those an `if` / `then` / `else` or a `dependentSchemas` entry
+ * declares, each counted only where that branch applies. `additionalProperties` reads
+ * only the own keys.
  */
+export type ObjectEvaluatedKeys = {
+  readonly own: EvaluatedProperties
+  /** The keys `if` and `then` evaluate when `if` passes, and `else` when it fails. */
+  readonly conditional?: { readonly passed: BranchEvaluated; readonly failed: BranchEvaluated }
+  /** The keys a `dependentSchemas` entry evaluates when its key is present. */
+  readonly dependent: readonly (readonly [key: string, evaluated: BranchEvaluated])[]
+}
+
+/** The keys the members evaluate beyond the object's own (`own`), or `all`. */
+function branchEvaluated(
+  members: readonly (JSONSchema | undefined)[],
+  own: EvaluatedProperties,
+  definitions: SchemaDefinitions | undefined,
+): BranchEvaluated {
+  const names = new Set<string>()
+  const patterns = new Set<string>()
+  for (const member of members) {
+    // oxlint-disable-next-line typescript/no-unnecessary-condition -- the document is parsed JSON, never checked against the type: a null can sit where the type says a schema
+    if (typeof member !== 'object' || member === null) continue
+    const evaluated = evaluatedProperties(member, definitions)
+    if (evaluated === undefined) return 'all'
+    for (const name of evaluated.names) names.add(name)
+    for (const pattern of evaluated.patterns) patterns.add(pattern)
+  }
+  return {
+    names: [...names].filter((name) => !own.names.includes(name)),
+    patterns: [...patterns].filter((pattern) => !own.patterns.includes(pattern)),
+  }
+}
+
+function isEmptyBranch(evaluated: BranchEvaluated) {
+  return evaluated !== 'all' && evaluated.names.length === 0 && evaluated.patterns.length === 0
+}
+
+/** The keys an object's own key check reads, branch by branch ({@link ObjectEvaluatedKeys}). */
 export function objectEvaluatedKeys(
   schema: JSONSchema,
   definitions: SchemaDefinitions | undefined,
-): EvaluatedProperties | undefined {
-  if (schema.additionalProperties !== undefined || schema.unevaluatedProperties === undefined) {
-    return {
-      names: Object.keys(schema.properties ?? {}),
-      patterns: Object.keys(schema.patternProperties ?? {}),
-    }
+): ObjectEvaluatedKeys {
+  const own = {
+    names: Object.keys(schema.properties ?? {}),
+    patterns: Object.keys(schema.patternProperties ?? {}),
   }
-  return evaluatedProperties(schema, definitions)
+  if (schema.additionalProperties !== undefined || schema.unevaluatedProperties === undefined) {
+    return { own, dependent: [] }
+  }
+  // `then` and `else` do nothing without an `if`.
+  const conditional =
+    schema.if === undefined
+      ? undefined
+      : {
+          passed: branchEvaluated([schema.if, schema.then], own, definitions),
+          failed: branchEvaluated([schema.else], own, definitions),
+        }
+  const dependent = Object.entries(schema.dependentSchemas ?? {}).map(
+    ([key, member]) => [key, branchEvaluated([member], own, definitions)] as const,
+  )
+  return { own, ...(conditional && { conditional }), dependent }
 }
 
-/** Whether a branch of the object evaluates a key beyond its own `properties` and patterns. */
-export function evaluatesBeyondOwnKeys(schema: JSONSchema, evaluated: EvaluatedProperties) {
-  const names = new Set(Object.keys(schema.properties ?? {}))
-  const patterns = new Set(Object.keys(schema.patternProperties ?? {}))
+/** Whether a branch of the object evaluates a key, so its own keys are not all it allows. */
+export function hasBranchKeys(keys: ObjectEvaluatedKeys) {
   return (
-    evaluated.names.some((name) => !names.has(name)) ||
-    evaluated.patterns.some((pattern) => !patterns.has(pattern))
+    (keys.conditional !== undefined &&
+      (!isEmptyBranch(keys.conditional.passed) || !isEmptyBranch(keys.conditional.failed))) ||
+    keys.dependent.some(([, evaluated]) => !isEmptyBranch(evaluated))
   )
+}
+
+function branchCheck(condition: string, evaluated: BranchEvaluated, key: string) {
+  if (evaluated === 'all') return condition
+  const isEvaluated = isEvaluatedKeyExpression(evaluated, key)
+  return isEvaluated === undefined ? undefined : `(${condition}&&(${isEvaluated}))`
+}
+
+/**
+ * The emitted expression that tells whether `key` of `input` is evaluated: an own key, or
+ * one a branch that applies declares. `ifPasses` is the target's test of `input` against
+ * the `if` schema. `undefined` when no key is evaluated.
+ */
+export function isEvaluatedObjectKeyExpression(
+  keys: ObjectEvaluatedKeys,
+  key: string,
+  input: string,
+  ifPasses: () => string,
+) {
+  const checks = [
+    isEvaluatedKeyExpression(keys.own, key),
+    ...(keys.conditional === undefined
+      ? []
+      : [
+          branchCheck(ifPasses(), keys.conditional.passed, key),
+          branchCheck(`!${ifPasses()}`, keys.conditional.failed, key),
+        ]),
+    ...keys.dependent.map(([dependentKey, evaluated]) =>
+      branchCheck(`${JSON.stringify(dependentKey)} in ${input}`, evaluated, key),
+    ),
+  ].filter((check) => check !== undefined)
+  return checks.length > 0 ? checks.join('||') : undefined
 }

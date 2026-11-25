@@ -5,7 +5,25 @@ export const Schema_ = Schema.StructWithRest(
   [Schema.Record(Schema.String, Schema.Unknown)],
 ).check(
   Schema.makeFilter((input) =>
-    Object.keys(input).every((key) => ['a', 'kind', 'x', 'y', 'b'].includes(key)),
+    Object.keys(input).every(
+      (key) =>
+        ['a', 'kind'].includes(key) ||
+        (Schema.is(
+          Schema.Struct({
+            kind: Schema.Literal('x'),
+            flag: Schema.optionalKey(Schema.Literal(true)),
+          }),
+        )(input) &&
+          ['flag', 'x'].includes(key)) ||
+        (!Schema.is(
+          Schema.Struct({
+            kind: Schema.Literal('x'),
+            flag: Schema.optionalKey(Schema.Literal(true)),
+          }),
+        )(input) &&
+          ['y'].includes(key)) ||
+        ('a' in input && ['b'].includes(key)),
+    ),
   ),
   Schema.makeFilter(
     (input) =>
@@ -13,13 +31,21 @@ export const Schema_ = Schema.StructWithRest(
   ),
   Schema.makeFilter(
     (input) =>
-      !Schema.is(Schema.Struct({ kind: Schema.Literal('x') }))(input) ||
-      Schema.is(Schema.Struct({ x: Schema.optionalKey(Schema.Number) }))(input),
+      !Schema.is(
+        Schema.Struct({
+          kind: Schema.Literal('x'),
+          flag: Schema.optionalKey(Schema.Literal(true)),
+        }),
+      )(input) || Schema.is(Schema.Struct({ x: Schema.optionalKey(Schema.Number) }))(input),
   ),
   Schema.makeFilter(
     (input) =>
-      Schema.is(Schema.Struct({ kind: Schema.Literal('x') }))(input) ||
-      Schema.is(Schema.Struct({ y: Schema.optionalKey(Schema.Number) }))(input),
+      Schema.is(
+        Schema.Struct({
+          kind: Schema.Literal('x'),
+          flag: Schema.optionalKey(Schema.Literal(true)),
+        }),
+      )(input) || Schema.is(Schema.Struct({ y: Schema.optionalKey(Schema.Number) }))(input),
   ),
 )
 

@@ -3,8 +3,9 @@ import { describe, expect, it } from 'vite-plus/test'
 import type { JSONSchema } from '../parser/index.js'
 import {
   evaluatedProperties,
-  evaluatesBeyondOwnKeys,
+  hasBranchKeys,
   isEvaluatedKeyExpression,
+  isEvaluatedObjectKeyExpression,
   objectEvaluatedKeys,
   propertyNamesEnumCheck,
 } from './unevaluated.js'
@@ -72,35 +73,57 @@ describe('objectEvaluatedKeys', () => {
     properties: { a: {} },
     patternProperties: { '^x-': {} },
     dependentSchemas: { a: { properties: { b: {} } } },
-    if: { properties: { a: { const: 1 } } },
+    if: { properties: { flag: { const: true } } },
     // oxlint-disable-next-line unicorn/no-thenable -- the JSON Schema keyword, not a promise
     then: { properties: { c: {} } },
     else: { properties: { d: {} } },
   } satisfies JSONSchema
 
-  it('reads the then, else and dependentSchemas keys for unevaluatedProperties', () => {
-    const evaluated = objectEvaluatedKeys({ ...branches, unevaluatedProperties: false }, undefined)
-    expect(evaluated).toStrictEqual({ names: ['a', 'c', 'd', 'b'], patterns: ['^x-'] })
-    expect(evaluated && evaluatesBeyondOwnKeys(branches, evaluated)).toBe(true)
+  it('reads each branch for unevaluatedProperties, if keys with then', () => {
+    const keys = objectEvaluatedKeys({ ...branches, unevaluatedProperties: false }, undefined)
+    expect(keys).toStrictEqual({
+      own: { names: ['a'], patterns: ['^x-'] },
+      conditional: {
+        passed: { names: ['flag', 'c'], patterns: [] },
+        failed: { names: ['d'], patterns: [] },
+      },
+      dependent: [['a', { names: ['b'], patterns: [] }]],
+    })
+    expect(hasBranchKeys(keys)).toBe(true)
+    expect(isEvaluatedObjectKeyExpression(keys, 'key', 'input', () => 'IF')).toBe(
+      '["a"].includes(key)||new RegExp("^x-").test(key)||(IF&&(["flag","c"].includes(key)))||(!IF&&(["d"].includes(key)))||("a" in input&&(["b"].includes(key)))',
+    )
   })
 
   it('reads only the own keys for additionalProperties', () => {
-    const evaluated = objectEvaluatedKeys({ ...branches, additionalProperties: false }, undefined)
-    expect(evaluated).toStrictEqual({ names: ['a'], patterns: ['^x-'] })
-    expect(evaluated && evaluatesBeyondOwnKeys(branches, evaluated)).toBe(false)
+    const keys = objectEvaluatedKeys({ ...branches, additionalProperties: false }, undefined)
+    expect(keys).toStrictEqual({ own: { names: ['a'], patterns: ['^x-'] }, dependent: [] })
+    expect(hasBranchKeys(keys)).toBe(false)
   })
 
-  it('is undefined when a branch $ref cannot be read, as every key then counts', () => {
-    expect(
-      objectEvaluatedKeys(
-        {
-          type: 'object',
-          // oxlint-disable-next-line unicorn/no-thenable -- the JSON Schema keyword, not a promise
-          then: { $ref: '#/$defs/Missing' },
-          unevaluatedProperties: false,
-        },
-        {},
-      ),
-    ).toBeUndefined()
+  it('ignores then and else without an if', () => {
+    const keys = objectEvaluatedKeys(
+      {
+        type: 'object',
+        // oxlint-disable-next-line unicorn/no-thenable -- the JSON Schema keyword, not a promise
+        then: { properties: { b: {} } },
+        unevaluatedProperties: false,
+      },
+      undefined,
+    )
+    expect(hasBranchKeys(keys)).toBe(false)
+    expect(isEvaluatedObjectKeyExpression(keys, 'key', 'input', () => 'IF')).toBeUndefined()
+  })
+
+  it('allows every key where a branch whose keys cannot be told applies', () => {
+    const keys = objectEvaluatedKeys(
+      {
+        type: 'object',
+        dependentSchemas: { a: { $ref: '#/$defs/Missing' } },
+        unevaluatedProperties: false,
+      },
+      {},
+    )
+    expect(isEvaluatedObjectKeyExpression(keys, 'key', 'input', () => 'IF')).toBe('"a" in input')
   })
 })
