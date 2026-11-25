@@ -28,6 +28,7 @@ import {
 } from '../../helper/index.js'
 import type { SchemaDefinitions } from '../../helper/index.js'
 import { typeboxDefaultOpt, typeboxMetaOpts, typeboxRefOpt } from '../../helper/meta.js'
+import { examplesOf } from '../../helper/schema.js'
 import type { JSONSchema, ParamIn } from '../../parser/index.js'
 import { makeSafeKey, normalizeTypes, resolveOpenAPIRef } from '../../utils/index.js'
 import { _enum } from './enum.js'
@@ -94,9 +95,36 @@ function tbPrim(name: string, schema: JSONSchema, extraOpts: readonly string[] =
  * not on the `Codec(...)` wrapper.
  */
 function wireString(schema: JSONSchema, ref?: string, pattern?: string) {
+  // The text carries the node's metadata and its custom messages, as the non-wire form does:
+  // `x-pattern-message` for the wire pattern, `x-error-message` for any failure.
+  const errorMessage = schema['x-error-message']
+  const patternMessage = pattern === undefined ? undefined : schema['x-pattern-message']
+  const messageOpts =
+    typeof patternMessage === 'string' && patternMessage !== ''
+      ? [
+          `errorMessage:{pattern:${JSON.stringify(patternMessage)}${
+            typeof errorMessage === 'string' && errorMessage !== ''
+              ? `,_:${JSON.stringify(errorMessage)}`
+              : ''
+          }}`,
+        ]
+      : messageOpt(errorMessage === '' ? undefined : errorMessage)
+  // The examples are documented as the text the wire carries, as its default is.
+  const examples = examplesOf(schema)
+  const { example: _example, examples: _examples, ...rest } = schema
+  const wireSchema: JSONSchema =
+    examples === undefined
+      ? rest
+      : {
+          ...rest,
+          examples: examples.map((value) =>
+            typeof value === 'number' || typeof value === 'boolean' ? String(value) : value,
+          ),
+        }
   const opts = [
-    ...typeboxRefOpt(ref),
+    ...typeboxMetaOpts(wireSchema, ref),
     ...(pattern === undefined ? [] : [`pattern:${pattern}`]),
+    ...messageOpts,
     ...typeboxDefaultOpt(schema, true),
   ]
   return opts.length > 0 ? `Type.String({${opts.join(',')}})` : 'Type.String()'
