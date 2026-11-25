@@ -141,4 +141,13 @@ describe("discriminatedMembers reads a member's own values (#73)", () => {
       ['Other'],
     ])
   })
+
+  it('reads a bare schema name as a mapping target', () => {
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'type', mapping: { Cat: 'Cat', dog: '#/$defs/Dog' } } },
+      ['Cat', 'Dog'].map((name) => ({ $ref: `#/$defs/${name}` })),
+      {},
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([['Cat'], ['dog']])
+  })
 })

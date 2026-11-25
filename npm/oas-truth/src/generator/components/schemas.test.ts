@@ -411,6 +411,31 @@ describe('makeSchemaDeclarations', () => {
     )
   })
 
+  it('arktype: a bare schema name in the mapping names a cycle member', () => {
+    const nodes = {
+      Leaf: { type: 'object', required: ['type'], properties: { type: { type: 'string' } } },
+      Node: {
+        type: 'object',
+        required: ['type'],
+        properties: {
+          type: { type: 'string' },
+          children: {
+            type: 'array',
+            items: {
+              oneOf: [{ $ref: '#/components/schemas/Leaf' }, { $ref: '#/components/schemas/Node' }],
+              discriminator: { propertyName: 'type', mapping: { Node: 'Node', leaf: 'Leaf' } },
+            },
+          },
+        },
+      },
+    }
+    const code = makeSchemaDeclarations(nodes as never, makeAdapter('arktype')).map(
+      (d) => d.code,
+    )[1]
+    expect(code).toContain(`["LeafSchema","&",{"type":"'leaf'"}]`)
+    expect(code).toContain(`["NodeSchema","&",{"type":"'Node'"}]`)
+  })
+
   it("zod: outside a cycle, a member whose name is another schema's mapping key is unconstrained (#74)", () => {
     const pets = {
       A: { type: 'object', properties: { type: { type: 'string' } } },

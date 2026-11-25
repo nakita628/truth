@@ -126,6 +126,14 @@ function componentSchemaKey(ref: string) {
   return ref.startsWith('#/components/schemas/') ? schemaRefToName(ref) : undefined
 }
 
+/**
+ * The component key a discriminator `mapping` target names: a `#/components/schemas/...`
+ * reference, or a bare schema name, which the Discriminator Object also allows.
+ */
+function mappingTargetKey(target: string) {
+  return target.includes('#') || target.includes('/') ? componentSchemaKey(target) : target
+}
+
 /** A keyword's value as a list, or none when the unsanitized document holds something else. */
 function listOf(value: unknown): readonly unknown[] {
   return Array.isArray(value) ? value : []
@@ -200,7 +208,7 @@ function pinOwnDiscriminatorValues(node: Schema, schemas: { readonly [k: string]
   const mapping = Object.entries(isRecord(discriminator.mapping) ? discriminator.mapping : {})
   const mapped = new Set(
     mapping.map(([, target]) =>
-      typeof target === 'string' ? componentSchemaKey(target) : undefined,
+      typeof target === 'string' ? mappingTargetKey(target) : undefined,
     ),
   )
   const members = [...listOf(node.oneOf), ...listOf(node.anyOf)]
@@ -252,7 +260,7 @@ function makeCyclicContainer(
     const { discriminator } = node
     if (discriminator?.propertyName === undefined) return node
     const mapping = Object.entries(discriminator.mapping ?? {})
-    const mapped = new Set(mapping.map(([, target]) => componentSchemaKey(target)))
+    const mapped = new Set(mapping.map(([, target]) => mappingTargetKey(target)))
     // An explicit value is never replaced by an implicit one spelled the same.
     const values = new Set(mapping.map(([value]) => value))
     const implicit = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].flatMap((member) => {
@@ -277,7 +285,7 @@ function makeCyclicContainer(
       oneOf?.some((member, index) => member !== node.oneOf?.[index]) === true ||
       anyOf?.some((member, index) => member !== node.anyOf?.[index]) === true
     const localized = mapping.map(([value, target]) => {
-      const key = componentSchemaKey(target)
+      const key = mappingTargetKey(target)
       return [value, (key === undefined ? undefined : localRef(key)) ?? target] as const
     })
     const isUnchanged =

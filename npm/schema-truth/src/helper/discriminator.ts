@@ -14,6 +14,15 @@ function definitionName(ref: string) {
 }
 
 /**
+ * The definition a discriminator `mapping` target names: a reference such as
+ * `#/components/schemas/Cat`, or a bare schema name such as `Cat`, which the Discriminator
+ * Object also allows.
+ */
+function mappingTargetName(target: string) {
+  return target.includes('#') || target.includes('/') ? definitionName(target) : target
+}
+
+/**
  * The string values a schema's own `propertyName` property is held to (`const`, or the
  * strings of `enum`), read from its `properties` or from those of an `allOf` member;
  * `undefined` when it holds the property to no fixed value.
@@ -102,7 +111,7 @@ export function discriminatedMembers(
     const name = member.$ref === undefined ? undefined : definitionName(member.$ref)
     if (name === undefined) return { member, name, mapped: [], own: undefined }
     const mapped = mapping
-      .filter(([, target]) => target === member.$ref || definitionName(target) === name)
+      .filter(([, target]) => target === member.$ref || mappingTargetName(target) === name)
       .map(([value]) => value)
     const definition =
       definitions !== undefined && Object.hasOwn(definitions, name) ? definitions[name] : undefined
