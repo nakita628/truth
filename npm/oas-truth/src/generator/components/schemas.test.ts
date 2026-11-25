@@ -499,7 +499,7 @@ describe('makeSchemaDeclarations', () => {
 
   it('imports scope when arktype needs a cyclic container', () => {
     expect(makeSchemasCode({ schemas: selfCycle }, arktype)).toBe(
-      'import { type, scope } from \'arktype\'\n\nexport const NodeSchema=scope({NodeSchema:{"children?":"NodeSchema[]"}}).export().NodeSchema\n',
+      'import { scope } from \'arktype\'\n\nexport const NodeSchema=scope({NodeSchema:{"children?":"NodeSchema[]"}}).export().NodeSchema\n',
     )
   })
 
@@ -514,7 +514,7 @@ describe('makeSchemaDeclarations', () => {
       ]),
     ).toStrictEqual([
       ['Tag', "import { type } from 'arktype'", true, false],
-      ['Node', "import { type, scope } from 'arktype'", false, true],
+      ['Node', "import { scope } from 'arktype'", false, true],
     ])
   })
 
@@ -864,4 +864,137 @@ describe('declarations that carry more than the default import', () => {
       expect(typecheck('effect-default-cycle-standard.ts', source, exactOptional)).toBe('')
     },
   )
+})
+
+describe('discriminators across collision renames and cycles (#103)', () => {
+  const renamed = {
+    'Foo-Bar': { type: 'object', properties: { type: { type: 'string' } } },
+    FooBar: { type: 'object', properties: { type: { type: 'string' } } },
+  }
+
+  it('arktype: a renamed member outside the cycle takes its schema key as the implicit value', () => {
+    const schemas = {
+      ...renamed,
+      C: {
+        type: 'object',
+        properties: {
+          type: { type: 'string' },
+          f: {
+            type: 'array',
+            items: {
+              oneOf: [{ $ref: '#/components/schemas/FooBar' }, { $ref: '#/components/schemas/C' }],
+              discriminator: { propertyName: 'type' },
+            },
+          },
+        },
+      },
+    }
+    const code = makeSchemaDeclarations(schemas as never, makeAdapter('arktype')).map(
+      (d) => d.code,
+    )[2]
+    expect(code).toContain(`["FooBar2Schema","&",{"type":"'FooBar'"}]`)
+    expect(code).not.toContain(`'FooBar2'`)
+  })
+
+  it('zod: a mapping target follows the collision rename of the schema it names', () => {
+    const schemas = {
+      ...renamed,
+      U: {
+        oneOf: [{ $ref: '#/components/schemas/FooBar' }, { $ref: '#/components/schemas/Foo-Bar' }],
+        discriminator: { propertyName: 'type', mapping: { x: '#/components/schemas/FooBar' } },
+      },
+    }
+    expect(makeSchemaDeclarations(schemas as never, makeAdapter('zod')).map((d) => d.code)[2]).toBe(
+      'export const USchema=z.xor([z.intersection(FooBar2Schema,z.object({type:z.literal("x")})),z.intersection(FooBarSchema,z.object({type:z.literal("Foo-Bar")}))])',
+    )
+  })
+
+  it("zod: a renamed member whose name is another schema's mapping key is unconstrained", () => {
+    const schemas = {
+      ...renamed,
+      Other: { type: 'object', properties: { type: { type: 'string' } } },
+      U: {
+        oneOf: [{ $ref: '#/components/schemas/FooBar' }, { $ref: '#/components/schemas/Other' }],
+        discriminator: { propertyName: 'type', mapping: { FooBar: '#/components/schemas/Other' } },
+      },
+    }
+    const code = makeSchemaDeclarations(schemas as never, makeAdapter('zod')).map((d) => d.code)[3]
+    expect(code).not.toContain('FooBar2"')
+    expect(code).toContain('z.literal("FooBar")')
+  })
+
+  it('zod: a renamed member whose name is an external mapping key takes its schema key', () => {
+    const schemas = {
+      ...renamed,
+      U: {
+        oneOf: [{ $ref: '#/components/schemas/FooBar' }],
+        discriminator: { propertyName: 'type', mapping: { FooBar: 'other.yaml#/FooBar' } },
+      },
+    }
+    const code = makeSchemaDeclarations(schemas as never, makeAdapter('zod')).map((d) => d.code)[2]
+    expect(code).not.toContain('FooBar2"')
+    expect(code).toContain('z.literal("FooBar")')
+  })
+
+  it('renames a mapping target once inside a cycle, beside an outside $ref', () => {
+    const seen: unknown[] = []
+    const capturing = {
+      ...typebox,
+      toExpressionParts: undefined,
+      toExpression: (...args: Parameters<typeof typebox.toExpression>) => {
+        seen.push(args[0])
+        return typebox.toExpression(...args)
+      },
+    }
+    const schemas = {
+      'Foo-Bar': { type: 'object' },
+      FooBar: { type: 'object', properties: { type: { type: 'string' } } },
+      FooBar2: { type: 'object' },
+      A: { type: 'object', properties: { next: { $ref: '#/components/schemas/U' } } },
+      U: {
+        $ref: '#/components/schemas/FooBar2',
+        oneOf: [{ $ref: '#/components/schemas/FooBar' }, { $ref: '#/components/schemas/A' }],
+        discriminator: { propertyName: 'type', mapping: { f: '#/components/schemas/FooBar' } },
+      },
+    }
+    makeSchemaDeclarations(schemas as never, capturing)
+    const text = JSON.stringify(seen)
+    expect(text).toContain('"f":"#/components/schemas/FooBar2"')
+    expect(text).not.toContain('"f":"#/components/schemas/FooBar22"')
+  })
+
+  it('arktype: a type call spelled inside a string literal does not import type', () => {
+    expect(
+      makeAdapter('arktype').renderImport({
+        cyclic: true,
+        code: `export const ESchema=scope({ESchema:"'type.created'|'type(x)'"}).export().ESchema`,
+      }),
+    ).toBe("import { scope } from 'arktype'")
+  })
+
+  it('localizes the discriminator of a node that has a $ref beside its oneOf, inside a cycle', () => {
+    const seen: unknown[] = []
+    const capturing = {
+      ...typebox,
+      toExpressionParts: undefined,
+      toExpression: (...args: Parameters<typeof typebox.toExpression>) => {
+        seen.push(args[0])
+        return typebox.toExpression(...args)
+      },
+    }
+    const schemas = {
+      A: {
+        type: 'object',
+        properties: { type: { type: 'string' }, next: { $ref: '#/components/schemas/U' } },
+      },
+      U: {
+        $ref: '#/components/schemas/Base',
+        oneOf: [{ $ref: '#/components/schemas/A' }],
+        discriminator: { propertyName: 'type' },
+      },
+      Base: { type: 'object' },
+    }
+    makeSchemaDeclarations(schemas as never, capturing)
+    expect(JSON.stringify(seen)).toContain('"mapping":{"A":"#/$defs/ASchema"}')
+  })
 })

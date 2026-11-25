@@ -46,8 +46,8 @@ export type SchemaDeclaration = {
   /**
    * The library import this declaration needs when written to its own file.
    * An Arktype cycle that is only `scope({...}).export().Member` gets
-   * `import { type, scope } from 'arktype'`; a non-cyclic file stays
-   * `import { type } from 'arktype'`.
+   * `import { scope } from 'arktype'`, and `type` too when its code calls it; a
+   * non-cyclic file stays `import { type } from 'arktype'`.
    */
   readonly importLine: string
   readonly code: string
@@ -114,11 +114,96 @@ function markReadonly(schema: Schema) {
  * its entry. schema-truth builds the container from a `$defs` document.
  */
 function rewriteCollisionRef(node: Schema, identifiers: ReadonlyMap<string, string>): Schema {
+  return rewriteRef(rewriteMappingTargets(node, identifiers), identifiers)
+}
+
+/** The node's own `$ref` renamed by a collision; its mapping is left as it is. */
+function rewriteRef(node: Schema, identifiers: ReadonlyMap<string, string>): Schema {
   if (typeof node.$ref !== 'string' || !node.$ref.startsWith('#/components/schemas/')) return node
-  const key = schemaRefToName(node.$ref)
+  const ident = renamedIdentifier(schemaRefToName(node.$ref), identifiers)
+  return ident === undefined ? node : { ...node, $ref: `#/components/schemas/${ident}` }
+}
+
+/** The identifier a component key was renamed to by a collision, or undefined when it kept its own. */
+function renamedIdentifier(key: string, identifiers: ReadonlyMap<string, string>) {
   const ident = identifiers.get(key)
-  if (ident === undefined || ident === toIdentifierPascalCase(key)) return node
-  return { ...node, $ref: `#/components/schemas/${ident}` }
+  return ident === undefined || ident === toIdentifierPascalCase(key) ? undefined : ident
+}
+
+/**
+ * The discriminator `mapping` targets follow a collision rename as the members' `$ref`s do,
+ * so a target still names the schema its key meant (a bare name included).
+ */
+function rewriteMappingTargets(node: Schema, identifiers: ReadonlyMap<string, string>): Schema {
+  const { discriminator } = node
+  if (!isSchema(discriminator) || !isRecord(discriminator.mapping)) return node
+  const entries = Object.entries(discriminator.mapping)
+  const renamed = entries.map(([value, target]) => {
+    const key = typeof target === 'string' ? mappingTargetKey(target) : undefined
+    const ident = key === undefined ? undefined : renamedIdentifier(key, identifiers)
+    return [value, ident === undefined ? target : `#/components/schemas/${ident}`] as const
+  })
+  if (renamed.every(([, target], index) => target === entries[index]?.[1])) return node
+  return { ...node, discriminator: { ...discriminator, mapping: Object.fromEntries(renamed) } }
+}
+
+/**
+ * Pins the schema key as the discriminator value of an unmapped member whose identifier a
+ * collision renamed: its implicit value is the schema name, but once its `$ref` names the
+ * suffixed identifier (`FooBar2`), that is what a generator would read. Runs before the
+ * rename, so the pinned target is the member's own `$ref`, renamed with the rest.
+ */
+function pinRenamedMemberValues(node: Schema, identifiers: ReadonlyMap<string, string>) {
+  const { discriminator } = node
+  if (!isSchema(discriminator) || typeof discriminator.propertyName !== 'string') return node
+  const mapping = Object.entries(isRecord(discriminator.mapping) ? discriminator.mapping : {})
+  const mapped = new Set(
+    mapping.map(([, target]) =>
+      typeof target === 'string' ? mappingTargetKey(target) : undefined,
+    ),
+  )
+  // A mapping key whose target resolves is another schema's value, so a renamed member whose
+  // name spells it has no value of its own (#74).
+  const taken = new Set(
+    mapping.flatMap(([value, target]) =>
+      typeof target === 'string' && mappingTargetKey(target) !== undefined ? [value] : [],
+    ),
+  )
+  const renamedKey = (member: unknown) => {
+    if (!isSchema(member) || typeof member.$ref !== 'string') return undefined
+    const key = componentSchemaKey(member.$ref)
+    if (key === undefined || mapped.has(key)) return undefined
+    return renamedIdentifier(key, identifiers) === undefined ? undefined : key
+  }
+  // A mapping key whose target resolves nowhere here (another document) names no schema, so
+  // the member still takes its key, as `localizeDiscriminator` decides.
+  const pinned = [...listOf(node.oneOf), ...listOf(node.anyOf)].flatMap((member) => {
+    const key = renamedKey(member)
+    return key === undefined || taken.has(key) || !isSchema(member)
+      ? []
+      : [[key, member.$ref] as const]
+  })
+  // Wrapped in `allOf`, it is no `$ref` the discriminator can read a value from.
+  const unconstrained = (members: unknown): readonly unknown[] =>
+    listOf(members).map((member: unknown) => {
+      const key = renamedKey(member)
+      return key !== undefined && taken.has(key) ? { allOf: [member] } : member
+    })
+  const oneOf = unconstrained(node.oneOf)
+  const anyOf = unconstrained(node.anyOf)
+  const isWrapped =
+    listOf(oneOf).some((member, index) => member !== listOf(node.oneOf)[index]) ||
+    listOf(anyOf).some((member, index) => member !== listOf(node.anyOf)[index])
+  if (pinned.length === 0 && !isWrapped) return node
+  const entries: [string, unknown][] = Object.entries(node)
+  if (Array.isArray(node.oneOf)) entries.push(['oneOf', oneOf])
+  if (Array.isArray(node.anyOf)) entries.push(['anyOf', anyOf])
+  entries.push([
+    'discriminator',
+    { ...discriminator, mapping: Object.fromEntries([...mapping, ...pinned]) },
+  ])
+  const next: unknown = Object.fromEntries(entries)
+  return isSchema(next) ? next : node
 }
 
 /** The component key a `#/components/schemas/...` reference names; undefined for any other reference. */
@@ -318,18 +403,22 @@ function makeCyclicContainer(
     ])
     return isSchema(local) ? local : node
   }
+  // A node's discriminator is localized whether or not a `$ref` sits beside it (OAS 3.1),
+  // and a mapping target left outside the cycle follows a collision rename.
   const localize = (node: Schema) => {
-    const key = node.$ref ? schemaRefToName(node.$ref) : undefined
-    if (key === undefined) return localizeDiscriminator(node)
+    const discriminated = rewriteMappingTargets(localizeDiscriminator(node), identifiers)
+    const key = discriminated.$ref ? schemaRefToName(discriminated.$ref) : undefined
+    if (key === undefined) return discriminated
     const groupIdent = groupIdentifiers.get(key)
     if (groupIdent !== undefined) {
       const local = Object.fromEntries([
-        ...Object.entries(node),
+        ...Object.entries(discriminated),
         ['$ref', `#/$defs/${groupIdent}Schema`],
       ])
-      return isSchema(local) ? local : node
+      return isSchema(local) ? local : discriminated
     }
-    return rewriteCollisionRef(node, identifiers)
+    // The mapping is already renamed above; renaming it again would chain the renames.
+    return rewriteRef(discriminated, identifiers)
   }
   const $defs = Object.fromEntries(
     group.map((name) => [
@@ -401,10 +490,13 @@ export function makeSchemaDeclarations(
   adapter: ComponentAdapter,
   options?: SchemasOptions,
 ) {
+  const identifiers = makeSchemaIdentifiers(schemas)
   const pinned = Object.fromEntries(
     Object.entries(schemas).map(([name, schema]) => [
       name,
-      mapSchema(schema, (node) => pinOwnDiscriminatorValues(node, schemas)),
+      mapSchema(schema, (node) =>
+        pinRenamedMemberValues(pinOwnDiscriminatorValues(node, schemas), identifiers),
+      ),
     ]),
   )
   const prepared = Object.fromEntries(
@@ -413,7 +505,6 @@ export function makeSchemaDeclarations(
       options?.readonly === true ? markReadonly(schema) : schema,
     ]),
   )
-  const identifiers = makeSchemaIdentifiers(schemas)
   const { order, cycles } = analyzeSchemas(schemas)
   const taken = new Set([
     ...identifiers.values(),
