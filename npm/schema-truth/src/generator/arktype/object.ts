@@ -8,7 +8,8 @@ import {
   arktypePreprocess,
   callbackReturn,
   callbackType,
-  isEvaluatedKeyExpression,
+  isEvaluatedObjectKeyExpression,
+  objectEvaluatedKeys,
   ownProperties,
   propertyEmitOptions,
   propertyNamesEnumCheck,
@@ -125,10 +126,15 @@ export function object(
     if (!checksKeys) return isArktype ? '{}' : 'type({})'
   }
 
-  // A key a declared property or a `patternProperties` pattern covers is evaluated.
-  const isEvaluated = isEvaluatedKeyExpression(
-    { names: Object.keys(properties), patterns: Object.keys(schema.patternProperties ?? {}) },
-    'key',
+  // A key a declared property or a `patternProperties` pattern covers is evaluated, and for
+  // `unevaluatedProperties` one an `if` / `then` / `else` or `dependentSchemas` branch that
+  // applies declares.
+  const evaluatedKeys = objectEvaluatedKeys(schema, options?.definitions)
+  const conditionSchema = schema.if
+  const isEvaluated = isEvaluatedObjectKeyExpression(evaluatedKeys, 'key', 'data', () =>
+    conditionSchema === undefined
+      ? 'false'
+      : `${callbackType(arktype(conditionSchema, rootName, isArktype, options), isArktype)}.allows(data)`,
   )
   const onlyEvaluatedKeys =
     isEvaluated === undefined

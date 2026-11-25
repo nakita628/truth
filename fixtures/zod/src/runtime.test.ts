@@ -14,6 +14,7 @@ import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts
 import { Payload as ParamJsonContentPayload } from '../param-json-content/output.ts'
 import { Formats as StringFormats } from '../string-formats/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Schema as UnevaluatedBranchesSchema } from '../unevaluated-branches/output.ts'
 import { Schema as PropertyNamesEnumSchema } from '../property-names-enum/output.ts'
 import { Query as WireNumberQuery } from '../wire-number/output.ts'
 import { Merged } from '../allof-message/output.ts'
@@ -916,5 +917,23 @@ describe('zod fixtures: property-names-enum runtime', () => {
 
   it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }])('rejects %j, whose key the enum does not list', (value) => {
     expect(PropertyNamesEnumSchema.safeParse(value).success).toBe(false)
+  })
+})
+
+describe('zod fixtures: unevaluated-branches runtime', () => {
+  it.each([{}, { a: 1, b: 2 }, { kind: 'x', x: 1 }, { kind: 'x', flag: true }, { kind: 'z', y: 1 }])('accepts %j, whose keys a property or a branch declares', (value) => {
+    expect(UnevaluatedBranchesSchema.safeParse(value).success).toBe(true)
+  })
+
+  it.each([
+    { c: 1 },
+    { a: 1, z: 1 },
+    { kind: 'x', x: 1, w: 1 },
+    { b: 'not a number' },
+    { kind: 'x', y: 'str' },
+    { kind: 'z', flag: true },
+    { c2: 1 },
+  ])('rejects %j, which has a key nothing declares', (value) => {
+    expect(UnevaluatedBranchesSchema.safeParse(value).success).toBe(false)
   })
 })
