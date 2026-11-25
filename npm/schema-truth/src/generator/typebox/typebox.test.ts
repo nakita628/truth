@@ -715,11 +715,11 @@ describe('typebox', () => {
           'x-multipleOf-message': 'halves',
           'x-error-message': 'bad',
         },
-        'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$"}),(value)=>Number.isFinite(Number(value)),()=>"bad"),(value)=>((number)=>(Number.isInteger(number)&&(1/0.5)%1===0)||((remainder)=>Math.min(Math.abs(remainder),Math.abs(remainder-0.5),Math.abs(remainder+0.5))<1e-10)(number%0.5))(Number(value)),()=>"halves")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+        'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$",errorMessage:"bad"}),(value)=>Number.isFinite(Number(value)),()=>"bad"),(value)=>((number)=>(Number.isInteger(number)&&(1/0.5)%1===0)||((remainder)=>Math.min(Math.abs(remainder),Math.abs(remainder-0.5),Math.abs(remainder+0.5))<1e-10)(number%0.5))(Number(value)),()=>"halves")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
       ],
       [
         { type: 'integer', maximum: 9, 'x-error-message': 'bad' },
-        'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"bad"),(value)=>Number(value)<=9,()=>"bad")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+        'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$",errorMessage:"bad"}),(value)=>Number.isSafeInteger(Number(value)),()=>"bad"),(value)=>Number(value)<=9,()=>"bad")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
       ],
     ])('query: %o checks its bounds on the text → %s', (input, expected) => {
       expect(typebox(input, 'Schema', false, { paramIn: 'query' })).toBe(expected)
@@ -733,6 +733,30 @@ describe('typebox', () => {
         )
       },
     )
+
+    it('query: a wire value keeps its metadata and custom messages (#80)', () => {
+      expect(
+        typebox(
+          {
+            type: 'boolean',
+            description: 'on or off',
+            deprecated: true,
+            'x-pattern-message': 'say yes or no',
+            'x-error-message': 'bad flag',
+          },
+          'Schema',
+          false,
+          { paramIn: 'query' },
+        ),
+      ).toMatch(
+        /^Codec\(Type\.String\(\{description:"on or off",deprecated:true,pattern:"[^"]+",errorMessage:\{pattern:"say yes or no",_:"bad flag"\}\}\)\)/,
+      )
+      expect(
+        typebox({ type: 'integer', examples: [1], 'x-error-message': 'bad' }, 'Schema', false, {
+          paramIn: 'path',
+        }),
+      ).toContain('Type.String({examples:[1],pattern:"^-?(?:0|[1-9]\\\\d*)$",errorMessage:"bad"})')
+    })
 
     it("path: boolean → Type.Transform decode 'true'|'false'", () => {
       expect(typebox({ type: 'boolean' }, 'Schema', false, { paramIn: 'path' })).toBe(

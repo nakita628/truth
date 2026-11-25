@@ -94,9 +94,22 @@ function tbPrim(name: string, schema: JSONSchema, extraOpts: readonly string[] =
  * not on the `Codec(...)` wrapper.
  */
 function wireString(schema: JSONSchema, ref?: string, pattern?: string) {
+  // The text carries the node's metadata and its custom messages, as the non-wire form does:
+  // `x-pattern-message` for the wire pattern, `x-error-message` for any failure.
+  const errorMessage = schema['x-error-message']
+  const patternMessage = pattern === undefined ? undefined : schema['x-pattern-message']
+  const messageOpts =
+    typeof patternMessage === 'string'
+      ? [
+          `errorMessage:{pattern:${JSON.stringify(patternMessage)}${
+            typeof errorMessage === 'string' ? `,_:${JSON.stringify(errorMessage)}` : ''
+          }}`,
+        ]
+      : messageOpt(errorMessage)
   const opts = [
-    ...typeboxRefOpt(ref),
+    ...typeboxMetaOpts(schema, ref),
     ...(pattern === undefined ? [] : [`pattern:${pattern}`]),
+    ...messageOpts,
     ...typeboxDefaultOpt(schema, true),
   ]
   return opts.length > 0 ? `Type.String({${opts.join(',')}})` : 'Type.String()'
