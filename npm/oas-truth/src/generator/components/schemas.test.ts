@@ -278,6 +278,56 @@ describe('makeSchemaDeclarations', () => {
     expect(code).toContain('z.object({type:z.literal("Open")})')
   })
 
+  it('arktype: readonly cycle members also take their own values', () => {
+    const filters = {
+      ComparisonFilter: {
+        type: 'object',
+        required: ['type'],
+        properties: { type: { type: 'string', enum: ['eq', 'ne'] } },
+      },
+      CompoundFilter: {
+        type: 'object',
+        required: ['type', 'filters'],
+        properties: {
+          type: { type: 'string', enum: ['and', 'or'] },
+          filters: {
+            type: 'array',
+            items: {
+              oneOf: [
+                { $ref: '#/components/schemas/ComparisonFilter' },
+                { $ref: '#/components/schemas/CompoundFilter' },
+              ],
+              discriminator: { propertyName: 'type' },
+            },
+          },
+        },
+      },
+    }
+    const code = makeSchemaDeclarations(filters as never, makeAdapter('arktype'), {
+      readonly: true,
+    })
+      .map((d) => d.code)
+      .join(';')
+    expect(code).toContain(`{"type":"'eq' | 'ne'"}`)
+    expect(code).toContain(`{"type":"'and' | 'or'"}`)
+  })
+
+  it('zod: members that share a discriminator value keep their schema names', () => {
+    const pets = {
+      Cat: { type: 'object', properties: { petType: { enum: ['Cat', 'Dog'] } } },
+      Dog: { type: 'object', properties: { petType: { enum: ['Cat', 'Dog'] } } },
+      Pet: {
+        oneOf: [{ $ref: '#/components/schemas/Cat' }, { $ref: '#/components/schemas/Dog' }],
+        discriminator: { propertyName: 'petType' },
+      },
+    }
+    const code = makeSchemaDeclarations(pets as never, makeAdapter('zod'))
+      .map((d) => d.code)
+      .join(';')
+    expect(code).toContain('z.object({petType:z.literal("Cat")})')
+    expect(code).toContain('z.object({petType:z.literal("Dog")})')
+  })
+
   it('arktype: an explicit discriminator value is not replaced by a cycle member name', () => {
     const filters = {
       ComparisonFilter: {

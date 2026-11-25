@@ -130,7 +130,7 @@ function componentSchemaKey(ref: string) {
 function ownDiscriminatorValues(schema: Schema, propertyName: string) {
   for (const holder of [schema, ...(schema.allOf ?? [])]) {
     const property = holder.properties?.[propertyName]
-    if (property === undefined) continue
+    if (!isSchema(property)) continue
     if (typeof property.const === 'string') return [property.const]
     const values = (property.enum ?? []).filter((value) => typeof value === 'string')
     if (values.length > 0) return values
@@ -152,15 +152,23 @@ function pinOwnDiscriminatorValues(node: Schema, schemas: { readonly [k: string]
   const { propertyName } = discriminator
   const mapping = Object.entries(discriminator.mapping ?? {})
   const mapped = new Set(mapping.map(([, target]) => componentSchemaKey(target)))
-  const values = new Set(mapping.map(([value]) => value))
-  const pinned = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].flatMap((member) => {
+  const unmapped = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].flatMap((member) => {
     const ref = member.$ref
     const key = ref === undefined ? undefined : componentSchemaKey(ref)
     if (ref === undefined || key === undefined || mapped.has(key)) return []
     const target = Object.hasOwn(schemas, key) ? schemas[key] : undefined
     const own = target === undefined ? undefined : ownDiscriminatorValues(target, propertyName)
-    return (own ?? []).filter((value) => !values.has(value)).map((value) => [value, ref] as const)
+    return own === undefined ? [] : [{ ref, own }]
   })
+  // A value another member or a mapping key also claims would not tell the members apart,
+  // so such a member keeps its schema name, as schema-truth's `discriminatedMembers` does.
+  const claims = new Map<string, number>()
+  const claim = (value: string) => claims.set(value, (claims.get(value) ?? 0) + 1)
+  for (const [value] of mapping) claim(value)
+  for (const { own } of unmapped) for (const value of new Set(own)) claim(value)
+  const pinned = unmapped
+    .filter(({ own }) => own.every((value) => claims.get(value) === 1))
+    .flatMap(({ ref, own }) => own.map((value) => [value, ref] as const))
   if (pinned.length === 0) return node
   return {
     ...node,
@@ -300,11 +308,17 @@ export function makeSchemaDeclarations(
   adapter: ComponentAdapter,
   options?: SchemasOptions,
 ) {
+  const pinned = Object.fromEntries(
+    Object.entries(schemas).map(([name, schema]) => [
+      name,
+      mapSchema(schema, (node) => pinOwnDiscriminatorValues(node, schemas)),
+    ]),
+  )
   const prepared = Object.fromEntries(
-    Object.entries(schemas).map(([name, schema]) => {
-      const pinned = mapSchema(schema, (node) => pinOwnDiscriminatorValues(node, schemas))
-      return [name, options?.readonly === true ? markReadonly(pinned) : pinned]
-    }),
+    Object.entries(pinned).map(([name, schema]) => [
+      name,
+      options?.readonly === true ? markReadonly(schema) : schema,
+    ]),
   )
   const identifiers = makeSchemaIdentifiers(schemas)
   const { order, cycles } = analyzeSchemas(schemas)
@@ -329,7 +343,7 @@ export function makeSchemaDeclarations(
         ? makeCyclicContainer(
             varName,
             group,
-            arktypeReadonly ? schemas : prepared,
+            arktypeReadonly ? pinned : prepared,
             identifiers,
             adapter,
             adapter.withRef === undefined ? hostRef : undefined,

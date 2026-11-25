@@ -79,4 +79,26 @@ describe("discriminatedMembers reads a member's own values (#73)", () => {
     )
     expect(result?.members.map((m) => m.values)).toStrictEqual([['constructor']])
   })
+
+  it('keeps the schema names when members share a value or a mapping key claims it', () => {
+    const shared = {
+      Cat: { properties: { petType: { enum: ['Cat', 'Dog'] } } },
+      Dog: { properties: { petType: { enum: ['Cat', 'Dog'] } } },
+      Bird: { properties: { petType: { const: 'bird' } } },
+      Fish: { properties: { petType: { const: 'fish' } } },
+      Null: { properties: { petType: null as unknown as JSONSchema } },
+    } satisfies { [name: string]: JSONSchema }
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'petType', mapping: { fish: '#/$defs/Bird' } } },
+      ['Cat', 'Dog', 'Bird', 'Fish', 'Null'].map((name) => ({ $ref: `#/$defs/${name}` })),
+      shared,
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([
+      ['Cat'],
+      ['Dog'],
+      ['fish'],
+      ['Fish'],
+      ['Null'],
+    ])
+  })
 })
