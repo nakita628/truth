@@ -48,6 +48,7 @@ import {
   callbackReturn,
   callbackType,
   arktypeUnionLimit,
+  dslOperand,
   dslUnionMembers,
 } from '../../helper/index.js'
 import type { ArktypeWrapOptions } from '../../helper/index.js'
@@ -100,7 +101,7 @@ function unionStr(schemas: string[], inScope = false) {
 
 function intersectionStr(schemas: string[], inScope = false) {
   return schemas.every(isQuoted)
-    ? `"${schemas.map((s) => s.slice(1, -1)).join(' & ')}"`
+    ? `"${schemas.map((s) => dslOperand(s.slice(1, -1))).join(' & ')}"`
     : schemas.reduce(combine('&', inScope))
 }
 
@@ -360,7 +361,7 @@ function node(
       const merged = definitions.every(isQuoted)
         ? (() => {
             const parts = definitions
-              .map((definition) => definition.slice(1, -1))
+              .map((definition) => dslOperand(definition.slice(1, -1)))
               .filter((definition) => definition !== 'number' && definition !== 'number.integer')
             if (parts.length === 0) return isInteger ? '"number.integer"' : '"number"'
             return `"${parts.join(' & ')}"`
@@ -490,7 +491,7 @@ function node(
             // A rest that is an expression rather than a quoted definition — a long union
             // written as `type.enumerated(...)` or an `.or` chain — becomes an array value.
             const restArray = isQuoted(rest)
-              ? `"${rest.slice(1, -1)}[]"`
+              ? `"${dslOperand(rest.slice(1, -1), true)}[]"`
               : isArktypeDefinition(rest)
                 ? `[${rest},"[]"]`
                 : `${rest}.array()`
@@ -513,7 +514,7 @@ function node(
     // a scope a definition that may name a scope alias stays a tuple expression, which the
     // scope resolves; the global `type(...)` cannot.
     const base = isQuoted(items)
-      ? `"${items.slice(1, -1)}[]"`
+      ? `"${dslOperand(items.slice(1, -1), true)}[]"`
       : isArktype && isArktypeDefinition(items)
         ? `[${items},"[]"]`
         : `type(${items}).array()`

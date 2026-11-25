@@ -1,0 +1,19 @@
+{
+  "title": "Schema",
+  "type": "object",
+  "properties": {
+    "tags": { "type": "array", "items": { "enum": ["a", "b"] } },
+    "names": { "type": "array", "items": { "type": ["string", "null"] } },
+    "tuple": {
+      "type": "array",
+      "prefixItems": [{ "type": "string" }],
+      "unevaluatedItems": { "enum": ["a", "b"] }
+    },
+    "both": {
+      "allOf": [
+        { "anyOf": [{ "type": "string" }, { "type": "number" }] },
+        { "type": ["string", "number"] }
+      ]
+    }
+  }
+}

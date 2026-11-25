@@ -1083,3 +1083,26 @@ describe('arktype const of an int64 beyond 1e21', () => {
     )
   })
 })
+
+describe('a quoted union that gets `[]` or `&` is parenthesized (#66)', () => {
+  it.each<[JSONSchema, string]>([
+    [{ type: 'array', items: { enum: ['a', 'b'] } }, `"('a' | 'b')[]"`],
+    [{ type: 'array', items: { type: ['string', 'null'] } }, '"(string | null)[]"'],
+    [
+      { type: 'array', prefixItems: [{ type: 'string' }], unevaluatedItems: { enum: ['a', 'b'] } },
+      `type(["string","...","('a' | 'b')[]"])`,
+    ],
+    [
+      {
+        allOf: [
+          { anyOf: [{ type: 'string' }, { type: 'number' }] },
+          { type: ['string', 'number'] },
+        ],
+      },
+      '"(string | number) & (string | number)"',
+    ],
+    [{ type: 'array', items: { type: 'string' } }, '"string[]"'],
+  ])('%o → %s', (schema, expected) => {
+    expect(arktype(schema, 'Schema', true)).toBe(expected)
+  })
+})

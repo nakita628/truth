@@ -33,6 +33,25 @@ export function arktypeUnionLimit(members: readonly string[]) {
  * character) and outside brackets.
  */
 export function dslUnionMembers(definition: string) {
+  return dslSplit(definition, ' | ')
+}
+
+/**
+ * A string-DSL definition (its text without the outer quotes) as one operand: in
+ * parentheses when it has a top-level `|`, or an `&` too where `withIntersection` says
+ * the operator around it binds tighter than `&` (`[]`). `[]` applies only to the operand
+ * right before it and `&` binds tighter than `|`, so `'a' | 'b'[]` reads as
+ * `'a' | ('b'[])`.
+ */
+export function dslOperand(definition: string, withIntersection = false) {
+  const grouped =
+    dslSplit(definition, ' | ').length > 1 ||
+    (withIntersection && dslSplit(definition, ' & ').length > 1)
+  return grouped ? `(${definition})` : definition
+}
+
+/** The definition split at each `separator` outside a quoted literal and outside brackets. */
+function dslSplit(definition: string, separator: string) {
   const members: string[] = []
   let depth = 0
   let quote = ''
@@ -48,10 +67,10 @@ export function dslUnionMembers(definition: string) {
       depth += 1
     } else if (char === ')' || char === ']' || char === '}') {
       depth -= 1
-    } else if (depth === 0 && definition.startsWith(' | ', i)) {
+    } else if (depth === 0 && definition.startsWith(separator, i)) {
       members.push(definition.slice(start, i))
-      start = i + 3
-      i += 2
+      start = i + separator.length
+      i += separator.length - 1
     }
   }
   members.push(definition.slice(start))
