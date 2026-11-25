@@ -298,3 +298,20 @@ describe('object', () => {
     })
   })
 })
+
+describe('own-key checks on names v.looseObject drops (#94, #130)', () => {
+  it('keeps the in test for constructor, so a value that sends it is not refused', () => {
+    const out = object(
+      {
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        required: ['constructor'],
+        dependentRequired: { a: ['constructor'] },
+      },
+      'Schema',
+      false,
+    )
+    expect(out).toContain('("constructor" in input)')
+    expect(out).not.toContain('Object.hasOwn(input,"constructor")')
+  })
+})

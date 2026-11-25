@@ -5,12 +5,12 @@ export const Schema_ = Schema.StructWithRest(
   [Schema.Record(Schema.String, Schema.Unknown)],
 ).check(
   Schema.makeFilter((input) =>
-    ((ifPassed) =>
+    ((__ifPassed) =>
       Object.keys(input).every(
         (key) =>
           ['a', 'kind'].includes(key) ||
-          (ifPassed && ['flag', 'x'].includes(key)) ||
-          (!ifPassed && ['y'].includes(key)) ||
+          (__ifPassed && ['flag', 'x'].includes(key)) ||
+          (!__ifPassed && ['y'].includes(key)) ||
           (Object.hasOwn(input, 'a') && ['b'].includes(key)) ||
           (Object.hasOwn(input, 'constructor') && ['c2'].includes(key)),
       ))(

@@ -9,13 +9,18 @@ import {
   hasBranchKeys,
   evaluatedObjectKeysCheck,
   objectEvaluatedKeys,
+  ownKeyCheck,
   propertyNamesKeyCheck,
+  requiredKeysCheck,
   withoutShadowedUnevaluated,
 } from '../../helper/unevaluated.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { makeSafeKey, zodError, zodErrorPart } from '../../utils/index.js'
 import { nestedIssueMessageWrap, zod } from './zod.js'
+
+/** The undeclared keys the object drops from its output before a check reads it (#130). */
+const STRIPPED_KEYS = ['__proto__']
 
 /**
  * A parameter object answers an `Object.prototype` name it was not sent with the inherited
@@ -182,11 +187,13 @@ export function object(input: JSONSchema, rootName: string, isZod: boolean, opti
     : ''
   const dependentRequired = schema.dependentRequired
     ? Object.entries(schema.dependentRequired)
+        // An empty list always holds.
+        .filter(([, deps]) => deps.length > 0)
         .map(([key, deps]) => {
           const depsCheck = deps
-            .map((dependency) => `Object.hasOwn(val,${JSON.stringify(dependency)})`)
+            .map((dependency) => ownKeyCheck('val', dependency, STRIPPED_KEYS))
             .join('&&')
-          return `.refine((val)=>!Object.hasOwn(val,${JSON.stringify(key)})||(${depsCheck})${depReqErrorArg})`
+          return `.refine((val)=>!${ownKeyCheck('val', key, STRIPPED_KEYS)}||(${depsCheck})${depReqErrorArg})`
         })
         .join('')
     : ''
@@ -196,7 +203,7 @@ export function object(input: JSONSchema, rootName: string, isZod: boolean, opti
     ? Object.entries(schema.dependentSchemas)
         .map(([key, subSchema]) => {
           const subZod = zod(subSchema, rootName, isZod, options)
-          return `.refine((val)=>!Object.hasOwn(val,${JSON.stringify(key)})||${subZod}.safeParse(val).success${depSchErrorArg})`
+          return `.refine((val)=>!${ownKeyCheck('val', key, STRIPPED_KEYS)}||${subZod}.safeParse(val).success${depSchErrorArg})`
         })
         .join('')
     : ''
@@ -228,7 +235,7 @@ export function object(input: JSONSchema, rootName: string, isZod: boolean, opti
 
   const requiredPresent =
     undeclaredRequired.length > 0
-      ? `.refine((val)=>${JSON.stringify(undeclaredRequired)}.every((key)=>Object.hasOwn(val,key))${errorArg})`
+      ? `.refine((val)=>${requiredKeysCheck('val', undeclaredRequired, STRIPPED_KEYS)}${errorArg})`
       : ''
   // A key no property names and no pattern matches: refused when the object is closed,
   // held to `unevaluatedProperties` when that is a schema.

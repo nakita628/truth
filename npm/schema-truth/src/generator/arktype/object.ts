@@ -189,15 +189,18 @@ export function object(
       ? narrowPredicate(`Object.keys(data).length <= ${schema.maxProperties}`, maximumMessage)
       : ''
   const dependentRequiredNarrows: readonly string[] = schema.dependentRequired
-    ? Object.entries(schema.dependentRequired).map(([key, deps]) => {
-        const depsCheck = deps
-          .map((dependency) => `Object.hasOwn(data,${JSON.stringify(dependency)})`)
-          .join(' && ')
-        return narrowPredicate(
-          `!Object.hasOwn(data,${JSON.stringify(key)}) || (${depsCheck})`,
-          depReqMessage,
-        )
-      })
+    ? Object.entries(schema.dependentRequired)
+        // An empty list always holds.
+        .filter(([, deps]) => deps.length > 0)
+        .map(([key, deps]) => {
+          const depsCheck = deps
+            .map((dependency) => `Object.hasOwn(data,${JSON.stringify(dependency)})`)
+            .join(' && ')
+          return narrowPredicate(
+            `!Object.hasOwn(data,${JSON.stringify(key)}) || (${depsCheck})`,
+            depReqMessage,
+          )
+        })
     : []
   // v3.0: dependentSchemas — when key present, the whole object must
   // additionally satisfy the named sub-schema.

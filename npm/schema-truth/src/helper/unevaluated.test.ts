@@ -9,7 +9,9 @@ import {
   objectEvaluatedKeys,
   propertyNamesEnumCheck,
   evaluatedObjectKeysCheck,
+  ownKeyCheck,
   propertyNamesKeyCheck,
+  requiredKeysCheck,
   withoutShadowedUnevaluated,
 } from './unevaluated.js'
 
@@ -274,7 +276,23 @@ describe('evaluatedObjectKeysCheck (#94)', () => {
       undefined,
     )
     expect(evaluatedObjectKeysCheck(keys, 'key', 'input', () => 'IF(input)', every)).toBe(
-      '((ifPassed)=>Object.keys(input).every((key)=>["kind"].includes(key)||(ifPassed&&(["x"].includes(key)))))(IF(input))',
+      '((__ifPassed)=>Object.keys(input).every((key)=>["kind"].includes(key)||(__ifPassed&&(["x"].includes(key)))))(IF(input))',
+    )
+  })
+
+  it('reads no if test when the if branches declare no key', () => {
+    const keys = objectEvaluatedKeys(
+      {
+        unevaluatedProperties: false,
+        properties: { kind: {}, x: {} },
+        if: { properties: { kind: { const: 'a' } } },
+        // eslint-disable-next-line unicorn/no-thenable -- JSON Schema `then` keyword, not a Promise thenable
+        then: { required: ['x'] },
+      },
+      undefined,
+    )
+    expect(evaluatedObjectKeysCheck(keys, 'key', 'input', () => 'IF(input)', every)).toBe(
+      'Object.keys(input).every((key)=>["kind","x"].includes(key))',
     )
   })
 
@@ -283,5 +301,22 @@ describe('evaluatedObjectKeysCheck (#94)', () => {
     expect(evaluatedObjectKeysCheck(keys, 'key', 'input', () => 'IF(input)', every)).toBe(
       'Object.keys(input).every((key)=>["a"].includes(key))',
     )
+  })
+})
+
+describe('ownKeyCheck / requiredKeysCheck (#94)', () => {
+  it.each<[string, readonly string[], string]>([
+    ['a', [], 'Object.hasOwn(val,"a")'],
+    ["it's", [], 'Object.hasOwn(val,"it\'s")'],
+    ['constructor', ['constructor'], '("constructor" in val)'],
+  ])('ownKeyCheck(val, %j, %j) → %s', (key, stripped, expected) => {
+    expect(ownKeyCheck('val', key, stripped)).toBe(expected)
+  })
+
+  it.each<[readonly string[], readonly string[], string]>([
+    [['a', 'toString'], [], '["a","toString"].every((key)=>Object.hasOwn(val,key))'],
+    [['a', '__proto__'], ['__proto__'], 'Object.hasOwn(val,"a")&&("__proto__" in val)'],
+  ])('requiredKeysCheck(val, %j, %j) → %s', (required, stripped, expected) => {
+    expect(requiredKeysCheck('val', required, stripped)).toBe(expected)
   })
 })

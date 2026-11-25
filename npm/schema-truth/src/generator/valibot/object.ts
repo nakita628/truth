@@ -11,7 +11,9 @@ import {
   objectEvaluatedKeys,
   ownProperties,
   propertyEmitOptions,
+  ownKeyCheck,
   propertyNamesKeyCheck,
+  requiredKeysCheck,
   withoutShadowedUnevaluated,
 } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
@@ -23,6 +25,9 @@ import {
   valibotErrorPart,
 } from '../../utils/index.js'
 import { valibot } from './valibot.js'
+
+/** The undeclared keys the object drops from its output before a check reads it (#130). */
+const STRIPPED_KEYS = ['constructor', 'prototype', '__proto__']
 
 /**
  * Generate a Valibot object schema for a JSON Schema object node.
@@ -205,18 +210,21 @@ export function object(
       ? `v.check((input)=>Object.keys(input).length<=${schema.maxProperties}${maxErrorArg})`
       : ''
   const dependentRequiredChecks: readonly string[] = schema.dependentRequired
-    ? Object.entries(schema.dependentRequired).map(([key, deps]) => {
-        const depsCheck = deps
-          .map((dependency) => `Object.hasOwn(input,${JSON.stringify(dependency)})`)
-          .join('&&')
-        return `v.check((input)=>!Object.hasOwn(input,${JSON.stringify(key)})||(${depsCheck})${depReqErrorArg})`
-      })
+    ? Object.entries(schema.dependentRequired)
+        // An empty list always holds.
+        .filter(([, deps]) => deps.length > 0)
+        .map(([key, deps]) => {
+          const depsCheck = deps
+            .map((dependency) => ownKeyCheck('input', dependency, STRIPPED_KEYS))
+            .join('&&')
+          return `v.check((input)=>!${ownKeyCheck('input', key, STRIPPED_KEYS)}||(${depsCheck})${depReqErrorArg})`
+        })
     : []
   // v3.0: dependentSchemas
   const dependentSchemasChecks: readonly string[] = schema.dependentSchemas
     ? Object.entries(schema.dependentSchemas).map(([key, subSchema]) => {
         const s = valibot(subSchema, rootName, isValibot, options)
-        return `v.check((input)=>!Object.hasOwn(input,${JSON.stringify(key)})||v.safeParse(${s},input).success${depSchErrorArg})`
+        return `v.check((input)=>!${ownKeyCheck('input', key, STRIPPED_KEYS)}||v.safeParse(${s},input).success${depSchErrorArg})`
       })
     : []
   // Extras rejection is wired into `v.strictObject` directly via its second
@@ -250,7 +258,7 @@ export function object(
 
   const requiredPresentCheck =
     undeclaredRequired.length > 0
-      ? `v.check((input)=>${JSON.stringify(undeclaredRequired)}.every((key)=>Object.hasOwn(input,key))${errorArg})`
+      ? `v.check((input)=>${requiredKeysCheck('input', undeclaredRequired, STRIPPED_KEYS)}${errorArg})`
       : ''
   // A key no property names and no pattern matches: refused when the object is closed,
   // held to `unevaluatedProperties` when that is a schema.

@@ -173,12 +173,15 @@ export function object(
       ? `Schema.makeFilter((input)=>Object.keys(input).length<=${schema.maxProperties}${maxErrorArg})`
       : ''
   const dependentRequiredFilters: readonly string[] = schema.dependentRequired
-    ? Object.entries(schema.dependentRequired).map(([key, deps]) => {
-        const depsCheck = deps
-          .map((dependency) => `Object.hasOwn(input,${JSON.stringify(dependency)})`)
-          .join('&&')
-        return `Schema.makeFilter((input)=>!Object.hasOwn(input,${JSON.stringify(key)})||(${depsCheck})${depReqErrorArg})`
-      })
+    ? Object.entries(schema.dependentRequired)
+        // An empty list always holds.
+        .filter(([, deps]) => deps.length > 0)
+        .map(([key, deps]) => {
+          const depsCheck = deps
+            .map((dependency) => `Object.hasOwn(input,${JSON.stringify(dependency)})`)
+            .join('&&')
+          return `Schema.makeFilter((input)=>!Object.hasOwn(input,${JSON.stringify(key)})||(${depsCheck})${depReqErrorArg})`
+        })
     : []
   // v3.0: dependentSchemas — when key present, the whole object must
   // additionally satisfy the named sub-schema.

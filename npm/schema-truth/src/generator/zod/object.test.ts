@@ -335,3 +335,15 @@ describe('object', () => {
     })
   })
 })
+
+describe('dependentRequired with an empty list (#94)', () => {
+  it('adds no check, since an empty list always holds', () => {
+    expect(
+      object(
+        { type: 'object', properties: { a: { type: 'string' } }, dependentRequired: { a: [] } },
+        'Schema',
+        false,
+      ),
+    ).not.toContain('||()')
+  })
+})

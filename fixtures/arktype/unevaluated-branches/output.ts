@@ -4,12 +4,12 @@ export const Schema = type({ 'a?': 'number', 'kind?': 'string' })
   .narrow((data) => !Object.hasOwn(data, 'a') || type({ 'b?': 'number' }).allows(data))
   .narrow((data) => !Object.hasOwn(data, 'constructor') || type({ 'c2?': 'number' }).allows(data))
   .narrow((data) =>
-    ((ifPassed) =>
+    ((__ifPassed) =>
       Object.keys(data).every(
         (key) =>
           ['a', 'kind'].includes(key) ||
-          (ifPassed && ['flag', 'x'].includes(key)) ||
-          (!ifPassed && ['y'].includes(key)) ||
+          (__ifPassed && ['flag', 'x'].includes(key)) ||
+          (!__ifPassed && ['y'].includes(key)) ||
           (Object.hasOwn(data, 'a') && ['b'].includes(key)) ||
           (Object.hasOwn(data, 'constructor') && ['c2'].includes(key)),
       ))(type({ kind: "'x'", 'flag?': 'true' }).allows(data)),

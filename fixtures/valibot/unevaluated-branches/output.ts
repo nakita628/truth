@@ -3,12 +3,12 @@ import * as v from 'valibot'
 export const Schema = v.pipe(
   v.partial(v.looseObject({ a: v.number(), kind: v.string() })),
   v.check((input) =>
-    ((ifPassed) =>
+    ((__ifPassed) =>
       Object.keys(input).every(
         (key) =>
           ['a', 'kind'].includes(key) ||
-          (ifPassed && ['flag', 'x'].includes(key)) ||
-          (!ifPassed && ['y'].includes(key)) ||
+          (__ifPassed && ['flag', 'x'].includes(key)) ||
+          (!__ifPassed && ['y'].includes(key)) ||
           (Object.hasOwn(input, 'a') && ['b'].includes(key)) ||
           (Object.hasOwn(input, 'constructor') && ['c2'].includes(key)),
       ))(
@@ -23,7 +23,7 @@ export const Schema = v.pipe(
   ),
   v.check(
     (input) =>
-      !Object.hasOwn(input, 'constructor') ||
+      !('constructor' in input) ||
       v.safeParse(v.partial(v.object({ c2: v.number() })), input).success,
   ),
   v.check(

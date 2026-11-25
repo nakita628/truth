@@ -3,12 +3,12 @@ import * as z from 'zod'
 export const Schema = z
   .looseObject({ a: z.number().exactOptional(), kind: z.string().exactOptional() })
   .refine((val) =>
-    ((ifPassed) =>
+    ((__ifPassed) =>
       Object.keys(val).every(
         (key) =>
           ['a', 'kind'].includes(key) ||
-          (ifPassed && ['flag', 'x'].includes(key)) ||
-          (!ifPassed && ['y'].includes(key)) ||
+          (__ifPassed && ['flag', 'x'].includes(key)) ||
+          (!__ifPassed && ['y'].includes(key)) ||
           (Object.hasOwn(val, 'a') && ['b'].includes(key)) ||
           (Object.hasOwn(val, 'constructor') && ['c2'].includes(key)),
       ))(
