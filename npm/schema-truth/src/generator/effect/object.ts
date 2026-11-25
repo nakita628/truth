@@ -6,7 +6,8 @@ import {
 } from '../../guard/index.js'
 import {
   effectPreprocess,
-  isEvaluatedKeyExpression,
+  isEvaluatedObjectKeyExpression,
+  objectEvaluatedKeys,
   ownProperties,
   propertyEmitOptions,
   propertyNamesEnumCheck,
@@ -91,6 +92,8 @@ export function object(
   const undeclaredRequired = (schema.required ?? []).filter(
     (key) => !Object.hasOwn(properties, key),
   )
+  // The keys the key check counts as evaluated, branch by branch.
+  const evaluatedKeys = objectEvaluatedKeys(schema, options?.definitions)
   const unevaluated = schema.unevaluatedProperties
   const closed = schema.additionalProperties === false || unevaluated === false
   // The schema a key no property names and no pattern matches is held to.
@@ -188,9 +191,11 @@ export function object(
   // A key no property names and no pattern matches: refused when the object is closed,
   // held to `unevaluatedProperties` when that is a schema. v4 takes `onExcessProperty`
   // only as a decoding option, not from the schema, so the struct cannot refuse it itself.
-  const isEvaluated = isEvaluatedKeyExpression(
-    { names: Object.keys(properties), patterns: Object.keys(schema.patternProperties ?? {}) },
-    'key',
+  const conditionSchema = schema.if
+  const isEvaluated = isEvaluatedObjectKeyExpression(evaluatedKeys, 'key', 'input', () =>
+    conditionSchema === undefined
+      ? 'false'
+      : `Schema.is(${effect(conditionSchema, rootName, isEffect, options)})(input)`,
   )
   const unevaluatedKeysFilter = closed
     ? `Schema.makeFilter((input)=>${isEvaluated === undefined ? 'Object.keys(input).length===0' : `Object.keys(input).every((key)=>${isEvaluated})`}${effectErrorPart(strictExtrasMessage ?? errorMessage)})`

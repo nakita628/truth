@@ -35,6 +35,7 @@ import { Organization as ScopeMetadataOrganization } from '../scope-metadata/out
 import { Schema as SimpleSchema } from '../simple/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
 import { Schema as UnionOperandSchema } from '../union-operand/output.ts'
+import { Schema as UnevaluatedBranchesSchema } from '../unevaluated-branches/output.ts'
 import { Schema as PropertyNamesEnumSchema } from '../property-names-enum/output.ts'
 import { Query as WireNumberQuery } from '../wire-number/output.ts'
 import { Formats as StringFormats } from '../string-formats/output.ts'
@@ -1043,4 +1044,22 @@ describe('union-operand', () => {
       expect(UnionOperandSchema(value)).toBeInstanceOf(type.errors)
     },
   )
+})
+
+describe('unevaluated-branches', () => {
+  it.each([{}, { a: 1, b: 2 }, { kind: 'x', x: 1 }, { kind: 'x', flag: true }, { kind: 'z', y: 1 }])('accepts %j, whose keys a property or a branch declares', (value) => {
+    expect(UnevaluatedBranchesSchema(value)).not.toBeInstanceOf(type.errors)
+  })
+
+  it.each([
+    { c: 1 },
+    { a: 1, z: 1 },
+    { kind: 'x', x: 1, w: 1 },
+    { b: 'not a number' },
+    { kind: 'x', y: 'str' },
+    { kind: 'z', flag: true },
+    { c2: 1 },
+  ])('rejects %j, which has a key nothing declares', (value) => {
+    expect(UnevaluatedBranchesSchema(value)).toBeInstanceOf(type.errors)
+  })
 })

@@ -5,7 +5,12 @@ import {
   isStringWireLocation,
 } from '../../guard/index.js'
 import { propertyEmitOptions } from '../../helper/parameter.js'
-import { isEvaluatedKeyExpression, propertyNamesEnumCheck } from '../../helper/unevaluated.js'
+import {
+  hasBranchKeys,
+  isEvaluatedObjectKeyExpression,
+  objectEvaluatedKeys,
+  propertyNamesEnumCheck,
+} from '../../helper/unevaluated.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { makeSafeKey, zodError, zodErrorPart } from '../../utils/index.js'
@@ -79,11 +84,15 @@ export function object(
   const undeclaredRequired = (schema.required ?? []).filter(
     (key) => !Object.hasOwn(properties, key),
   )
+  // The keys the check below counts as evaluated, branch by branch.
+  const evaluatedKeys = objectEvaluatedKeys(schema, options?.definitions)
   const unevaluated = schema.unevaluatedProperties
   const closed = schema.additionalProperties === false || unevaluated === false
-  // A key outside `properties` is still allowed when a pattern or a schema covers it, so the
-  // object cannot simply reject undeclared keys.
-  const closedByCheck = closed && schema.patternProperties !== undefined
+  // A key outside `properties` is still allowed when a pattern, a schema or a branch
+  // (`if` / `then` / `else`, `dependentSchemas`) covers it, so the object cannot simply
+  // reject undeclared keys.
+  const closedByCheck =
+    closed && (schema.patternProperties !== undefined || hasBranchKeys(evaluatedKeys))
   // The schema a key no property names and no pattern matches is held to.
   const extraSchema =
     typeof schema.additionalProperties === 'object'
@@ -227,9 +236,11 @@ export function object(
       : ''
   // A key no property names and no pattern matches: refused when the object is closed,
   // held to `unevaluatedProperties` when that is a schema.
-  const isEvaluated = isEvaluatedKeyExpression(
-    { names: Object.keys(properties), patterns: Object.keys(schema.patternProperties ?? {}) },
-    'key',
+  const conditionSchema = schema.if
+  const isEvaluated = isEvaluatedObjectKeyExpression(evaluatedKeys, 'key', 'val', () =>
+    conditionSchema === undefined
+      ? 'false'
+      : `${zod(conditionSchema, rootName, isZod, options)}.safeParse(val).success`,
   )
   const unevaluatedKeys = closedByCheck
     ? `.refine((val)=>${isEvaluated === undefined ? 'Object.keys(val).length===0' : `Object.keys(val).every((key)=>${isEvaluated})`}${zodErrorPart(strictMessage ?? errorMessage)})`
