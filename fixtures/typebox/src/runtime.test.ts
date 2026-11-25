@@ -25,6 +25,7 @@ import { Schema as SelfReferenceSchema } from '../self-reference/output.ts'
 import { User as SplitRefsUser } from '../split-refs/output.ts'
 import { User as TitleUser } from '../title/output.ts'
 import { Query as WireBooleanQuery } from '../wire-boolean/output.ts'
+import { Query as WireNumberQuery } from '../wire-number/output.ts'
 
 describe('simple', () => {
   it('valid', () => {
@@ -877,5 +878,36 @@ describe('wire-boolean', () => {
   it('encodes a boolean to its text', () => {
     expect(Value.Encode(WireBooleanQuery, { active: true })).toStrictEqual({ active: 'true' })
     expect(Value.Encode(WireBooleanQuery, { active: false })).toStrictEqual({ active: 'false' })
+  })
+})
+
+describe('wire-number', () => {
+  it.each<[string, string, number]>([
+    ['ratio', '1.5', 1.5],
+    ['ratio', '9007199254740993', 9007199254740992],
+    ['score', '1e3', 1000],
+    ['id', '-9007199254740991', -9007199254740991],
+    ['count', '9007199254740991', 9007199254740991],
+  ])('decodes %s=%s to %d', (key, text, expected) => {
+    expect(Value.Decode(WireNumberQuery, { [key]: text })).toStrictEqual({ [key]: expected })
+  })
+
+  it.each<[string, string]>([
+    ['ratio', '1e999'],
+    ['ratio', '-1e999'],
+    ['score', '1e999'],
+    ['id', '9007199254740992'],
+    ['id', '-9007199254740993'],
+    ['count', '9007199254740993'],
+  ])('rejects %s=%s, which overflows or loses precision', (key, text) => {
+    expect(Value.Check(WireNumberQuery, { [key]: text })).toBe(false)
+    expect(() => Value.Decode(WireNumberQuery, { [key]: text })).toThrow()
+  })
+
+  it('rejects int64 text that Number would round, as this wire decodes it to a number', () => {
+    expect(Value.Decode(WireNumberQuery, { total: '9007199254740991' })).toStrictEqual({
+      total: 9007199254740991,
+    })
+    expect(() => Value.Decode(WireNumberQuery, { total: '9007199254740993' })).toThrow()
   })
 })

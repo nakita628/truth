@@ -106,9 +106,13 @@ function wireString(schema: JSONSchema, ref?: string, pattern?: string) {
  * A number-from-text wire: the `Type.String` carries its pattern as a string, the
  * JSON Schema form (a `RegExp` serializes as `{}`), and each numeric bound is a
  * `Type.Refine` on the text read as a number, since the decoded value is not checked.
+ * The first check rejects a number that overflows to `Infinity` and an integer outside
+ * the safe integer range, where `Number` may round it. That holds for an int64, uint64 or
+ * bigint `format` too, since this wire decodes it with `Number`.
  */
-function numericWire(schema: JSONSchema, pattern: RegExp, ref?: string) {
-  return numericBounds(schema).reduce(
+function numericWire(schema: JSONSchema, kind: 'integer' | 'number', ref?: string) {
+  const pattern = kind === 'integer' ? INTEGER_WIRE_PATTERN : NUMBER_WIRE_PATTERN
+  return [numericRange(kind), ...numericBounds(schema)].reduce(
     (wire, [check, keyword, message]) =>
       `Type.Refine(${wire},(value)=>${check},()=>${JSON.stringify(
         schema[`x-${keyword}-message`] ?? schema['x-error-message'] ?? message,
@@ -119,9 +123,17 @@ function numericWire(schema: JSONSchema, pattern: RegExp, ref?: string) {
 
 type NumericBound = readonly [
   check: string,
-  keyword: 'minimum' | 'exclusiveMinimum' | 'maximum' | 'exclusiveMaximum' | 'multipleOf',
+  /** The keyword of its `x-<keyword>-message`; `error` is the range check's `x-error-message`. */
+  keyword: 'minimum' | 'exclusiveMinimum' | 'maximum' | 'exclusiveMaximum' | 'multipleOf' | 'error',
   message: string,
 ]
+
+/** The check that `Number(value)` is finite, or a safe integer for an integer wire. */
+function numericRange(kind: 'integer' | 'number'): NumericBound {
+  return kind === 'integer'
+    ? ['Number.isSafeInteger(Number(value))', 'error', 'must be a safe integer']
+    : ['Number.isFinite(Number(value))', 'error', 'must be a finite number']
+}
 
 /** The checks of the numeric keywords on `Number(value)`, with TypeBox's own messages. */
 function numericBounds(schema: JSONSchema) {
@@ -435,7 +447,7 @@ export function typebox(
   if (types.includes('string')) return typeboxWrap(string(schema, hostRef), schema)
   if (types.includes('number')) {
     if (isStringWireParam) {
-      const wire = numericWire(schema, NUMBER_WIRE_PATTERN, hostRef)
+      const wire = numericWire(schema, 'number', hostRef)
       return typeboxWrap(
         `Codec(${wire}).Decode((value)=>Number(value)).Encode((value)=>String(value))`,
         schema,
@@ -445,7 +457,7 @@ export function typebox(
   }
   if (types.includes('integer')) {
     if (isStringWireParam) {
-      const wire = numericWire(schema, INTEGER_WIRE_PATTERN, hostRef)
+      const wire = numericWire(schema, 'integer', hostRef)
       return typeboxWrap(
         `Codec(${wire}).Decode((value)=>Number(value)).Encode((value)=>String(value))`,
         schema,
