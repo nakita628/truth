@@ -28,6 +28,7 @@ import {
 } from '../../helper/index.js'
 import type { SchemaDefinitions } from '../../helper/index.js'
 import { typeboxDefaultOpt, typeboxMetaOpts, typeboxRefOpt } from '../../helper/meta.js'
+import { examplesOf } from '../../helper/schema.js'
 import type { JSONSchema, ParamIn } from '../../parser/index.js'
 import { makeSafeKey, normalizeTypes, resolveOpenAPIRef } from '../../utils/index.js'
 import { _enum } from './enum.js'
@@ -99,15 +100,29 @@ function wireString(schema: JSONSchema, ref?: string, pattern?: string) {
   const errorMessage = schema['x-error-message']
   const patternMessage = pattern === undefined ? undefined : schema['x-pattern-message']
   const messageOpts =
-    typeof patternMessage === 'string'
+    typeof patternMessage === 'string' && patternMessage !== ''
       ? [
           `errorMessage:{pattern:${JSON.stringify(patternMessage)}${
-            typeof errorMessage === 'string' ? `,_:${JSON.stringify(errorMessage)}` : ''
+            typeof errorMessage === 'string' && errorMessage !== ''
+              ? `,_:${JSON.stringify(errorMessage)}`
+              : ''
           }}`,
         ]
-      : messageOpt(errorMessage)
+      : messageOpt(errorMessage === '' ? undefined : errorMessage)
+  // The examples are documented as the text the wire carries, as its default is.
+  const examples = examplesOf(schema)
+  const { example: _example, examples: _examples, ...rest } = schema
+  const wireSchema: JSONSchema =
+    examples === undefined
+      ? rest
+      : {
+          ...rest,
+          examples: examples.map((value) =>
+            typeof value === 'number' || typeof value === 'boolean' ? String(value) : value,
+          ),
+        }
   const opts = [
-    ...typeboxMetaOpts(schema, ref),
+    ...typeboxMetaOpts(wireSchema, ref),
     ...(pattern === undefined ? [] : [`pattern:${pattern}`]),
     ...messageOpts,
     ...typeboxDefaultOpt(schema, true),

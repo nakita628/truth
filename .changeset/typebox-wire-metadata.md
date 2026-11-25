@@ -3,4 +3,4 @@
 'oas-truth': patch
 ---
 
-A TypeBox `boolean` / `number` / `integer` / date parameter read from text now keeps its `description`, `examples`, `deprecated`, `readOnly` and `writeOnly` on the wire `Type.String`. It also keeps its `x-error-message` / `x-pattern-message` as `errorMessage`.
+A TypeBox `boolean` / `number` / `integer` parameter read from text, and every `date` node, now keeps its `description`, `examples` (as wire text), `deprecated`, `externalDocs`, `readOnly` and `writeOnly` on the inner `Type.String`. It also keeps a non-empty `x-error-message` / `x-pattern-message` as `errorMessage`.

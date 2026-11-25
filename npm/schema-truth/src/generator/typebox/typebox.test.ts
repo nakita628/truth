@@ -755,7 +755,9 @@ describe('typebox', () => {
         typebox({ type: 'integer', examples: [1], 'x-error-message': 'bad' }, 'Schema', false, {
           paramIn: 'path',
         }),
-      ).toContain('Type.String({examples:[1],pattern:"^-?(?:0|[1-9]\\\\d*)$",errorMessage:"bad"})')
+      ).toContain(
+        'Type.String({examples:["1"],pattern:"^-?(?:0|[1-9]\\\\d*)$",errorMessage:"bad"})',
+      )
     })
 
     it("path: boolean → Type.Transform decode 'true'|'false'", () => {
