@@ -285,6 +285,19 @@ describe('a 64-bit or bigint default', () => {
     [{ type: 'integer', format: 'uint64', default: 2 ** 64 }, []],
     [{ type: 'integer', format: 'int64', default: 2 ** 63 }, []],
     [{ type: 'integer', format: 'uint64', default: -1 }, []],
+    [
+      { type: 'integer', format: 'int64', default: '9223372036854775807' },
+      ['default:"9223372036854775807"'],
+    ],
+    [
+      { type: 'integer', format: 'int64', default: '9007199254740993' },
+      ['default:"9007199254740993"'],
+    ],
+    [{ type: 'integer', format: 'int64', default: '9223372036854775808' }, []],
+    [
+      { type: ['number', 'integer'], format: 'uint64', default: 2 ** 64 },
+      ['default:"18446744073709552000"'],
+    ],
     [{ type: 'integer', default: 1e21 }, ['default:"1e+21"']],
     [{ type: 'number', format: 'int64', default: 1e21 }, ['default:"1e+21"']],
   ] satisfies [JSONSchema, string[]][])(

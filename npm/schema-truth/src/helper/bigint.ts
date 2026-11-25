@@ -1,5 +1,5 @@
 import type { JSONSchema } from '../parser/index.js'
-import { definitionOf } from '../utils/index.js'
+import { definitionOf, normalizeTypes } from '../utils/index.js'
 import type { DefaultSchema } from '../utils/index.js'
 
 /**
@@ -169,4 +169,29 @@ export function bigintFormatOf(
     return first !== undefined && rest.every((found) => found !== undefined) ? first : undefined
   }
   return search(schema, new Set())
+}
+
+/**
+ * Whether a node read from text is decoded with `BigInt`: an `int64`, `uint64` or `bigint`
+ * integer whose `type` names no `string` or `number`, which a generator reads first.
+ */
+export function isBigintWire(schema: JSONSchema) {
+  const { format } = schema
+  const types = normalizeTypes(schema.type)
+  return (
+    (format === 'int64' || format === 'uint64' || format === 'bigint') &&
+    types.includes('integer') &&
+    !types.includes('string') &&
+    !types.includes('number')
+  )
+}
+
+/**
+ * A value as the text a {@link isBigintWire} node reads: an integer in digits (`1e21` is
+ * `1000000000000000000000`, not `1e+21`), digit text as written, which keeps a value a
+ * number cannot hold, and anything else as `String` spells it.
+ */
+export function bigintWireText(value: unknown) {
+  if (typeof value === 'number' && Number.isInteger(value)) return String(BigInt(value))
+  return String(value)
 }

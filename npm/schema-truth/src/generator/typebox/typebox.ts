@@ -17,7 +17,7 @@ import {
   isShapelessMember,
   isStringWireLocation,
 } from '../../guard/index.js'
-import { bigintBounds, bigintLiteral } from '../../helper/bigint.js'
+import { bigintBounds, bigintLiteral, bigintWireText, isBigintWire } from '../../helper/bigint.js'
 import {
   enumWithoutWrappedNull,
   foldAllOfMembers,
@@ -121,7 +121,11 @@ function wireString(schema: JSONSchema, ref?: string, pattern?: string) {
       : {
           ...rest,
           examples: examples.map((value) =>
-            typeof value === 'number' || typeof value === 'boolean' ? String(value) : value,
+            typeof value === 'number' || typeof value === 'boolean'
+              ? isBigintWire(schema)
+                ? bigintWireText(value)
+                : String(value)
+              : value,
           ),
         }
   const opts = [
@@ -177,11 +181,6 @@ function refineWire(schema: JSONSchema, wire: string, checks: readonly NumericBo
       )})`,
     wire,
   )
-}
-
-/** Whether an integer node holds a bigint on the wire: `int64`, `uint64` or `bigint`. */
-function isBigintFormat(schema: JSONSchema) {
-  return schema.format === 'int64' || schema.format === 'uint64' || schema.format === 'bigint'
 }
 
 /**
@@ -635,7 +634,7 @@ export function typebox(
     return typeboxWrap(number(schema, hostRef), schema)
   }
   if (types.includes('integer')) {
-    if (isStringWireParam && isBigintFormat(schema)) {
+    if (isStringWireParam && isBigintWire(schema)) {
       return typeboxWrap(
         `Codec(${bigintWire(schema, hostRef)}).Decode((value)=>BigInt(value)).Encode((value)=>String(value))`,
         schema,

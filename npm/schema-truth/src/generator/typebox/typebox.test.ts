@@ -801,6 +801,10 @@ describe('typebox', () => {
         { type: 'integer', format: 'uint64', 'x-error-message': 'bad' },
         'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?\\\\d+$",errorMessage:"bad"}),(value)=>BigInt(value)>=0n,()=>"bad"),(value)=>BigInt(value)<=18446744073709551615n,()=>"bad")).Decode((value)=>BigInt(value)).Encode((value)=>String(value))',
       ],
+      [
+        { type: 'integer', format: 'bigint', examples: [1e21, 5] },
+        'Codec(Type.String({examples:["1000000000000000000000","5"],pattern:"^-?\\\\d+$"})).Decode((value)=>BigInt(value)).Encode((value)=>String(value))',
+      ],
     ] as const)(
       'query: %o decodes with BigInt and checks its range (#84) → %s',
       (input, expected) => {
