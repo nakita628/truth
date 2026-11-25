@@ -3,11 +3,10 @@ import { typeboxDefaultOpt, typeboxMetaOpts, typeboxRefOpt } from '../../helper/
 import type { JSONSchema } from '../../parser/index.js'
 
 // `Type.BigInt` takes its bounds as numbers, which keeps the schema serializable where a
-// bigint literal makes `JSON.stringify` throw. A `default` is the exception: `Value.Default`
-// puts it in as written and the check takes only a bigint, so it is a bigint literal
-// (`typeboxDefaultOpt`) and such a schema does not serialize. `Value.Create` runs `BigInt()` on a lower
-// bound and the check runs `BigInt(value) % BigInt(multipleOf)`, so both are made
-// integers first (`bigintBounds`).
+// bigint literal makes `JSON.stringify` throw. It carries no `default` (`typeboxDefaultOpt`):
+// `Value.Default` would put a number in as written, which the check rejects, and a bigint
+// literal would not serialize. `Value.Create` runs `BigInt()` on a lower bound and the check
+// runs `BigInt(value) % BigInt(multipleOf)`, so both are made integers first (`bigintBounds`).
 export function integer(schema: JSONSchema, ref?: string) {
   const errorMessage = schema['x-error-message']
   const requiredMessage = schema['x-required-message']

@@ -1,6 +1,6 @@
 import { isNullable } from '../guard/index.js'
 import type { JSONSchema } from '../parser/index.js'
-import { hasKeptDefault } from './schema.js'
+import { hasTypeboxDefault } from './meta.js'
 import type { SchemaDefinitions } from './schema.js'
 
 /** The options of {@link typeboxWrap}. */
@@ -10,6 +10,8 @@ export type TypeboxWrapOptions = {
    * nothing to it, so it is not wrapped a second time.
    */
   readonly nullSchema?: boolean
+  /** The expression reads the value from text, where a default is written as its text. */
+  readonly stringWire?: boolean
 }
 
 /**
@@ -39,6 +41,8 @@ export function typeboxWrap(
     schema['x-readonly'] === true ? `Type.Readonly(${withNullable})` : withNullable
   // TypeBox v1's `Type.Optional(type)` takes one arg; the default value itself is
   // baked into `typeboxStr`'s own options by the factory (`typeboxDefaultOpt`).
-  // Here we only mark the property optional when a (kept) default is present.
-  return hasKeptDefault(schema, definitions) ? `Type.Optional(${withReadonly})` : withReadonly
+  // Here we only mark the property optional when that default is present.
+  return hasTypeboxDefault(schema, definitions, options?.stringWire === true)
+    ? `Type.Optional(${withReadonly})`
+    : withReadonly
 }

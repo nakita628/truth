@@ -72,6 +72,20 @@ export function typeboxDefaultOpt(
 }
 
 /**
+ * Whether the TypeBox output carries the node's `default` (see {@link typeboxDefaultOpt}):
+ * a kept default, except a number one on a `Type.BigInt`, which is left out. The node is
+ * `Type.Optional` exactly when this holds, so a required key whose default is left out
+ * stays required.
+ */
+export function hasTypeboxDefault(
+  schema: JSONSchema,
+  definitions?: SchemaDefinitions,
+  stringWire = false,
+) {
+  return typeboxDefaultOpt(schema, stringWire, definitions).length > 0
+}
+
+/**
  * Serializes a value into a JavaScript expression string.
  *
  * - Strings, numbers, booleans, null: via `JSON.stringify`
