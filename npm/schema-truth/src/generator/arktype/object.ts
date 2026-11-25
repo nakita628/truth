@@ -78,7 +78,7 @@ export function object(
     }
     if (schema.propertyNames?.enum) {
       return narrowPredicate(
-        propertyNamesEnumCheck(schema.propertyNames.enum, 'data', ' => '),
+        propertyNamesEnumCheck(schema.propertyNames.enum, 'data'),
         propNamesMessage,
       )
     }

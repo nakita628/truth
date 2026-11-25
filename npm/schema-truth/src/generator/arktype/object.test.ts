@@ -97,7 +97,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'type({a:"string"}).narrow((data) => Object.keys(data).every((key) => ["a","b","c"].includes(key)))',
+        'type({a:"string"}).narrow((data) => Object.keys(data).every((key)=>["a","b","c"].includes(key)))',
       )
     })
 
@@ -343,7 +343,7 @@ describe('object dependent / unevaluated / conditional keywords', () => {
         properties: { a: { type: 'string' } },
         propertyNames: { enum: ['a', 'b'] },
       },
-      'type({"a?":"string"}).narrow((data) => Object.keys(data).every((key) => ["a","b"].includes(key)))',
+      'type({"a?":"string"}).narrow((data) => Object.keys(data).every((key)=>["a","b"].includes(key)))',
     ],
     [
       {

@@ -95,9 +95,9 @@ export function unlessEvaluated(isEvaluated: string | undefined, body: string) {
  * lookup is left out: `[].includes(key)` does not type-check (`never[]`), and neither does
  * a lookup in a number array.
  */
-export function propertyNamesEnumCheck(values: readonly unknown[], input: string, arrow = '=>') {
+export function propertyNamesEnumCheck(values: readonly unknown[], input: string) {
   const names = values.filter((value) => typeof value === 'string')
   return names.length === 0
     ? `Object.keys(${input}).length===0`
-    : `Object.keys(${input}).every((key)${arrow}${JSON.stringify(names)}.includes(key))`
+    : `Object.keys(${input}).every((key)=>${JSON.stringify(names)}.includes(key))`
 }
