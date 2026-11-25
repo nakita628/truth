@@ -99,15 +99,15 @@ describe('object', () => {
       ],
       [
         { type: 'object', propertyNames: { pattern: '^a' } },
-        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.keys(input).every((key)=>/^a/.test(key))))',
+        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
       ],
       [
         { type: 'object', additionalProperties: true, propertyNames: { pattern: '^a' } },
-        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.keys(input).every((key)=>/^a/.test(key))))',
+        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
       ],
       [
         { type: 'object', propertyNames: { pattern: '^a' }, minProperties: 1 },
-        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.keys(input).length>=1),v.check((input)=>Object.keys(input).every((key)=>/^a/.test(key))))',
+        'v.pipe(v.partial(v.looseObject({})),v.check((input)=>Object.keys(input).length>=1),v.check((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
       ],
     ])(
       'checks the keys of an object with no properties or additionalProperties schema (#88): %o → %s',
@@ -129,7 +129,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'v.pipe(v.looseObject({a:v.string()}),v.check((input)=>Object.keys(input).every((key)=>/^[a-z]+$/.test(key))))',
+        'v.pipe(v.looseObject({a:v.string()}),v.check((input)=>Object.keys(input).every((key)=>new RegExp("^[a-z]+$").test(key))))',
       )
     })
 
@@ -164,7 +164,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'v.pipe(v.looseObject({a:v.string()}),v.check((input)=>Object.keys(input).every((key)=>/^[a-z]+$/.test(key)),"lowercase only"))',
+        'v.pipe(v.looseObject({a:v.string()}),v.check((input)=>Object.keys(input).every((key)=>new RegExp("^[a-z]+$").test(key)),"lowercase only"))',
       )
     })
   })

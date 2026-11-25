@@ -20,17 +20,17 @@ export const Schema = v.partial(
     ),
     pattern: v.pipe(
       v.partial(v.looseObject({})),
-      v.check((input) => Object.keys(input).every((key) => /^a/.test(key))),
+      v.check((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
     ),
     open: v.pipe(
       v.partial(v.looseObject({})),
-      v.check((input) => Object.keys(input).every((key) => /^a/.test(key))),
+      v.check((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
     ),
     both: v.pipe(
       v.partial(v.looseObject({})),
       v.check(
         (input) =>
-          Object.keys(input).every((key) => /^[a-z]+$/.test(key)) &&
+          Object.keys(input).every((key) => new RegExp('^[a-z]+$').test(key)) &&
           Object.keys(input).every((key) => ['a', 'B'].includes(key)),
       ),
     ),
@@ -44,7 +44,7 @@ export const Schema = v.partial(
     ),
     letters: v.pipe(
       v.partial(v.looseObject({})),
-      v.check((input) => Object.keys(input).every((key) => /^\p{L}+$/u.test(key))),
+      v.check((input) => Object.keys(input).every((key) => new RegExp('^\\p{L}+$', 'u').test(key))),
     ),
   }),
 )

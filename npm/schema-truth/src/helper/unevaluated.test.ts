@@ -62,15 +62,24 @@ describe('propertyNamesKeyCheck (#90)', () => {
     [undefined, undefined],
     [true, undefined],
     [{}, undefined],
+    [{ pattern: '' }, undefined],
     [false, 'Object.keys(input).length===0'],
     [{ const: 'a' }, 'Object.keys(input).every((key)=>["a"].includes(key))'],
     [{ const: 1 }, 'Object.keys(input).length===0'],
-    [{ pattern: '^[a-z]+$' }, 'Object.keys(input).every((key)=>/^[a-z]+$/.test(key))'],
-    [{ pattern: '^\\p{L}+$' }, 'Object.keys(input).every((key)=>/^\\p{L}+$/u.test(key))'],
-    [{ pattern: 'a/b' }, 'Object.keys(input).every((key)=>/a\\/b/.test(key))'],
+    [{ pattern: '^[a-z]+$' }, 'Object.keys(input).every((key)=>new RegExp("^[a-z]+$").test(key))'],
+    [
+      { pattern: '^\\p{L}+$' },
+      'Object.keys(input).every((key)=>new RegExp("^\\\\p{L}+$","u").test(key))',
+    ],
+    [{ pattern: '\\\\/' }, 'Object.keys(input).every((key)=>new RegExp("\\\\\\\\/").test(key))'],
+    [{ pattern: 'a\nb' }, 'Object.keys(input).every((key)=>new RegExp("a\\nb").test(key))'],
+    [
+      { minLength: 1, maxLength: 3 },
+      'Object.keys(input).every((key)=>[...key].length>=1)&&Object.keys(input).every((key)=>[...key].length<=3)',
+    ],
     [
       { pattern: '^[a-z]+$', enum: ['a', 'B'] },
-      'Object.keys(input).every((key)=>/^[a-z]+$/.test(key))&&Object.keys(input).every((key)=>["a","B"].includes(key))',
+      'Object.keys(input).every((key)=>new RegExp("^[a-z]+$").test(key))&&Object.keys(input).every((key)=>["a","B"].includes(key))',
     ],
     [
       { enum: ['a', 'b'], const: 'a' },
@@ -79,6 +88,15 @@ describe('propertyNamesKeyCheck (#90)', () => {
   ])('propertyNamesKeyCheck(%o) → %s', (propertyNames, expected) => {
     expect(propertyNamesKeyCheck(propertyNames, 'input')).toBe(expected)
   })
+
+  it.each(['\\\\/', 'a\nb', 'a\u2028b', '^\\p{L}+$', '^\\x{1F600}$'])(
+    'emits a check that parses and runs for the pattern %j',
+    (pattern) => {
+      const check = propertyNamesKeyCheck({ pattern }, 'input')
+      // oxlint-disable-next-line eslint/no-new-func, typescript/no-implied-eval -- the emitted code is what is under test
+      expect(() => new Function('input', `return ${check}`)({})).not.toThrow()
+    },
+  )
 })
 
 describe('propertyNamesEnumCheck', () => {

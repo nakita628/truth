@@ -27,6 +27,25 @@ export function regexLiteral(pattern: string) {
 }
 
 /**
+ * A `new RegExp(...)` expression for a JSON Schema `pattern`, for a check built inside a
+ * callback: the pattern is a JSON string, so a `/`, an escaped backslash or a line
+ * terminator needs no rewriting, and a pattern the engine rejects throws when the check
+ * runs instead of when the generated module loads. Braced hex escapes are rewritten and
+ * the `u` flag set as in {@link regexLiteral}.
+ *
+ * @example
+ * ```ts
+ * regexConstructor('^[a-z]+$')  // 'new RegExp("^[a-z]+$")'
+ * regexConstructor('^\\p{L}+$')  // 'new RegExp("^\\\\p{L}+$","u")'
+ * ```
+ */
+export function regexConstructor(pattern: string) {
+  const rewritten = rewriteBracedHex(pattern)
+  const unicode = rewritten.unicode || UNICODE_ESCAPE_PATTERN.test(rewritten.pattern)
+  return `new RegExp(${JSON.stringify(rewritten.pattern)}${unicode ? ',"u"' : ''})`
+}
+
+/**
  * The pattern with braced hex escapes (`\x{hex}`) rewritten to JavaScript unicode
  * escapes. A code point above U+FFFF needs the `u` flag (`unicode`). An
  * already-escaped backslash (`\\x{FFFF}`) is left as text.

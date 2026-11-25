@@ -19,17 +19,17 @@ export const Schema = z.object({
     .exactOptional(),
   pattern: z
     .looseObject({})
-    .refine((val) => Object.keys(val).every((key) => /^a/.test(key)))
+    .refine((val) => Object.keys(val).every((key) => new RegExp('^a').test(key)))
     .exactOptional(),
   open: z
     .looseObject({})
-    .refine((val) => Object.keys(val).every((key) => /^a/.test(key)))
+    .refine((val) => Object.keys(val).every((key) => new RegExp('^a').test(key)))
     .exactOptional(),
   both: z
     .looseObject({})
     .refine(
       (val) =>
-        Object.keys(val).every((key) => /^[a-z]+$/.test(key)) &&
+        Object.keys(val).every((key) => new RegExp('^[a-z]+$').test(key)) &&
         Object.keys(val).every((key) => ['a', 'B'].includes(key)),
     )
     .exactOptional(),
@@ -43,7 +43,7 @@ export const Schema = z.object({
     .exactOptional(),
   letters: z
     .looseObject({})
-    .refine((val) => Object.keys(val).every((key) => /^\p{L}+$/u.test(key)))
+    .refine((val) => Object.keys(val).every((key) => new RegExp('^\\p{L}+$', 'u').test(key)))
     .exactOptional(),
 })
 

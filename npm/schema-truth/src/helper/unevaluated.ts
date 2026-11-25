@@ -1,6 +1,6 @@
 import { DEFINITION_REF_PREFIXES } from '../constants/index.js'
 import type { JSONSchema } from '../parser/index.js'
-import { regexLiteral } from './regex.js'
+import { regexConstructor } from './regex.js'
 import type { SchemaDefinitions } from './schema.js'
 
 /** The property names and `patternProperties` patterns a schema evaluates. */
@@ -108,11 +108,10 @@ export function propertyNamesEnumCheck(values: readonly unknown[], input: string
 
 /**
  * The emitted check that every key of `input` holds a `propertyNames` schema, or `undefined`
- * when the schema does not constrain keys: every keyword it carries must hold, so the
- * checks are ANDed. `false` allows no key and `const` allows one (as an enum of that
- * value), `enum` is {@link propertyNamesEnumCheck}, and `pattern` is a regular-expression
- * literal built as every other `pattern` is (`regexLiteral`: the `u` flag a Unicode
- * escape needs, an escaped `/`).
+ * when it does not constrain keys. The keywords read are ANDed: `false` allows no key and
+ * `const` allows one (as an enum of that value), `enum` is {@link propertyNamesEnumCheck},
+ * `minLength` / `maxLength` count code points, and `pattern` is a `regexConstructor` (an
+ * empty one matches every key). Other keywords (`format`, `$ref`, composition) are not read.
  */
 export function propertyNamesKeyCheck(
   propertyNames: JSONSchema | boolean | undefined,
@@ -120,11 +119,14 @@ export function propertyNamesKeyCheck(
 ) {
   if (propertyNames === false) return propertyNamesEnumCheck([], input)
   if (typeof propertyNames !== 'object') return undefined
-  const { pattern, enum: values, const: constValue } = propertyNames
+  const { pattern, enum: values, const: constValue, minLength, maxLength } = propertyNames
+  const every = (predicate: string) => `Object.keys(${input}).every((key)=>${predicate})`
   const checks = [
-    ...(typeof pattern === 'string'
-      ? [`Object.keys(${input}).every((key)=>${regexLiteral(pattern)}.test(key))`]
+    ...(typeof pattern === 'string' && pattern !== ''
+      ? [every(`${regexConstructor(pattern)}.test(key)`)]
       : []),
+    ...(typeof minLength === 'number' ? [every(`[...key].length>=${minLength}`)] : []),
+    ...(typeof maxLength === 'number' ? [every(`[...key].length<=${maxLength}`)] : []),
     ...(Array.isArray(values) ? [propertyNamesEnumCheck(values, input)] : []),
     ...(constValue !== undefined ? [propertyNamesEnumCheck([constValue], input)] : []),
   ]
