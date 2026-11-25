@@ -64,6 +64,13 @@ describe('wireDocument (#77)', () => {
     })
   })
 
+  it('adds null beside a nullable combinator or const', () => {
+    expect(wireDocument({ oneOf: [{ type: 'integer' }], nullable: true })).toStrictEqual({
+      anyOf: [{ oneOf: [{ type: 'integer' }] }, { type: 'null' }],
+    })
+    expect(wireDocument({ const: 1, nullable: true })).toStrictEqual({ enum: [1, null] })
+  })
+
   it('is undefined when a $ref sits under additionalItems or dependencies', () => {
     expect(wireDocument({ additionalItems: { $ref: '#/$defs/A' } })).toBeUndefined()
     expect(wireDocument({ dependencies: { a: { $ref: '#/$defs/A' } } })).toBeUndefined()

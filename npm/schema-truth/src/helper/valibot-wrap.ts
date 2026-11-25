@@ -166,7 +166,16 @@ export function wireDocument(schema: JSONSchema): { readonly [key: string]: unkn
         const values: unknown[] = enumValues
         out.set('enum', [...values, null])
       }
+      if (out.has('const') && out.get('const') !== null) {
+        out.set('enum', [out.get('const'), null])
+        out.delete('const')
+      }
     }
+    // Without a `type`, a combinator still rejects `null`, so the null type is added beside it.
+    const isNullableCombinator =
+      record.get('nullable') === true &&
+      type === undefined &&
+      ['oneOf', 'anyOf', 'allOf'].some((key) => out.has(key))
     // OpenAPI 3.0's boolean exclusive bounds, in the numeric form of draft-07 and 2020-12.
     for (const [exclusive, bound] of [
       ['exclusiveMinimum', 'minimum'],
@@ -181,7 +190,9 @@ export function wireDocument(schema: JSONSchema): { readonly [key: string]: unkn
         out.set(exclusive, boundValue)
       }
     }
-    return Object.fromEntries(out)
+    return isNullableCombinator
+      ? { anyOf: [Object.fromEntries(out), { type: 'null' }] }
+      : Object.fromEntries(out)
   }
   const document = entriesOf(visit(schema, true, true))
   return state.hasRef ? undefined : Object.fromEntries(document)
