@@ -141,6 +141,10 @@ export const User = yup.object({
 })
 ```
 
+## Discriminator values
+
+For an OpenAPI `discriminator`, a member that no `mapping` entry names takes the values its own discriminator property is held to (`const`, or the strings of `enum`), and only when it has neither, its schema name. The specification's implicit mapping always uses the schema name; schema-truth departs from it on purpose, because a document whose member declares `type: { enum: [eq, ne] }` means those values, and the schema name could never match.
+
 ## License
 
 Distributed under the MIT License. See [LICENSE](https://github.com/nakita628/truth/blob/main/LICENSE) for more information.

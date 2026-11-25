@@ -225,7 +225,7 @@ describe('makeSchemaDeclarations', () => {
     ).toStrictEqual(expected)
   })
 
-  it('arktype: a discriminated array inside a cycle keeps the scope aliases and the schema names', () => {
+  it("arktype: a discriminated array inside a cycle keeps the scope aliases and the members' own values", () => {
     const filters = {
       ComparisonFilter: {
         type: 'object',
@@ -254,8 +254,28 @@ describe('makeSchemaDeclarations', () => {
       makeSchemaDeclarations(filters as never, makeAdapter('arktype')).map((d) => d.code),
     ).toStrictEqual([
       `export const ComparisonFilterSchema=type({type:"'eq' | 'ne'",key:"string"})`,
-      `export const CompoundFilterSchema=scope({ComparisonFilterSchema:ComparisonFilterSchema,CompoundFilterSchema:{type:"'and' | 'or'",filters:[[["ComparisonFilterSchema","&",{"type":"'ComparisonFilter'"}],"|",["CompoundFilterSchema","&",{"type":"'CompoundFilter'"}]],"[]"]}}).export().CompoundFilterSchema`,
+      `export const CompoundFilterSchema=scope({ComparisonFilterSchema:ComparisonFilterSchema,CompoundFilterSchema:{type:"'and' | 'or'",filters:[[["ComparisonFilterSchema","&",{"type":"'eq' | 'ne'"}],"|",["CompoundFilterSchema","&",{"type":"'and' | 'or'"}]],"[]"]}}).export().CompoundFilterSchema`,
     ])
+  })
+
+  it('zod: an implicit discriminator member takes its own values, outside a cycle too', () => {
+    const filters = {
+      Eq: {
+        type: 'object',
+        required: ['type'],
+        properties: { type: { type: 'string', enum: ['eq', 'ne'] } },
+      },
+      Open: { type: 'object', properties: { type: { type: 'string' } } },
+      Filter: {
+        oneOf: [{ $ref: '#/components/schemas/Eq' }, { $ref: '#/components/schemas/Open' }],
+        discriminator: { propertyName: 'type' },
+      },
+    }
+    const code = makeSchemaDeclarations(filters as never, makeAdapter('zod'))
+      .map((d) => d.code)
+      .join(';')
+    expect(code).toContain('z.object({type:z.enum(["eq","ne"])})')
+    expect(code).toContain('z.object({type:z.literal("Open")})')
   })
 
   it('arktype: an explicit discriminator value is not replaced by a cycle member name', () => {

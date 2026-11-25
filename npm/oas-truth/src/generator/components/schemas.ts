@@ -126,6 +126,48 @@ function componentSchemaKey(ref: string) {
   return ref.startsWith('#/components/schemas/') ? schemaRefToName(ref) : undefined
 }
 
+/** The string values a schema's own `propertyName` property is held to (`const` / `enum`). */
+function ownDiscriminatorValues(schema: Schema, propertyName: string) {
+  for (const holder of [schema, ...(schema.allOf ?? [])]) {
+    const property = holder.properties?.[propertyName]
+    if (property === undefined) continue
+    if (typeof property.const === 'string') return [property.const]
+    const values = (property.enum ?? []).filter((value) => typeof value === 'string')
+    if (values.length > 0) return values
+  }
+  return undefined
+}
+
+/**
+ * Pins, in a discriminator's mapping, the values a member's own discriminator property is
+ * held to (`const` / `enum`) for a member the mapping names nowhere. The specification's
+ * implicit value is the schema name, but a document such as OpenAI's `CompoundFilter`,
+ * whose member declares `type: { enum: [eq, ne] }`, means those values, and the name
+ * could never match (#73). schema-truth reads the same values from `$defs`; oas-truth
+ * generates each component on its own, so it writes them into the mapping first.
+ */
+function pinOwnDiscriminatorValues(node: Schema, schemas: { readonly [k: string]: Schema }) {
+  const { discriminator } = node
+  if (discriminator?.propertyName === undefined) return node
+  const { propertyName } = discriminator
+  const mapping = Object.entries(discriminator.mapping ?? {})
+  const mapped = new Set(mapping.map(([, target]) => componentSchemaKey(target)))
+  const values = new Set(mapping.map(([value]) => value))
+  const pinned = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].flatMap((member) => {
+    const ref = member.$ref
+    const key = ref === undefined ? undefined : componentSchemaKey(ref)
+    if (ref === undefined || key === undefined || mapped.has(key)) return []
+    const target = Object.hasOwn(schemas, key) ? schemas[key] : undefined
+    const own = target === undefined ? undefined : ownDiscriminatorValues(target, propertyName)
+    return (own ?? []).filter((value) => !values.has(value)).map((value) => [value, ref] as const)
+  })
+  if (pinned.length === 0) return node
+  return {
+    ...node,
+    discriminator: { ...discriminator, mapping: Object.fromEntries([...mapping, ...pinned]) },
+  }
+}
+
 function makeCyclicContainer(
   varName: string,
   group: readonly string[],
@@ -259,10 +301,10 @@ export function makeSchemaDeclarations(
   options?: SchemasOptions,
 ) {
   const prepared = Object.fromEntries(
-    Object.entries(schemas).map(([name, schema]) => [
-      name,
-      options?.readonly === true ? markReadonly(schema) : schema,
-    ]),
+    Object.entries(schemas).map(([name, schema]) => {
+      const pinned = mapSchema(schema, (node) => pinOwnDiscriminatorValues(node, schemas))
+      return [name, options?.readonly === true ? markReadonly(pinned) : pinned]
+    }),
   )
   const identifiers = makeSchemaIdentifiers(schemas)
   const { order, cycles } = analyzeSchemas(schemas)

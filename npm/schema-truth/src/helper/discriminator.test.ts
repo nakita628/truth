@@ -35,3 +35,48 @@ describe('discriminatedMembers', () => {
     expect(discriminatedMembers({}, members)).toBeUndefined()
   })
 })
+
+describe("discriminatedMembers reads a member's own values (#73)", () => {
+  const definitions = {
+    Cmp: { type: 'object', properties: { type: { type: 'string', enum: ['eq', 'ne', 1] } } },
+    Cpd: { type: 'object', properties: { type: { const: 'and' } } },
+    Base: { allOf: [{ properties: { type: { const: 'base' } } }] },
+    Open: { type: 'object', properties: { type: { type: 'string' } } },
+  } satisfies { [name: string]: JSONSchema }
+  const members: JSONSchema[] = ['Cmp', 'Cpd', 'Base', 'Open', 'Missing'].map((name) => ({
+    $ref: `#/$defs/${name}`,
+  }))
+
+  it('prefers the const or enum strings, then the schema name', () => {
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'type' } },
+      members,
+      definitions,
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([
+      ['eq', 'ne'],
+      ['and'],
+      ['base'],
+      ['Open'],
+      ['Missing'],
+    ])
+  })
+
+  it('keeps a mapping entry over the own values', () => {
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'type', mapping: { cmp: '#/$defs/Cmp' } } },
+      members.slice(0, 1),
+      definitions,
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([['cmp']])
+  })
+
+  it('does not read an inherited name as a definition', () => {
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'type' } },
+      [{ $ref: '#/$defs/constructor' }],
+      definitions,
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([['constructor']])
+  })
+})

@@ -34,6 +34,7 @@ import { Config as ReadonlyConfig } from '../readonly/output.ts'
 import { Organization as ScopeMetadataOrganization } from '../scope-metadata/output.ts'
 import { Schema as SimpleSchema } from '../simple/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Filter as DiscriminatorOwnValuesFilter } from '../discriminator-own-values/output.ts'
 import { Node as ScopeArraysNode } from '../scope-arrays/output.ts'
 import { Schema as UnionOperandSchema } from '../union-operand/output.ts'
 import { Schema as UnevaluatedBranchesSchema } from '../unevaluated-branches/output.ts'
@@ -1106,5 +1107,15 @@ describe('scope-arrays', () => {
     { refList: [{ id: 1 }] },
   ])('rejects %j', (value) => {
     expect(ScopeArraysNode(value)).toBeInstanceOf(type.errors)
+  })
+})
+
+describe('discriminator-own-values', () => {
+  it.each([{ type: 'eq', key: 'k' }, { type: 'ne', key: 'k' }, { type: 'and' }, { type: 'or' }])("accepts %j, whose type is a member's own value", (value) => {
+    expect(DiscriminatorOwnValuesFilter(value)).not.toBeInstanceOf(type.errors)
+  })
+
+  it.each([{ type: 'Comparison', key: 'k' }, { type: 'Compound' }, { type: 'xor' }])('rejects %j', (value) => {
+    expect(DiscriminatorOwnValuesFilter(value)).toBeInstanceOf(type.errors)
   })
 })

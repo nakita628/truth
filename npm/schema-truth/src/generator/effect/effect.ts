@@ -263,7 +263,7 @@ function node(
     if (schema.oneOf.length === 0) return effectWrap('Schema.Unknown', schema)
     // A referenced member is held to the discriminator values that select it, so members
     // that overlap (subtypes of one base) do not both match.
-    const discriminated = discriminatedMembers(schema, schema.oneOf)
+    const discriminated = discriminatedMembers(schema, schema.oneOf, options?.definitions)
     const schemas = schema.oneOf.map((s, i) => {
       const member = effect(s, rootName, isEffect, options)
       const values = discriminated?.members[i]?.values
