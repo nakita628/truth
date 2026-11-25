@@ -1,0 +1,15 @@
+{
+  "title": "Schema",
+  "type": "object",
+  "properties": {
+    "a": { "type": "number" },
+    "kind": { "type": "string" }
+  },
+  "dependentSchemas": {
+    "a": { "properties": { "b": { "type": "number" } } }
+  },
+  "if": { "properties": { "kind": { "const": "x" } }, "required": ["kind"] },
+  "then": { "properties": { "x": { "type": "number" } } },
+  "else": { "properties": { "y": { "type": "number" } } },
+  "unevaluatedProperties": false
+}

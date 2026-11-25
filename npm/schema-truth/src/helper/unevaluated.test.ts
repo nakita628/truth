@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vite-plus/test'
 
+import type { JSONSchema } from '../parser/index.js'
 import {
   evaluatedProperties,
+  evaluatesBeyondOwnKeys,
   isEvaluatedKeyExpression,
+  objectEvaluatedKeys,
   propertyNamesEnumCheck,
 } from './unevaluated.js'
 
@@ -60,5 +63,44 @@ describe('propertyNamesEnumCheck', () => {
     [[1, true], 'Object.keys(input).length===0'],
   ])('%j → %s', (values, expected) => {
     expect(propertyNamesEnumCheck(values, 'input')).toBe(expected)
+  })
+})
+
+describe('objectEvaluatedKeys', () => {
+  const branches = {
+    type: 'object',
+    properties: { a: {} },
+    patternProperties: { '^x-': {} },
+    dependentSchemas: { a: { properties: { b: {} } } },
+    if: { properties: { a: { const: 1 } } },
+    // oxlint-disable-next-line unicorn/no-thenable -- the JSON Schema keyword, not a promise
+    then: { properties: { c: {} } },
+    else: { properties: { d: {} } },
+  } satisfies JSONSchema
+
+  it('reads the then, else and dependentSchemas keys for unevaluatedProperties', () => {
+    const evaluated = objectEvaluatedKeys({ ...branches, unevaluatedProperties: false }, undefined)
+    expect(evaluated).toStrictEqual({ names: ['a', 'c', 'd', 'b'], patterns: ['^x-'] })
+    expect(evaluated && evaluatesBeyondOwnKeys(branches, evaluated)).toBe(true)
+  })
+
+  it('reads only the own keys for additionalProperties', () => {
+    const evaluated = objectEvaluatedKeys({ ...branches, additionalProperties: false }, undefined)
+    expect(evaluated).toStrictEqual({ names: ['a'], patterns: ['^x-'] })
+    expect(evaluated && evaluatesBeyondOwnKeys(branches, evaluated)).toBe(false)
+  })
+
+  it('is undefined when a branch $ref cannot be read, as every key then counts', () => {
+    expect(
+      objectEvaluatedKeys(
+        {
+          type: 'object',
+          // oxlint-disable-next-line unicorn/no-thenable -- the JSON Schema keyword, not a promise
+          then: { $ref: '#/$defs/Missing' },
+          unevaluatedProperties: false,
+        },
+        {},
+      ),
+    ).toBeUndefined()
   })
 })

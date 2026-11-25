@@ -5,7 +5,12 @@ import {
   isStringWireLocation,
 } from '../../guard/index.js'
 import { propertyEmitOptions } from '../../helper/parameter.js'
-import { isEvaluatedKeyExpression, propertyNamesEnumCheck } from '../../helper/unevaluated.js'
+import {
+  evaluatesBeyondOwnKeys,
+  isEvaluatedKeyExpression,
+  objectEvaluatedKeys,
+  propertyNamesEnumCheck,
+} from '../../helper/unevaluated.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { makeSafeKey, zodError, zodErrorPart } from '../../utils/index.js'
@@ -79,11 +84,17 @@ export function object(
   const undeclaredRequired = (schema.required ?? []).filter(
     (key) => !Object.hasOwn(properties, key),
   )
-  const unevaluated = schema.unevaluatedProperties
+  // The keys the check below counts as evaluated; with none to tell, every key is.
+  const evaluatedKeys = objectEvaluatedKeys(schema, options?.definitions)
+  const unevaluated = evaluatedKeys === undefined ? undefined : schema.unevaluatedProperties
   const closed = schema.additionalProperties === false || unevaluated === false
-  // A key outside `properties` is still allowed when a pattern or a schema covers it, so the
-  // object cannot simply reject undeclared keys.
-  const closedByCheck = closed && schema.patternProperties !== undefined
+  // A key outside `properties` is still allowed when a pattern, a schema or a branch
+  // (`then`, `else`, `dependentSchemas`) covers it, so the object cannot simply reject
+  // undeclared keys.
+  const closedByCheck =
+    closed &&
+    (schema.patternProperties !== undefined ||
+      (evaluatedKeys !== undefined && evaluatesBeyondOwnKeys(schema, evaluatedKeys)))
   // The schema a key no property names and no pattern matches is held to.
   const extraSchema =
     typeof schema.additionalProperties === 'object'
@@ -228,7 +239,10 @@ export function object(
   // A key no property names and no pattern matches: refused when the object is closed,
   // held to `unevaluatedProperties` when that is a schema.
   const isEvaluated = isEvaluatedKeyExpression(
-    { names: Object.keys(properties), patterns: Object.keys(schema.patternProperties ?? {}) },
+    evaluatedKeys ?? {
+      names: Object.keys(properties),
+      patterns: Object.keys(schema.patternProperties ?? {}),
+    },
     'key',
   )
   const unevaluatedKeys = closedByCheck

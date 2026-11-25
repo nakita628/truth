@@ -9,6 +9,7 @@ import {
   callbackReturn,
   callbackType,
   isEvaluatedKeyExpression,
+  objectEvaluatedKeys,
   ownProperties,
   propertyEmitOptions,
   propertyNamesEnumCheck,
@@ -125,9 +126,15 @@ export function object(
     if (!checksKeys) return isArktype ? '{}' : 'type({})'
   }
 
-  // A key a declared property or a `patternProperties` pattern covers is evaluated.
+  // A key a declared property or a `patternProperties` pattern covers is evaluated, and for
+  // `unevaluatedProperties` one a `then`, `else` or `dependentSchemas` branch declares; with
+  // none to tell, every key is.
+  const evaluatedKeys = objectEvaluatedKeys(schema, options?.definitions)
   const isEvaluated = isEvaluatedKeyExpression(
-    { names: Object.keys(properties), patterns: Object.keys(schema.patternProperties ?? {}) },
+    evaluatedKeys ?? {
+      names: Object.keys(properties),
+      patterns: Object.keys(schema.patternProperties ?? {}),
+    },
     'key',
   )
   const onlyEvaluatedKeys =
@@ -205,7 +212,9 @@ export function object(
     const restSchema =
       typeof schema.additionalProperties === 'object'
         ? schema.additionalProperties
-        : schema.unevaluatedProperties
+        : evaluatedKeys === undefined
+          ? undefined
+          : schema.unevaluatedProperties
     if (restSchema === undefined || restSchema === true) return ''
     const message =
       typeof schema.additionalProperties === 'object' ? addlPropsMessage : unevalPropsRawMessage

@@ -101,3 +101,33 @@ export function propertyNamesEnumCheck(values: readonly unknown[], input: string
     ? `Object.keys(${input}).length===0`
     : `Object.keys(${input}).every((key)=>${JSON.stringify(names)}.includes(key))`
 }
+
+/**
+ * The keys an object's own key check treats as evaluated. `additionalProperties` reads only
+ * the object's own `properties` and `patternProperties`; `unevaluatedProperties` without it
+ * also reads the keys its `then`, `else` and `dependentSchemas` declare
+ * ({@link evaluatedProperties}). `undefined` when every key counts as evaluated, so no key
+ * is checked.
+ */
+export function objectEvaluatedKeys(
+  schema: JSONSchema,
+  definitions: SchemaDefinitions | undefined,
+): EvaluatedProperties | undefined {
+  if (schema.additionalProperties !== undefined || schema.unevaluatedProperties === undefined) {
+    return {
+      names: Object.keys(schema.properties ?? {}),
+      patterns: Object.keys(schema.patternProperties ?? {}),
+    }
+  }
+  return evaluatedProperties(schema, definitions)
+}
+
+/** Whether a branch of the object evaluates a key beyond its own `properties` and patterns. */
+export function evaluatesBeyondOwnKeys(schema: JSONSchema, evaluated: EvaluatedProperties) {
+  const names = new Set(Object.keys(schema.properties ?? {}))
+  const patterns = new Set(Object.keys(schema.patternProperties ?? {}))
+  return (
+    evaluated.names.some((name) => !names.has(name)) ||
+    evaluated.patterns.some((pattern) => !patterns.has(pattern))
+  )
+}

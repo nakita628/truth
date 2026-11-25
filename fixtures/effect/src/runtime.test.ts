@@ -29,6 +29,7 @@ import { Order as SplitNestedOrder } from '../split-nested/output.ts'
 import { User as SplitRefsUser } from '../split-refs/output.ts'
 import { User as TitleUser } from '../title/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Schema_ as UnevaluatedBranchesSchema } from '../unevaluated-branches/output.ts'
 import { Schema_ as PropertyNamesEnumSchema } from '../property-names-enum/output.ts'
 import { Query as WireNumberQuery } from '../wire-number/output.ts'
 import { Formats as StringFormats } from '../string-formats/output.ts'
@@ -753,5 +754,15 @@ describe('property-names-enum runtime', () => {
 
   it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }])('rejects %j, whose key the enum does not list', (value) => {
     expect(() => Schema.decodeUnknownSync(PropertyNamesEnumSchema)(value)).toThrow()
+  })
+})
+
+describe('unevaluated-branches runtime', () => {
+  it.each([{}, { a: 1, b: 2 }, { kind: 'x', x: 1 }, { kind: 'z', y: 1 }])('accepts %j, whose keys a property or a branch declares', (value) => {
+    expect(() => Schema.decodeUnknownSync(UnevaluatedBranchesSchema)(value)).not.toThrow()
+  })
+
+  it.each([{ c: 1 }, { a: 1, z: 1 }, { kind: 'x', x: 1, w: 1 }])('rejects %j, which has a key nothing declares', (value) => {
+    expect(() => Schema.decodeUnknownSync(UnevaluatedBranchesSchema)(value)).toThrow()
   })
 })

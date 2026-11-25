@@ -7,6 +7,7 @@ import {
 import {
   effectPreprocess,
   isEvaluatedKeyExpression,
+  objectEvaluatedKeys,
   ownProperties,
   propertyEmitOptions,
   propertyNamesEnumCheck,
@@ -91,7 +92,9 @@ export function object(
   const undeclaredRequired = (schema.required ?? []).filter(
     (key) => !Object.hasOwn(properties, key),
   )
-  const unevaluated = schema.unevaluatedProperties
+  // The keys the key check counts as evaluated; with none to tell, every key is.
+  const evaluatedKeys = objectEvaluatedKeys(schema, options?.definitions)
+  const unevaluated = evaluatedKeys === undefined ? undefined : schema.unevaluatedProperties
   const closed = schema.additionalProperties === false || unevaluated === false
   // The schema a key no property names and no pattern matches is held to.
   const extraSchema =
@@ -189,7 +192,10 @@ export function object(
   // held to `unevaluatedProperties` when that is a schema. v4 takes `onExcessProperty`
   // only as a decoding option, not from the schema, so the struct cannot refuse it itself.
   const isEvaluated = isEvaluatedKeyExpression(
-    { names: Object.keys(properties), patterns: Object.keys(schema.patternProperties ?? {}) },
+    evaluatedKeys ?? {
+      names: Object.keys(properties),
+      patterns: Object.keys(schema.patternProperties ?? {}),
+    },
     'key',
   )
   const unevaluatedKeysFilter = closed
