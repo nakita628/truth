@@ -1101,7 +1101,7 @@ describe('scope-arrays', () => {
   it.each([
     { ids: [{ id: 1 }] },
     { children: [{ ids: 'x' }] },
-    { pair: [{ id: 'a' }, { id: 'b' }] },
+    { pair: [{ id: 1 }] },
     { path: [{ id: 'a' }, { ids: 'x' }] },
     { refList: [{ id: 1 }] },
   ])('rejects %j', (value) => {
