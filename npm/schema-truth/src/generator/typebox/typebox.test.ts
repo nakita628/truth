@@ -1010,7 +1010,10 @@ describe('typebox union default beside a bigint and an int64 member', () => {
 })
 
 describe('typebox default read by the node TypeBox emits (#86)', () => {
-  const definitions = { Big: { type: 'integer', format: 'bigint' } } satisfies {
+  const definitions = {
+    Big: { type: 'integer', format: 'bigint' },
+    Text: { type: ['integer', 'string'], format: 'bigint' },
+  } satisfies {
     [name: string]: JSONSchema
   }
   it.each([
@@ -1038,6 +1041,47 @@ describe('typebox default read by the node TypeBox emits (#86)', () => {
     [
       { type: ['integer', 'number'], format: 'bigint', default: 5 },
       'Type.Optional(Type.Number({default:5}))',
+    ],
+    [
+      {
+        anyOf: [{ type: ['integer', 'string'], format: 'bigint' }, { type: 'boolean' }],
+        default: 'abc',
+      },
+      'Type.Optional(Type.Union([Type.String(),Type.Boolean()],{default:"abc"}))',
+    ],
+    [
+      { anyOf: [{ $ref: '#/$defs/Text' }, { type: 'null' }], default: 'abc' },
+      'Type.Optional(Type.Union([Text,Type.Null()],{default:"abc"}))',
+    ],
+    [
+      {
+        anyOf: [{ type: ['integer', 'number'], format: 'bigint' }, { type: 'string' }],
+        default: 5,
+      },
+      'Type.Optional(Type.Union([Type.Number(),Type.String()],{default:5}))',
+    ],
+    [
+      {
+        oneOf: [{ $ref: '#/$defs/Big' }, { type: 'string' }],
+        anyOf: [{ type: 'string' }, { type: 'integer' }],
+        default: 5,
+      },
+      'Type.Optional(Type.Union([Big,Type.String()],{default:"5"}))',
+    ],
+    [
+      {
+        anyOf: [{ anyOf: [{ $ref: '#/$defs/Big' }, { type: 'string' }] }, { type: 'boolean' }],
+        default: 5,
+      },
+      'Type.Optional(Type.Union([Type.Union([Big,Type.String()]),Type.Boolean()],{default:"5"}))',
+    ],
+    [
+      { anyOf: [{ type: ['integer', 'string'] }, { type: 'boolean' }], default: 5 },
+      'Type.Optional(Type.Union([Type.String(),Type.Boolean()],{default:"5"}))',
+    ],
+    [
+      { allOf: [{ type: ['integer', 'string'] }], default: 5 },
+      'Type.Optional(Type.Intersect([Type.String()],{default:"5"}))',
     ],
   ] satisfies [JSONSchema, string][])('%o → %s', (schema, expected) => {
     expect(typebox(schema, 'Schema', false, { definitions })).toBe(expected)

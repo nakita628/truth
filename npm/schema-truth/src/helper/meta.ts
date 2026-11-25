@@ -81,22 +81,29 @@ const TYPEBOX_PRIMITIVE_ORDER = ['string', 'number', 'integer', 'boolean'] as co
 /**
  * The schema as the TypeBox node it is emitted as, for reading its default. A node of
  * several primitive types is the first one `typebox()` reads (`['integer', 'string']` is a
- * `Type.String`, which takes `"5"`, not `5`), and a union leaves out a member TypeBox
- * emits as a `Type.BigInt`, which no number default fits, so the default is read by a
- * member that takes it. A union of nothing but such members is left as it is.
+ * `Type.String`, which takes `"5"`, not `5`). A union is read from the keyword `typebox()`
+ * emits (`oneOf` before `anyOf`; an empty one is a `Type.Any`), each member as it is
+ * emitted, leaving out a member emitted as a `Type.BigInt`, which no number default fits,
+ * so the default is read by a member that takes it. A union of nothing but such members
+ * is left as it is, for the `Type.BigInt` check to leave its default out.
  */
 function typeboxEmitted(schema: JSONSchema, definitions?: SchemaDefinitions): JSONSchema {
-  const members = schema.anyOf ?? schema.oneOf
-  if (members !== undefined && members.length > 0) {
+  const key =
+    schema.oneOf !== undefined ? 'oneOf' : schema.anyOf !== undefined ? 'anyOf' : undefined
+  if (key !== undefined) {
+    const { oneOf: _oneOf, anyOf: _anyOf, ...rest } = schema
+    const members = (schema[key] ?? []).map((member) => typeboxEmitted(member, definitions))
+    if (members.length === 0) return {}
     const takers = members.filter(
       (member) => bigintFormatOf(member, definitions, isTypeboxBigint) !== 'bigint',
     )
-    if (takers.length === 0 || takers.length === members.length) return schema
-    return schema.anyOf === undefined ? { ...schema, oneOf: takers } : { ...schema, anyOf: takers }
+    return { ...rest, [key]: takers.length === 0 ? members : takers }
+  }
+  if (schema.allOf !== undefined && schema.$ref === undefined) {
+    return { ...schema, allOf: schema.allOf.map((member) => typeboxEmitted(member, definitions)) }
   }
   if (
     schema.$ref !== undefined ||
-    schema.allOf !== undefined ||
     schema.enum !== undefined ||
     schema.const !== undefined ||
     schema.properties !== undefined
@@ -133,12 +140,18 @@ function wireDefaultText(schema: JSONSchema, value: unknown) {
 }
 
 /**
- * Whether TypeBox emits the node as a `Type.BigInt`: an integer of `format: bigint`. An
- * int64 or uint64 integer is a `Type.Integer`, which takes a number default, so a union
- * with such a member keeps its default.
+ * Whether TypeBox emits the node as a `Type.BigInt`: an integer of `format: bigint` whose
+ * `type` names no `string` or `number`, which `typebox()` reads first. An int64 or uint64
+ * integer is a `Type.Integer`, which takes a number default, so a union with such a member
+ * keeps its default.
  */
 function isTypeboxBigint(node: DefaultSchema) {
-  return node.format === 'bigint' && isBigintSchema(node)
+  if (node.format !== 'bigint' || !isBigintSchema(node)) return false
+  // `typebox()` reads `string` and `number` before `integer`.
+  const types = node.type === undefined ? [] : [node.type].flat()
+  return node.enum !== undefined || node.const !== undefined
+    ? true
+    : !types.includes('string') && !types.includes('number')
 }
 
 /**
