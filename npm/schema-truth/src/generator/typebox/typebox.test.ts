@@ -726,10 +726,10 @@ describe('typebox', () => {
     })
 
     it.each(['int64', 'uint64', 'bigint'] as const)(
-      'query: integer with format %s has no safe-integer check on the text',
+      'query: integer with format %s decodes with Number, so it keeps the safe-integer check',
       (format) => {
         expect(typebox({ type: 'integer', format }, 'Schema', false, { paramIn: 'query' })).toBe(
-          'Codec(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"})).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+          'Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
         )
       },
     )

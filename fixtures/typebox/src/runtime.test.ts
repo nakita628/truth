@@ -904,7 +904,10 @@ describe('wire-number', () => {
     expect(() => Value.Decode(WireNumberQuery, { [key]: text })).toThrow()
   })
 
-  it('leaves an int64 wire beyond the safe integer range to its own decoding', () => {
-    expect(Value.Check(WireNumberQuery, { total: '9007199254740993' })).toBe(true)
+  it('rejects int64 text that Number would round, as this wire decodes it to a number', () => {
+    expect(Value.Decode(WireNumberQuery, { total: '9007199254740991' })).toStrictEqual({
+      total: 9007199254740991,
+    })
+    expect(() => Value.Decode(WireNumberQuery, { total: '9007199254740993' })).toThrow()
   })
 })

@@ -54,7 +54,13 @@ export const Query = Type.Object({
       .Encode((value) => String(value)),
   ),
   total: Type.Optional(
-    Codec(Type.String({ pattern: '^-?(?:0|[1-9]\\d*)$' }))
+    Codec(
+      Type.Refine(
+        Type.String({ pattern: '^-?(?:0|[1-9]\\d*)$' }),
+        (value) => Number.isSafeInteger(Number(value)),
+        () => 'must be a safe integer',
+      ),
+    )
       .Decode((value) => Number(value))
       .Encode((value) => String(value)),
   ),
