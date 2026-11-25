@@ -33,6 +33,27 @@ export function arktypeUnionLimit(members: readonly string[]) {
  * character) and outside brackets.
  */
 export function dslUnionMembers(definition: string) {
+  return dslSplit(definition, ' | ')
+}
+
+/**
+ * Whether a string-DSL definition (its text without the outer quotes) would need
+ * parentheses as an operand: it has a top-level `|`, or an `&` too where `withIntersection`
+ * says the operator binds tighter than `&` (`[]`). `[]` applies only to the operand right
+ * before it and `&` binds tighter than `|`, so `'a' | 'b'[]` reads as `'a' | ('b'[])`.
+ * Such an operand is combined at runtime instead (`.array()`, `.and(...)`): a parenthesized
+ * union inside a longer string costs TypeScript more instantiation depth than the
+ * union limits allow for.
+ */
+export function dslNeedsGroup(definition: string, withIntersection = false) {
+  return (
+    dslSplit(definition, ' | ').length > 1 ||
+    (withIntersection && dslSplit(definition, ' & ').length > 1)
+  )
+}
+
+/** The definition split at each `separator` outside a quoted literal and outside brackets. */
+function dslSplit(definition: string, separator: string) {
   const members: string[] = []
   let depth = 0
   let quote = ''
@@ -48,10 +69,10 @@ export function dslUnionMembers(definition: string) {
       depth += 1
     } else if (char === ')' || char === ']' || char === '}') {
       depth -= 1
-    } else if (depth === 0 && definition.startsWith(' | ', i)) {
+    } else if (depth === 0 && definition.startsWith(separator, i)) {
       members.push(definition.slice(start, i))
-      start = i + 3
-      i += 2
+      start = i + separator.length
+      i += separator.length - 1
     }
   }
   members.push(definition.slice(start))

@@ -48,6 +48,7 @@ import {
   callbackReturn,
   callbackType,
   arktypeUnionLimit,
+  dslNeedsGroup,
   dslUnionMembers,
 } from '../../helper/index.js'
 import type { ArktypeWrapOptions } from '../../helper/index.js'
@@ -98,8 +99,13 @@ function unionStr(schemas: string[], inScope = false) {
     .reduce(combine('|', inScope))
 }
 
+/** A quoted definition that can be written into a longer string as it is, unparenthesized. */
+function isPlainOperand(source: string, withIntersection = false) {
+  return isQuoted(source) && !dslNeedsGroup(source.slice(1, -1), withIntersection)
+}
+
 function intersectionStr(schemas: string[], inScope = false) {
-  return schemas.every(isQuoted)
+  return schemas.every((s) => isPlainOperand(s))
     ? `"${schemas.map((s) => s.slice(1, -1)).join(' & ')}"`
     : schemas.reduce(combine('&', inScope))
 }
@@ -357,7 +363,7 @@ function node(
       const morph = isInteger
         ? numberMorph('isSafeInteger', 'an integer')
         : numberMorph('isFinite', 'a number')
-      const merged = definitions.every(isQuoted)
+      const merged = definitions.every((definition) => isPlainOperand(definition))
         ? (() => {
             const parts = definitions
               .map((definition) => definition.slice(1, -1))
@@ -489,7 +495,7 @@ function node(
             const rest = arktype(unevaluatedItems, rootName, isArktype, options)
             // A rest that is an expression rather than a quoted definition — a long union
             // written as `type.enumerated(...)` or an `.or` chain — becomes an array value.
-            const restArray = isQuoted(rest)
+            const restArray = isPlainOperand(rest, true)
               ? `"${rest.slice(1, -1)}[]"`
               : isArktypeDefinition(rest)
                 ? `[${rest},"[]"]`
@@ -512,7 +518,7 @@ function node(
     // narrowed object — makes the array one too, and its constraints chain onto it. Inside
     // a scope a definition that may name a scope alias stays a tuple expression, which the
     // scope resolves; the global `type(...)` cannot.
-    const base = isQuoted(items)
+    const base = isPlainOperand(items, true)
       ? `"${items.slice(1, -1)}[]"`
       : isArktype && isArktypeDefinition(items)
         ? `[${items},"[]"]`

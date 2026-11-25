@@ -1083,3 +1083,33 @@ describe('arktype const of an int64 beyond 1e21', () => {
     )
   })
 })
+
+describe('a quoted union that gets `[]` or `&` is combined at runtime (#66)', () => {
+  it.each<[JSONSchema, boolean, string]>([
+    [{ type: 'array', items: { enum: ['a', 'b'] } }, false, `type("'a' | 'b'").array()`],
+    [{ type: 'array', items: { enum: ['a', 'b'] } }, true, `["'a' | 'b'","[]"]`],
+    [
+      { type: 'array', items: { type: ['string', 'null'] } },
+      false,
+      'type("string | null").array()',
+    ],
+    [
+      { type: 'array', prefixItems: [{ type: 'string' }], unevaluatedItems: { enum: ['a', 'b'] } },
+      false,
+      `type(["string","...",["'a' | 'b'","[]"]])`,
+    ],
+    [
+      {
+        allOf: [
+          { anyOf: [{ type: 'string' }, { type: 'number' }] },
+          { type: ['string', 'number'] },
+        ],
+      },
+      false,
+      'type("string | number").and("string | number")',
+    ],
+    [{ type: 'array', items: { type: 'string' } }, false, '"string[]"'],
+  ])('%o (in a scope: %s) → %s', (schema, isArktype, expected) => {
+    expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
+  })
+})

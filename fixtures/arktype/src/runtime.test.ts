@@ -34,6 +34,7 @@ import { Config as ReadonlyConfig } from '../readonly/output.ts'
 import { Organization as ScopeMetadataOrganization } from '../scope-metadata/output.ts'
 import { Schema as SimpleSchema } from '../simple/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Schema as UnionOperandSchema } from '../union-operand/output.ts'
 import { Schema as UnevaluatedBranchesSchema } from '../unevaluated-branches/output.ts'
 import { Schema as PropertyNamesEnumSchema } from '../property-names-enum/output.ts'
 import { Query as WireNumberQuery } from '../wire-number/output.ts'
@@ -1024,6 +1025,47 @@ describe('property-names-enum', () => {
   it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }])('rejects %j, whose key the enum does not list', (value) => {
     expect(PropertyNamesEnumSchema(value)).toBeInstanceOf(type.errors)
   })
+})
+
+describe('union-operand', () => {
+  it.each([
+    { tags: ['a', 'b'] },
+    { names: ['x', null] },
+    { tuple: ['s', 'a', 'b'] },
+    { both: 'x' },
+    { both: 1 },
+    { longNullable: ['a', 'p'] },
+    { longNullable: null },
+    { longAllOf: 'p' },
+    { longAllOf: null },
+    { longArrayOrNull: ['p'] },
+    { boundaryArray: ['k'] },
+    { boundaryAllOf: 'e' },
+    { boundaryUnion: ['a'] },
+    { boundaryUnion: 'x' },
+    { boundaryUnion: null },
+  ])('accepts %j', (value) => {
+    expect(UnionOperandSchema(value)).not.toBeInstanceOf(type.errors)
+  })
+
+  it.each([
+    { tags: 'a' },
+    { tags: ['c'] },
+    { names: 'x' },
+    { tuple: ['s', 'c'] },
+    { both: true },
+    { longNullable: 'a' },
+    { longAllOf: 'q' },
+    { longArrayOrNull: ['q'] },
+    { boundaryArray: ['l'] },
+    { boundaryAllOf: 'f' },
+    { boundaryUnion: ['f'] },
+  ])(
+    'rejects %j',
+    (value) => {
+      expect(UnionOperandSchema(value)).toBeInstanceOf(type.errors)
+    },
+  )
 })
 
 describe('unevaluated-branches', () => {
