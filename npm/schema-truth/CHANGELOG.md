@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.13.0
+
+### Minor Changes
+
+- [#123](https://github.com/nakita628/truth/pull/123) [`21b2491`](https://github.com/nakita628/truth/commit/21b2491536dc60bc3c2d061e0ad92527dc2ed101) Thanks [@nakita628](https://github.com/nakita628)! - Decode an `int64`, `uint64` or `bigint` integer on the TypeBox wire of a text-slot parameter with `BigInt`, as the other generators' wires do, and check the `int64` / `uint64` range. The decoded type of such a parameter changes from `number` to `bigint`, text beyond the safe integer range is accepted rather than rejected, the text grammar is a sign and digits (`007` is accepted, as the other generators accept it), and a default is written in digits (`1e21` no longer becomes the text `1e+21`). A TypeBox body field of `int64` / `uint64` is still a `Type.Integer`.
+
 ## 0.12.2
 
 ### Patch Changes

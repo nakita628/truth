@@ -1,5 +1,12 @@
 # oas-truth
 
+## 0.11.2
+
+### Patch Changes
+
+- Updated dependencies [[`21b2491`](https://github.com/nakita628/truth/commit/21b2491536dc60bc3c2d061e0ad92527dc2ed101)]:
+  - schema-truth@0.13.0
+
 ## 0.11.1
 
 ### Patch Changes
