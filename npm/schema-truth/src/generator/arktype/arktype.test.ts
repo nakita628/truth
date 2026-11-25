@@ -1136,7 +1136,7 @@ describe('an array inside a scope stays a definition the scope resolves (#72)', 
       { type: 'array', prefixItems: [{ $ref: '#/$defs/A' }], unevaluatedItems: { $ref: '#' } },
       '["A","...","Schema[]"]',
     ],
-    [{ $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' } }, '"List & A[]"'],
+    [{ $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' } }, '["A[]","|>","List"]'],
   ])('%o → %s', (schema, expected) => {
     expect(arktype(schema, 'Schema', true)).toBe(expected)
   })
@@ -1153,12 +1153,12 @@ describe('a $ref beside an array holds the value to the target and the array (#1
     [
       { $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' }, minItems: 1 },
       true,
-      '["List","&",["A[]","&","unknown[] >= 1"]]',
+      '[["A[]","&","unknown[] >= 1"],"|>","List"]',
     ],
     [
       { $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' }, minItems: 1 },
       false,
-      'type(List).and(type(type(A).array()).and(type("unknown[] >= 1")))',
+      'type(type(A).array()).and(type("unknown[] >= 1")).to(List)',
     ],
     [
       {
@@ -1167,17 +1167,17 @@ describe('a $ref beside an array holds the value to the target and the array (#1
         items: { $ref: '#/$defs/A', nullable: true },
       },
       true,
-      '[["List","&",["A | null","[]"]],"|","null"]',
+      '[[["A | null","[]"],"|>","List"],"|","null"]',
     ],
     [
       { $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A', description: 'An A' } },
       false,
-      'type(List).and(type(A.describe("An A")).array())',
+      'type(A.describe("An A")).array().to(List)',
     ],
     [
       { $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' }, uniqueItems: true },
       false,
-      'type(List).and(type(A).array().narrow((data: unknown[], ctx) => new Set(data).size === data.length))',
+      'type(A).array().narrow((data: unknown[], ctx) => new Set(data).size === data.length).to(List)',
     ],
   ])('%o (in a scope: %s) → %s', (schema, isArktype, expected) => {
     expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
@@ -1207,6 +1207,15 @@ describe('a $ref beside an array holds the value to the target and the array (#1
       expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
     },
   )
+
+  it('pipes an array of transformed strings into the target', () => {
+    const schema: JSONSchema = {
+      $ref: '#/$defs/L',
+      type: 'array',
+      items: { type: 'string', 'x-toLowerCase': true },
+    }
+    expect(arktype(schema, 'Schema', true)).toBe('[type(type("string.lower")).array(),"|>","L"]')
+  })
 
   it('coerces the items on the wire before the target checks them', () => {
     const schema: JSONSchema = {

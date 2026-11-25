@@ -1123,6 +1123,11 @@ describe('scope-arrays', () => {
   it('reads the bigint items before the target checks them (#105)', () => {
     expect(ScopeArraysNode({ bigIds: [1, '2'] })).toStrictEqual({ bigIds: [1n, 2n] })
   })
+
+  it('applies both string transforms, the sibling one first (#105)', () => {
+    expect(ScopeArraysNode({ codes: [' AB '] })).toStrictEqual({ codes: ['ab'] })
+    expect(ScopeArraysNode({ codes: ['a', 'b', 'c'] })).toBeInstanceOf(type.errors)
+  })
 })
 
 describe('discriminator-own-values', () => {

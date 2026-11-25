@@ -13,6 +13,7 @@ const types = scope({
         ),
     ).array(),
   ).and(type('unknown[] <= 2')),
+  Codes: type(type(type('string.trim')).array()).and(type('unknown[] <= 2')),
   Label: 'string',
   Leaf: { id: 'string' },
   Leaves: ['Leaf[]', '&', 'unknown[] <= 2'],
@@ -21,7 +22,7 @@ const types = scope({
     'children?': 'Node[]',
     'pair?': ['Leaf'],
     'path?': ['Leaf', '...', 'Node[]'],
-    'refList?': ['Leaves', '&', ['Leaf[]', '&', 'unknown[] >= 1']],
+    'refList?': [['Leaf[]', '&', 'unknown[] >= 1'], '|>', 'Leaves'],
     'bigIds?': [
       type(
         type(
@@ -39,6 +40,7 @@ const types = scope({
       'BigIds',
     ],
     'labels?': 'Label',
+    'codes?': [type(type('string.lower')).array(), '|>', 'Codes'],
   },
 }).export()
 

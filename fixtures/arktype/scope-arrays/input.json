@@ -56,6 +56,14 @@
         "string",
         "array"
       ]
+    },
+    "codes": {
+      "$ref": "#/$defs/Codes",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "x-toLowerCase": true
+      }
     }
   },
   "$defs": {
@@ -93,6 +101,14 @@
       "items": {
         "type": "string"
       }
+    },
+    "Codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "x-trim": true
+      },
+      "maxItems": 2
     }
   }
 }

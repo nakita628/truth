@@ -341,14 +341,10 @@ function node(
       )
       const array = node({ ...arraySchema, type: 'array' }, rootName, isArktype, options)
       const target = ref(schema)
-      // ArkType cannot intersect two distinct morphs, and the target expects the value the
-      // array reads, not its wire text: an array that reads its input (the wire, a bigint
-      // item) runs first, and the target checks what it returns.
-      const both = !isMorph(array)
-        ? intersectionStr([target, array], isArktype)
-        : isArktype
-          ? `[${array},"|>",${target}]`
-          : `${asRuntime(array)}.to(${target})`
+      // The array runs first and the target checks what it returns: ArkType cannot
+      // intersect two distinct morphs (a wire read, a bigint or string transform on both
+      // sides), and the target expects the value the array reads, not its wire text.
+      const both = isArktype ? `[${array},"|>",${target}]` : `${asRuntime(array)}.to(${target})`
       return arktypeWrap(both, schema)
     }
     return arktypeWrap(ref(schema), schema)
