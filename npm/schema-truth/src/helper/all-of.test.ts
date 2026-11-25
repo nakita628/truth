@@ -21,3 +21,45 @@ describe('foldAllOfMembers', () => {
     expect(isKeywordOnlyMember({ type: 'integer', minimum: 5 })).toBe(false)
   })
 })
+
+describe('foldAllOfMembers with both bounds in one member (#69)', () => {
+  it.each<[readonly JSONSchema[], readonly JSONSchema[]]>([
+    [
+      [
+        { type: 'number', minimum: 0 },
+        { minimum: 10, exclusiveMinimum: 5 },
+      ],
+      [{ type: 'number', minimum: 10 }],
+    ],
+    [
+      [
+        { type: 'number', minimum: 0 },
+        { minimum: 3, exclusiveMinimum: 5 },
+      ],
+      [{ type: 'number', exclusiveMinimum: 5 }],
+    ],
+    [
+      [
+        { type: 'number', maximum: 100 },
+        { maximum: 10, exclusiveMaximum: 50 },
+      ],
+      [{ type: 'number', maximum: 10 }],
+    ],
+    [
+      [
+        { type: 'number', minimum: 20, exclusiveMinimum: 1 },
+        { minimum: 10, exclusiveMinimum: 5 },
+      ],
+      [{ type: 'number', minimum: 20, exclusiveMinimum: 1 }],
+    ],
+    [
+      [
+        { type: 'number' },
+        { minimum: 10, exclusiveMinimum: 5, 'x-exclusiveMinimum-message': 'too small' },
+      ],
+      [{ type: 'number', minimum: 10, 'x-minimum-message': 'too small' }],
+    ],
+  ])('keeps the stricter bound: %j → %j', (members, expected) => {
+    expect(foldAllOfMembers(members, false)).toStrictEqual(expected)
+  })
+})
