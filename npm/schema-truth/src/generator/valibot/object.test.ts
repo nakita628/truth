@@ -221,7 +221,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        "v.pipe(v.looseObject({card:v.string(),billing:v.optional(v.string())}),v.check((input)=>!('card' in input)||('billing' in input)))",
+        'v.pipe(v.looseObject({card:v.string(),billing:v.optional(v.string())}),v.check((input)=>!Object.hasOwn(input,"card")||(Object.hasOwn(input,"billing"))))',
       )
     })
 
@@ -242,7 +242,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        "v.pipe(v.partial(v.looseObject({a:v.string(),b:v.string(),c:v.string()})),v.check((input)=>!('a' in input)||('b' in input&&'c' in input),\"a needs b and c\"))",
+        'v.pipe(v.partial(v.looseObject({a:v.string(),b:v.string(),c:v.string()})),v.check((input)=>!Object.hasOwn(input,"a")||(Object.hasOwn(input,"b")&&Object.hasOwn(input,"c")),"a needs b and c"))',
       )
     })
   })

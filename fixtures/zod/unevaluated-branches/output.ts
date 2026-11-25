@@ -3,25 +3,27 @@ import * as z from 'zod'
 export const Schema = z
   .looseObject({ a: z.number().exactOptional(), kind: z.string().exactOptional() })
   .refine((val) =>
-    Object.keys(val).every(
-      (key) =>
-        ['a', 'kind'].includes(key) ||
-        (z.object({ kind: z.literal('x'), flag: z.literal(true).exactOptional() }).safeParse(val)
-          .success &&
-          ['flag', 'x'].includes(key)) ||
-        (!z.object({ kind: z.literal('x'), flag: z.literal(true).exactOptional() }).safeParse(val)
-          .success &&
-          ['y'].includes(key)) ||
-        (Object.hasOwn(val, 'a') && ['b'].includes(key)) ||
-        (Object.hasOwn(val, 'constructor') && ['c2'].includes(key)),
+    ((ifPassed) =>
+      Object.keys(val).every(
+        (key) =>
+          ['a', 'kind'].includes(key) ||
+          (ifPassed && ['flag', 'x'].includes(key)) ||
+          (!ifPassed && ['y'].includes(key)) ||
+          (Object.hasOwn(val, 'a') && ['b'].includes(key)) ||
+          (Object.hasOwn(val, 'constructor') && ['c2'].includes(key)),
+      ))(
+      z.object({ kind: z.literal('x'), flag: z.literal(true).exactOptional() }).safeParse(val)
+        .success,
     ),
   )
   .refine(
-    (val) => !('a' in val) || z.object({ b: z.number().exactOptional() }).safeParse(val).success,
+    (val) =>
+      !Object.hasOwn(val, 'a') ||
+      z.object({ b: z.number().exactOptional() }).safeParse(val).success,
   )
   .refine(
     (val) =>
-      !('constructor' in val) ||
+      !Object.hasOwn(val, 'constructor') ||
       z.object({ c2: z.number().exactOptional() }).safeParse(val).success,
   )
   .refine(

@@ -236,7 +236,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        "z.looseObject({card:z.string(),billing:z.string().exactOptional()}).refine((val)=>!('card' in val)||('billing' in val))",
+        'z.looseObject({card:z.string(),billing:z.string().exactOptional()}).refine((val)=>!Object.hasOwn(val,"card")||(Object.hasOwn(val,"billing")))',
       )
     })
 
@@ -257,7 +257,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        "z.looseObject({a:z.string().exactOptional(),b:z.string().exactOptional(),c:z.string().exactOptional()}).refine((val)=>!('a' in val)||('b' in val&&'c' in val),{error:\"a needs b and c\"})",
+        'z.looseObject({a:z.string().exactOptional(),b:z.string().exactOptional(),c:z.string().exactOptional()}).refine((val)=>!Object.hasOwn(val,"a")||(Object.hasOwn(val,"b")&&Object.hasOwn(val,"c")),{error:"a needs b and c"})',
       )
     })
   })

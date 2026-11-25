@@ -37,6 +37,7 @@ import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts
 import { Filter as ParamDeepObjectFilter } from '../param-deep-object/output.ts'
 import { Payload as ParamJsonContentPayload } from '../param-json-content/output.ts'
 import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
+import { OwnKeys as DependentOwnKeys } from '../dependent-own-keys/output.ts'
 
 const decode = <A, I>(schema: Schema.Codec<A, I>, value: unknown) =>
   Schema.decodeUnknownResult(schema)(value)
@@ -783,5 +784,20 @@ describe('unevaluated-shadowed runtime (#93)', () => {
 
   it.each([{ typed: { b: 1 } }])('rejects %j, which additionalProperties refuses', (value) => {
     expect(() => Schema.decodeUnknownSync(UnevaluatedShadowed)(value)).toThrow()
+  })
+})
+
+describe('dependent-own-keys runtime (#94)', () => {
+  it.each([
+    { dep: {} },
+    { dep: { "it's": 1, 'back\\slash': 2 } },
+    { dep: { toString: 1, x: 2 } },
+    { req: { toString: 1 } },
+  ])('accepts %j, whose own keys the dependencies hold', (value) => {
+    expect(() => Schema.decodeUnknownSync(DependentOwnKeys)(value)).not.toThrow()
+  })
+
+  it.each([{ dep: { "it's": 1 } }, { dep: { toString: 1 } }, { req: {} }])('rejects %j, whose own key needs another', (value) => {
+    expect(() => Schema.decodeUnknownSync(DependentOwnKeys)(value)).toThrow()
   })
 })

@@ -6,7 +6,7 @@ import {
 } from '../../guard/index.js'
 import {
   effectPreprocess,
-  isEvaluatedObjectKeyExpression,
+  evaluatedObjectKeysCheck,
   objectEvaluatedKeys,
   ownProperties,
   propertyEmitOptions,
@@ -174,8 +174,10 @@ export function object(
       : ''
   const dependentRequiredFilters: readonly string[] = schema.dependentRequired
     ? Object.entries(schema.dependentRequired).map(([key, deps]) => {
-        const depsCheck = deps.map((dependency) => `'${dependency}' in input`).join('&&')
-        return `Schema.makeFilter((input)=>!('${key}' in input)||(${depsCheck})${depReqErrorArg})`
+        const depsCheck = deps
+          .map((dependency) => `Object.hasOwn(input,${JSON.stringify(dependency)})`)
+          .join('&&')
+        return `Schema.makeFilter((input)=>!Object.hasOwn(input,${JSON.stringify(key)})||(${depsCheck})${depReqErrorArg})`
       })
     : []
   // v3.0: dependentSchemas — when key present, the whole object must
@@ -183,26 +185,32 @@ export function object(
   const dependentSchemasFilters: readonly string[] = schema.dependentSchemas
     ? Object.entries(schema.dependentSchemas).map(([key, subSchema]) => {
         const s = effect(subSchema, rootName, isEffect, options)
-        return `Schema.makeFilter((input)=>!('${key}' in input)||Schema.is(${s})(input)${depSchErrorArg})`
+        return `Schema.makeFilter((input)=>!Object.hasOwn(input,${JSON.stringify(key)})||Schema.is(${s})(input)${depSchErrorArg})`
       })
     : []
   const requiredPresentFilter =
     undeclaredRequired.length > 0
-      ? `Schema.makeFilter((input)=>${JSON.stringify(undeclaredRequired)}.every((key)=>key in input)${errorArg})`
+      ? `Schema.makeFilter((input)=>${JSON.stringify(undeclaredRequired)}.every((key)=>Object.hasOwn(input,key))${errorArg})`
       : ''
   // A key no property names and no pattern matches: refused when the object is closed,
   // held to `unevaluatedProperties` when that is a schema. v4 takes `onExcessProperty`
   // only as a decoding option, not from the schema, so the struct cannot refuse it itself.
   const conditionSchema = schema.if
-  const isEvaluated = isEvaluatedObjectKeyExpression(evaluatedKeys, 'key', 'input', () =>
-    conditionSchema === undefined
-      ? 'false'
-      : `Schema.is(${effect(conditionSchema, rootName, isEffect, options)})(input)`,
-  )
+  const keysCheck = (check: (isEvaluated: string | undefined) => string) =>
+    evaluatedObjectKeysCheck(
+      evaluatedKeys,
+      'key',
+      'input',
+      () =>
+        conditionSchema === undefined
+          ? 'false'
+          : `Schema.is(${effect(conditionSchema, rootName, isEffect, options)})(input)`,
+      check,
+    )
   const unevaluatedKeysFilter = closed
-    ? `Schema.makeFilter((input)=>${isEvaluated === undefined ? 'Object.keys(input).length===0' : `Object.keys(input).every((key)=>${isEvaluated})`}${effectErrorPart(strictExtrasMessage ?? errorMessage)})`
+    ? `Schema.makeFilter((input)=>${keysCheck((isEvaluated) => (isEvaluated === undefined ? 'Object.keys(input).length===0' : `Object.keys(input).every((key)=>${isEvaluated})`))}${effectErrorPart(strictExtrasMessage ?? errorMessage)})`
     : extraSchema !== undefined
-      ? `Schema.makeFilter((input)=>${isEvaluated === undefined ? 'Object.values(input).every((value)=>' : `Object.entries(input).every(([key,value])=>${isEvaluated}||`}Schema.is(Schema.toEncoded(${effect(extraSchema, rootName, isEffect, options)}))(value))${effectErrorPart(extraMessage ?? errorMessage)})`
+      ? `Schema.makeFilter((input)=>${keysCheck((isEvaluated) => `${isEvaluated === undefined ? 'Object.values(input).every((value)=>' : `Object.entries(input).every(([key,value])=>${isEvaluated}||`}Schema.is(Schema.toEncoded(${effect(extraSchema, rootName, isEffect, options)}))(value))`)}${effectErrorPart(extraMessage ?? errorMessage)})`
       : ''
 
   // v3.2: if/then/else conditional schema. Routed through a filter: when `if`

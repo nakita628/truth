@@ -256,6 +256,24 @@ function branchCheck(condition: string, evaluated: BranchEvaluated, key: string)
 }
 
 /**
+ * The emitted key check `check` builds from {@link isEvaluatedObjectKeyExpression}, with the
+ * `if` schema tested once per value rather than once per key: when the expression reads
+ * the test, the check is wrapped in a call that computes it first (`ifPassed`).
+ */
+export function evaluatedObjectKeysCheck(
+  keys: ObjectEvaluatedKeys,
+  key: string,
+  input: string,
+  ifPasses: () => string,
+  check: (isEvaluated: string | undefined) => string,
+) {
+  const isEvaluated = isEvaluatedObjectKeyExpression(keys, key, input, () => 'ifPassed')
+  return isEvaluated?.includes('ifPassed') === true
+    ? `((ifPassed)=>${check(isEvaluated)})(${ifPasses()})`
+    : check(isEvaluated)
+}
+
+/**
  * The emitted expression that tells whether `key` of `input` is evaluated: an own key, or
  * one a branch that applies declares. `ifPasses` is the target's test of `input` against
  * the `if` schema. A `dependentSchemas` entry applies when its key is the object's own, not

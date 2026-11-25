@@ -9,7 +9,7 @@ export const KeyRules = Schema.StructWithRest(Schema.Struct({ a: Schema.String }
         !new RegExp('^x-').test(key) || Schema.is(Schema.toEncoded(Schema.String))(value),
     ),
   ),
-  Schema.makeFilter((input) => ['kind'].every((key) => key in input)),
+  Schema.makeFilter((input) => ['kind'].every((key) => Object.hasOwn(input, key))),
   Schema.makeFilter((input) =>
     Object.entries(input).every(
       ([key, value]) =>

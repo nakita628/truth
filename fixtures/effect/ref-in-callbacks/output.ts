@@ -73,7 +73,7 @@ export const Doc: Schema.Schema<_Doc> = Schema.Unknown.check(
       ),
     ),
     Schema.makeFilter(
-      (input) => !('a' in input) || Schema.is(Schema.suspend(() => NeedsKind))(input),
+      (input) => !Object.hasOwn(input, 'a') || Schema.is(Schema.suspend(() => NeedsKind))(input),
     ),
   )
 

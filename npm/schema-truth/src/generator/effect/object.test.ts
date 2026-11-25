@@ -205,7 +205,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        "Schema.StructWithRest(Schema.Struct({card:Schema.String,billing:Schema.optionalKey(Schema.String)}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>!('card' in input)||('billing' in input)))",
+        'Schema.StructWithRest(Schema.Struct({card:Schema.String,billing:Schema.optionalKey(Schema.String)}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>!Object.hasOwn(input,"card")||(Object.hasOwn(input,"billing"))))',
       )
     })
 
@@ -226,7 +226,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        "Schema.StructWithRest(Schema.Struct({a:Schema.optionalKey(Schema.String),b:Schema.optionalKey(Schema.String),c:Schema.optionalKey(Schema.String)}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>!('a' in input)||('b' in input&&'c' in input),{message:\"a needs b and c\"}))",
+        'Schema.StructWithRest(Schema.Struct({a:Schema.optionalKey(Schema.String),b:Schema.optionalKey(Schema.String),c:Schema.optionalKey(Schema.String)}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>!Object.hasOwn(input,"a")||(Object.hasOwn(input,"b")&&Object.hasOwn(input,"c")),{message:"a needs b and c"}))',
       )
     })
   })

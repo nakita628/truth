@@ -49,6 +49,7 @@ import { User as SplitRefsUser } from '../split-refs/output.ts'
 import { User as TitleUser } from '../title/output.ts'
 import { Account } from '../write-only-password/output.ts'
 import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
+import { OwnKeys as DependentOwnKeys } from '../dependent-own-keys/output.ts'
 
 const issues = (result: unknown) => {
   if (!(result instanceof type.errors)) {
@@ -1128,5 +1129,21 @@ describe('unevaluated-shadowed (#93)', () => {
 
   it.each([{ typed: { b: 1 } }])('rejects %j, which additionalProperties refuses', (value) => {
     expect(UnevaluatedShadowed(value)).toBeInstanceOf(type.errors)
+  })
+})
+
+describe('dependent-own-keys (#94)', () => {
+  it.each([
+    { dep: {} },
+    { dep: { "it's": 1, 'back\\slash': 2 } },
+    { dep: { toString: 1, x: 2 } },
+    { req: { toString: 1 } },
+  ])('accepts %j, whose own keys the dependencies hold', (value) => {
+    expect(DependentOwnKeys(value)).not.toBeInstanceOf(type.errors)
+  })
+
+  // `{ req: {} }` is left out: ArkType reads an inherited `toString` as present (#140).
+  it.each([{ dep: { "it's": 1 } }, { dep: { toString: 1 } }])('rejects %j, whose own key needs another', (value) => {
+    expect(DependentOwnKeys(value)).toBeInstanceOf(type.errors)
   })
 })

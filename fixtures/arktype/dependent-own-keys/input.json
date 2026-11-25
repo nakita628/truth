@@ -1,0 +1,38 @@
+{
+  "title": "OwnKeys",
+  "type": "object",
+  "properties": {
+    "dep": {
+      "type": "object",
+      "properties": {
+        "a": {
+          "type": "string"
+        }
+      },
+      "dependentRequired": {
+        "it's": [
+          "back\\slash"
+        ]
+      },
+      "dependentSchemas": {
+        "toString": {
+          "type": "object",
+          "properties": {
+            "x": {
+              "type": "integer"
+            }
+          },
+          "required": [
+            "x"
+          ]
+        }
+      }
+    },
+    "req": {
+      "type": "object",
+      "required": [
+        "toString"
+      ]
+    }
+  }
+}

@@ -8,6 +8,7 @@ import {
   isEvaluatedObjectKeyExpression,
   objectEvaluatedKeys,
   propertyNamesEnumCheck,
+  evaluatedObjectKeysCheck,
   propertyNamesKeyCheck,
   withoutShadowedUnevaluated,
 } from './unevaluated.js'
@@ -252,5 +253,35 @@ describe('withoutShadowedUnevaluated (#93)', () => {
     [{ additionalProperties: true }, { additionalProperties: true }],
   ])('withoutShadowedUnevaluated(%o) → %o', (schema, expected) => {
     expect(withoutShadowedUnevaluated(schema)).toStrictEqual(expected)
+  })
+})
+
+describe('evaluatedObjectKeysCheck (#94)', () => {
+  const every = (isEvaluated: string | undefined) =>
+    isEvaluated === undefined
+      ? 'Object.keys(input).length===0'
+      : `Object.keys(input).every((key)=>${isEvaluated})`
+
+  it('tests the if schema once per value, outside the per-key callback', () => {
+    const keys = objectEvaluatedKeys(
+      {
+        unevaluatedProperties: false,
+        properties: { kind: {} },
+        if: { properties: { kind: { const: 'x' } } },
+        // eslint-disable-next-line unicorn/no-thenable -- JSON Schema `then` keyword, not a Promise thenable
+        then: { properties: { x: {} } },
+      },
+      undefined,
+    )
+    expect(evaluatedObjectKeysCheck(keys, 'key', 'input', () => 'IF(input)', every)).toBe(
+      '((ifPassed)=>Object.keys(input).every((key)=>["kind"].includes(key)||(ifPassed&&(["x"].includes(key)))))(IF(input))',
+    )
+  })
+
+  it('reads no if test when no branch declares a key', () => {
+    const keys = objectEvaluatedKeys({ properties: { a: {} } }, undefined)
+    expect(evaluatedObjectKeysCheck(keys, 'key', 'input', () => 'IF(input)', every)).toBe(
+      'Object.keys(input).every((key)=>["a"].includes(key))',
+    )
   })
 })

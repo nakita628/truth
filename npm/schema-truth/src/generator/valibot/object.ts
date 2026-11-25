@@ -7,7 +7,7 @@ import {
 import {
   hasBranchKeys,
   isOptionalByDefault,
-  isEvaluatedObjectKeyExpression,
+  evaluatedObjectKeysCheck,
   objectEvaluatedKeys,
   ownProperties,
   propertyEmitOptions,
@@ -206,15 +206,17 @@ export function object(
       : ''
   const dependentRequiredChecks: readonly string[] = schema.dependentRequired
     ? Object.entries(schema.dependentRequired).map(([key, deps]) => {
-        const depsCheck = deps.map((dependency) => `'${dependency}' in input`).join('&&')
-        return `v.check((input)=>!('${key}' in input)||(${depsCheck})${depReqErrorArg})`
+        const depsCheck = deps
+          .map((dependency) => `Object.hasOwn(input,${JSON.stringify(dependency)})`)
+          .join('&&')
+        return `v.check((input)=>!Object.hasOwn(input,${JSON.stringify(key)})||(${depsCheck})${depReqErrorArg})`
       })
     : []
   // v3.0: dependentSchemas
   const dependentSchemasChecks: readonly string[] = schema.dependentSchemas
     ? Object.entries(schema.dependentSchemas).map(([key, subSchema]) => {
         const s = valibot(subSchema, rootName, isValibot, options)
-        return `v.check((input)=>!('${key}' in input)||v.safeParse(${s},input).success${depSchErrorArg})`
+        return `v.check((input)=>!Object.hasOwn(input,${JSON.stringify(key)})||v.safeParse(${s},input).success${depSchErrorArg})`
       })
     : []
   // Extras rejection is wired into `v.strictObject` directly via its second
@@ -248,20 +250,26 @@ export function object(
 
   const requiredPresentCheck =
     undeclaredRequired.length > 0
-      ? `v.check((input)=>${JSON.stringify(undeclaredRequired)}.every((key)=>key in input)${errorArg})`
+      ? `v.check((input)=>${JSON.stringify(undeclaredRequired)}.every((key)=>Object.hasOwn(input,key))${errorArg})`
       : ''
   // A key no property names and no pattern matches: refused when the object is closed,
   // held to `unevaluatedProperties` when that is a schema.
   const conditionSchema = schema.if
-  const isEvaluated = isEvaluatedObjectKeyExpression(evaluatedKeys, 'key', 'input', () =>
-    conditionSchema === undefined
-      ? 'false'
-      : `v.safeParse(${valibot(conditionSchema, rootName, isValibot, options)},input).success`,
-  )
+  const keysCheck = (check: (isEvaluated: string | undefined) => string) =>
+    evaluatedObjectKeysCheck(
+      evaluatedKeys,
+      'key',
+      'input',
+      () =>
+        conditionSchema === undefined
+          ? 'false'
+          : `v.safeParse(${valibot(conditionSchema, rootName, isValibot, options)},input).success`,
+      check,
+    )
   const unevaluatedKeysCheck = closedByCheck
-    ? `v.check((input)=>${isEvaluated === undefined ? 'Object.keys(input).length===0' : `Object.keys(input).every((key)=>${isEvaluated})`}${valibotErrorPart(strictExtrasMessage ?? errorMessage)})`
+    ? `v.check((input)=>${keysCheck((isEvaluated) => (isEvaluated === undefined ? 'Object.keys(input).length===0' : `Object.keys(input).every((key)=>${isEvaluated})`))}${valibotErrorPart(strictExtrasMessage ?? errorMessage)})`
     : extraSchema !== undefined
-      ? `v.check((input)=>${isEvaluated === undefined ? 'Object.values(input).every((value)=>' : `Object.entries(input).every(([key,value])=>${isEvaluated}||`}v.safeParse(${valibot(extraSchema, rootName, isValibot, options)},value).success)${valibotErrorPart(extraMessage ?? errorMessage)})`
+      ? `v.check((input)=>${keysCheck((isEvaluated) => `${isEvaluated === undefined ? 'Object.values(input).every((value)=>' : `Object.entries(input).every(([key,value])=>${isEvaluated}||`}v.safeParse(${valibot(extraSchema, rootName, isValibot, options)},value).success)`)}${valibotErrorPart(extraMessage ?? errorMessage)})`
       : ''
   const actions = [
     minPropertiesCheck,

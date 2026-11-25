@@ -3,26 +3,27 @@ import * as v from 'valibot'
 export const Schema = v.pipe(
   v.partial(v.looseObject({ a: v.number(), kind: v.string() })),
   v.check((input) =>
-    Object.keys(input).every(
-      (key) =>
-        ['a', 'kind'].includes(key) ||
-        (v.safeParse(v.object({ kind: v.literal('x'), flag: v.optional(v.literal(true)) }), input)
-          .success &&
-          ['flag', 'x'].includes(key)) ||
-        (!v.safeParse(v.object({ kind: v.literal('x'), flag: v.optional(v.literal(true)) }), input)
-          .success &&
-          ['y'].includes(key)) ||
-        (Object.hasOwn(input, 'a') && ['b'].includes(key)) ||
-        (Object.hasOwn(input, 'constructor') && ['c2'].includes(key)),
+    ((ifPassed) =>
+      Object.keys(input).every(
+        (key) =>
+          ['a', 'kind'].includes(key) ||
+          (ifPassed && ['flag', 'x'].includes(key)) ||
+          (!ifPassed && ['y'].includes(key)) ||
+          (Object.hasOwn(input, 'a') && ['b'].includes(key)) ||
+          (Object.hasOwn(input, 'constructor') && ['c2'].includes(key)),
+      ))(
+      v.safeParse(v.object({ kind: v.literal('x'), flag: v.optional(v.literal(true)) }), input)
+        .success,
     ),
   ),
   v.check(
     (input) =>
-      !('a' in input) || v.safeParse(v.partial(v.object({ b: v.number() })), input).success,
+      !Object.hasOwn(input, 'a') ||
+      v.safeParse(v.partial(v.object({ b: v.number() })), input).success,
   ),
   v.check(
     (input) =>
-      !('constructor' in input) ||
+      !Object.hasOwn(input, 'constructor') ||
       v.safeParse(v.partial(v.object({ c2: v.number() })), input).success,
   ),
   v.check(
