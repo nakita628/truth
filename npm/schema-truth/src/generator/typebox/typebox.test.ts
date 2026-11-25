@@ -753,6 +753,10 @@ describe('typebox', () => {
         'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$",errorMessage:"bad"}),(value)=>Number.isFinite(Number(value)),()=>"bad"),(value)=>Number(value)>=-3.4028234663852886e38,()=>"bad"),(value)=>Number(value)<=3.4028234663852886e38,()=>"bad")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
       ],
       [
+        { type: 'integer', format: 'int32', 'x-error-message': '' },
+        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer"),(value)=>Number(value)>=-2147483648,()=>"must be >= -2147483648"),(value)=>Number(value)<=2147483647,()=>"must be <= 2147483647")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
         { type: 'number', format: 'double' },
         'Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$"}),(value)=>Number.isFinite(Number(value)),()=>"must be a finite number")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
       ],

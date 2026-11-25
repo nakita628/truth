@@ -145,7 +145,10 @@ function numericWire(schema: JSONSchema, kind: 'integer' | 'number', ref?: strin
   return [numericRange(kind), ...formatRange(schema, kind), ...numericBounds(schema)].reduce(
     (wire, [check, keyword, message]) =>
       `Type.Refine(${wire},(value)=>${check},()=>${JSON.stringify(
-        schema[`x-${keyword}-message`] ?? schema['x-error-message'] ?? message,
+        // An empty message is absent, as `wireString` reads it.
+        [schema[`x-${keyword}-message`], schema['x-error-message']].find(
+          (custom) => typeof custom === 'string' && custom !== '',
+        ) ?? message,
       )})`,
     wireString(schema, ref, JSON.stringify(pattern.source)),
   )
