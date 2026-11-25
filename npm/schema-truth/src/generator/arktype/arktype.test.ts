@@ -737,6 +737,21 @@ describe('arktype', () => {
       ).toBe('type(["string","boolean"]).describe("no extras")')
     })
 
+    it('describes the tuple in definition syntax inside a scope', () => {
+      expect(
+        arktype(
+          {
+            type: 'array',
+            prefixItems: [{ $ref: '#/$defs/A' }],
+            unevaluatedItems: false,
+            'x-unevaluatedItems-message': 'no extras',
+          },
+          'Schema',
+          true,
+        ),
+      ).toBe('[["A"],"@","no extras"]')
+    })
+
     it('emits a variadic tuple when unevaluatedItems is a schema', () => {
       expect(
         arktype({

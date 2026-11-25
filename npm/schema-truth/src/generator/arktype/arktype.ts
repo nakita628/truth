@@ -312,11 +312,7 @@ function node(
     if (schema.type === 'array' && items?.$ref) {
       // A scope names its aliases by quoted definitions, which have no `.array()`.
       const item = ref(items)
-      const array = isPlainOperand(item, true)
-        ? `"${item.slice(1, -1)}[]"`
-        : isArktypeDefinition(item)
-          ? `[${item},"[]"]`
-          : `${item}.array()`
+      const array = isPlainOperand(item, true) ? `"${item.slice(1, -1)}[]"` : `${item}.array()`
       return arktypeWrap(array, schema)
     }
     return arktypeWrap(ref(schema), schema)
@@ -518,8 +514,8 @@ function node(
         schema,
       )
       const unevalItemsMessage = schema['x-unevaluatedItems-message']
-      return unevaluatedItems === false && unevalItemsMessage
-        ? `${baseTuple}.describe(${JSON.stringify(unevalItemsMessage)})`
+      return unevaluatedItems === false
+        ? describeWithMessage(baseTuple, unevalItemsMessage)
         : baseTuple
     }
     const itemSchema = itemsSchemaOf(schema.items)
