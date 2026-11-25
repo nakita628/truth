@@ -43,6 +43,7 @@ import {
   discriminatedMembers,
   serializeJSValue,
   wireDocument,
+  leadingStringSchema,
 } from '../../helper/index.js'
 import type { ValibotWrapOptions } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
@@ -193,14 +194,15 @@ export function valibot(
     // spec's own schema goes ahead of them.
     const document =
       readers.length > 0 && isStringWireLocation(options?.paramIn) && schema['x-coerce'] !== false
-        ? wireDocument(schema)
+        ? wireDocument(schema, { keepRootDefault: true })
         : undefined
     if (document === undefined) return preprocess(readers, inner)
     const metadata = `v.metadata(${serializeJSValue(document)})`
     // The node documented itself the same way; once ahead of the readers is enough.
-    const ownDocument = `v.pipe(v.unknown(),${metadata},`
+    const lead = leadingStringSchema(inner) ?? 'v.unknown()'
+    const ownDocument = `v.pipe(${lead},${metadata},`
     const body = inner.startsWith(ownDocument)
-      ? `v.pipe(v.unknown(),${inner.slice(ownDocument.length)}`
+      ? `v.pipe(${lead},${inner.slice(ownDocument.length)}`
       : inner
     return prependPipe(
       ['v.unknown()', metadata, ...readers.map((reader) => `v.transform(${reader})`)],

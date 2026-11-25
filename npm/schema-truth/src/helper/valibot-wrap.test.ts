@@ -71,6 +71,18 @@ describe('wireDocument (#77)', () => {
     expect(wireDocument({ const: 1, nullable: true })).toStrictEqual({ enum: [1, null] })
   })
 
+  it('adds null beside a nullable typed combinator and keeps the root default on request', () => {
+    expect(
+      wireDocument({ type: 'object', nullable: true, oneOf: [{ type: 'object' }] }),
+    ).toStrictEqual({
+      anyOf: [{ type: ['object', 'null'], oneOf: [{ type: 'object' }] }, { type: 'null' }],
+    })
+    expect(wireDocument({ type: 'integer', default: 1 }, { keepRootDefault: true })).toStrictEqual({
+      type: 'integer',
+      default: 1,
+    })
+  })
+
   it('is undefined when a $ref sits under additionalItems or dependencies', () => {
     expect(wireDocument({ additionalItems: { $ref: '#/$defs/A' } })).toBeUndefined()
     expect(wireDocument({ dependencies: { a: { $ref: '#/$defs/A' } } })).toBeUndefined()
@@ -108,5 +120,23 @@ describe('valibot wire documents in the generator (#77)', () => {
     expect(valibot({ type: 'boolean' }, 'S', false, { paramIn: 'query' })).toMatch(
       /^v\.pipe\(v\.string\(\),v\.metadata\(\{type:"boolean"\}\),v\.pipe\(v\.string\(\),v\.regex\(/,
     )
+  })
+
+  it('documents a wire list default as the list it is read into', async () => {
+    const { valibot } = await import('../generator/valibot/valibot.js')
+    expect(
+      valibot({ type: 'array', items: { type: 'integer' }, default: [1] }, 'S', false, {
+        paramIn: 'query',
+      }),
+    ).toContain('v.metadata({default:[1]})')
+  })
+
+  it('writes the document once ahead of the parameter readers', async () => {
+    const { valibot } = await import('../generator/valibot/valibot.js')
+    const code = valibot({ type: 'boolean' }, 'S', false, {
+      paramIn: 'query',
+      allowEmptyValue: true,
+    })
+    expect(code.split('v.metadata(').length - 1).toBe(1)
   })
 })

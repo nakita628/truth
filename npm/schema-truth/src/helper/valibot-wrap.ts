@@ -81,7 +81,7 @@ const SCHEMA_MAP_KEYS = new Set([
  * pipe still expects a string (a union's message names what its members expect); the
  * original pipe follows as a nested schema, where the converter stops before its regex.
  */
-function leadingStringSchema(expression: string) {
+export function leadingStringSchema(expression: string) {
   const head = 'v.pipe(v.string('
   if (!expression.startsWith(head)) return undefined
   let depth = 1
@@ -113,11 +113,15 @@ function entriesOf(value: unknown): [string, unknown][] {
 /**
  * The spec's own schema of a wire node as a JSON Schema document: `x-` extensions and the
  * OpenAPI-only keywords left out, OpenAPI 3.0's `nullable` written as a `null` type and
- * `example` as `examples`. The root's `default` is left to `v.optional`, and a property
+ * `example` as `examples`. The root's `default` is left to `v.optional` unless
+ * `keepRootDefault` (the parameter readers come ahead of that `v.optional`), and a property
  * with a default is not `required`. `undefined` when a `$ref`
  * sits anywhere inside, since the document would point at a definition it does not hold.
  */
-export function wireDocument(schema: JSONSchema): { readonly [key: string]: unknown } | undefined {
+export function wireDocument(
+  schema: JSONSchema,
+  options?: { readonly keepRootDefault?: boolean },
+): { readonly [key: string]: unknown } | undefined {
   const state = { hasRef: false }
   const visit = (value: unknown, isSchema: boolean, isRoot = false): unknown => {
     if (Array.isArray(value)) return value.map((item: unknown) => visit(item, isSchema))
@@ -133,7 +137,7 @@ export function wireDocument(schema: JSONSchema): { readonly [key: string]: unkn
       if (key.startsWith('x-') || key === 'nullable' || NON_JSON_SCHEMA_KEYS.has(key)) continue
       // The root's `default` is documented by `v.optional`; below it the converter never
       // reaches the inner pipes, so the document carries it.
-      if (key === 'default' && isRoot) continue
+      if (key === 'default' && isRoot && options?.keepRootDefault !== true) continue
       out.set(
         key,
         SCHEMA_MAP_KEYS.has(key)
@@ -171,11 +175,9 @@ export function wireDocument(schema: JSONSchema): { readonly [key: string]: unkn
         out.delete('const')
       }
     }
-    // Without a `type`, a combinator still rejects `null`, so the null type is added beside it.
+    // A combinator's members still reject `null`, so the null type is added beside it.
     const isNullableCombinator =
-      record.get('nullable') === true &&
-      type === undefined &&
-      ['oneOf', 'anyOf', 'allOf'].some((key) => out.has(key))
+      record.get('nullable') === true && ['oneOf', 'anyOf', 'allOf'].some((key) => out.has(key))
     // OpenAPI 3.0's boolean exclusive bounds, in the numeric form of draft-07 and 2020-12.
     for (const [exclusive, bound] of [
       ['exclusiveMinimum', 'minimum'],
@@ -271,12 +273,12 @@ export function valibotWrap(valibotStr: string, schema: JSONSchema, options?: Va
   if (schema.externalDocs !== undefined) metaObj.externalDocs = schema.externalDocs
   if (schema.readOnly !== undefined) metaObj.readOnly = schema.readOnly
   if (schema.writeOnly !== undefined) metaObj.writeOnly = schema.writeOnly
-  // A wire number or boolean is documented as the value it is read into, so its default is
-  // documented as that value too, over the text `v.optional` holds.
+  // A wire value is documented as the value it is read into (a number, a boolean, a list of
+  // them...), so its default is documented as that value too, over the text `v.optional` holds.
   if (
     hasDefault &&
     options?.stringWire === true &&
-    (typeof defaultResult.value === 'number' || typeof defaultResult.value === 'boolean') &&
+    typeof defaultResult.value !== 'string' &&
     defaultFormat === undefined
   ) {
     metaObj.default = defaultResult.value
