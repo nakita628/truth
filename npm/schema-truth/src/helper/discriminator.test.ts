@@ -101,4 +101,24 @@ describe("discriminatedMembers reads a member's own values (#73)", () => {
       ['Null'],
     ])
   })
+
+  it('keeps the distinct own values and claims a fallback name', () => {
+    const defs = {
+      Cat: { properties: { petType: { enum: ['cat', 'animal'] } } },
+      Dog: { properties: { petType: { enum: ['dog', 'animal'] } } },
+      Cmp: { properties: { petType: { const: 'Open' } } },
+      Open: { properties: { petType: { type: 'string' } } },
+    } satisfies { [name: string]: JSONSchema }
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'petType' } },
+      ['Cat', 'Dog', 'Cmp', 'Open'].map((name) => ({ $ref: `#/$defs/${name}` })),
+      defs,
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([
+      ['cat'],
+      ['dog'],
+      ['Cmp'],
+      ['Open'],
+    ])
+  })
 })

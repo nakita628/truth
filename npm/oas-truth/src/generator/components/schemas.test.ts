@@ -328,6 +328,40 @@ describe('makeSchemaDeclarations', () => {
     expect(code).toContain('z.object({petType:z.literal("Dog")})')
   })
 
+  it('zod: a member keeps its distinct own values and a fallback name is claimed', () => {
+    const pets = {
+      Cat: { type: 'object', properties: { petType: { enum: ['cat', 'animal'] } } },
+      Dog: { type: 'object', properties: { petType: { enum: ['dog', 'animal'] } } },
+      Cmp: { type: 'object', properties: { petType: { const: 'Open' } } },
+      Open: { type: 'object', properties: { petType: { type: 'string' } } },
+      Pet: {
+        oneOf: ['Cat', 'Dog', 'Cmp', 'Open'].map((name) => ({
+          $ref: `#/components/schemas/${name}`,
+        })),
+        discriminator: { propertyName: 'petType' },
+      },
+    }
+    const code = makeSchemaDeclarations(pets as never, makeAdapter('zod'))
+      .map((d) => d.code)
+      .join(';')
+    expect(code).toContain('z.object({petType:z.literal("cat")})')
+    expect(code).toContain('z.object({petType:z.literal("dog")})')
+    expect(code).toContain('z.object({petType:z.literal("Cmp")})')
+    expect(code).toContain('z.object({petType:z.literal("Open")})')
+  })
+
+  it('does not throw on a malformed discriminated union', () => {
+    const malformed = {
+      Odd: { type: 'object', allOf: {}, properties: { type: { enum: 'eq' } } },
+      Union: {
+        oneOf: [null, { $ref: '#/components/schemas/Odd' }],
+        anyOf: {},
+        discriminator: { propertyName: 'type' },
+      },
+    }
+    expect(() => makeSchemaDeclarations(malformed as never, makeAdapter('zod'))).not.toThrow()
+  })
+
   it('arktype: an explicit discriminator value is not replaced by a cycle member name', () => {
     const filters = {
       ComparisonFilter: {

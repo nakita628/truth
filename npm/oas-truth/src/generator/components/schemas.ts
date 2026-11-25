@@ -126,17 +126,59 @@ function componentSchemaKey(ref: string) {
   return ref.startsWith('#/components/schemas/') ? schemaRefToName(ref) : undefined
 }
 
+/** A keyword's value as a list, or none when the unsanitized document holds something else. */
+function listOf(value: unknown): readonly unknown[] {
+  return Array.isArray(value) ? value : []
+}
+
 /** The string values a schema's own `propertyName` property is held to (`const` / `enum`). */
 function ownDiscriminatorValues(schema: Schema, propertyName: string) {
-  for (const holder of [schema, ...(schema.allOf ?? [])]) {
+  // The document is not sanitized yet, so a keyword may hold the wrong kind of value.
+  const holders = [schema, ...listOf(schema.allOf)]
+  for (const holder of holders) {
     if (!isSchema(holder)) continue
     const property = holder.properties?.[propertyName]
     if (!isSchema(property)) continue
     if (typeof property.const === 'string') return [property.const]
-    const values = (property.enum ?? []).filter((value) => typeof value === 'string')
+    const values = listOf(property.enum).filter(
+      (value): value is string => typeof value === 'string',
+    )
     if (values.length > 0) return values
   }
   return undefined
+}
+
+/**
+ * The own values each unmapped member keeps: those no other member, mapping key or
+ * fallback name also claims, as schema-truth's `discriminatedMembers` decides. A member
+ * left with none keeps its schema name (`undefined` here), which is then claimed too.
+ */
+function distinctOwnValues(
+  mappingKeys: readonly string[],
+  members: readonly { readonly name: string; readonly own: readonly string[] | undefined }[],
+) {
+  const counts = new Map<string, number>()
+  for (const value of [...mappingKeys, ...members.flatMap(({ own }) => [...new Set(own)])]) {
+    counts.set(value, (counts.get(value) ?? 0) + 1)
+  }
+  const settle = (chosen: readonly (readonly string[] | undefined)[]): typeof chosen => {
+    const fallbacks = new Set(
+      members.flatMap(({ name }, index) => (chosen[index] === undefined ? [name] : [])),
+    )
+    const next = chosen.map((values) => {
+      const kept = values?.filter((value) => !fallbacks.has(value)) ?? []
+      return kept.length > 0 ? kept : undefined
+    })
+    return next.every((values, index) => values?.length === chosen[index]?.length)
+      ? next
+      : settle(next)
+  }
+  return settle(
+    members.map(({ own }) => {
+      const kept = own?.filter((value) => counts.get(value) === 1) ?? []
+      return kept.length > 0 ? kept : undefined
+    }),
+  )
 }
 
 /**
@@ -149,27 +191,31 @@ function ownDiscriminatorValues(schema: Schema, propertyName: string) {
  */
 function pinOwnDiscriminatorValues(node: Schema, schemas: { readonly [k: string]: Schema }) {
   const { discriminator } = node
-  if (discriminator?.propertyName === undefined) return node
+  if (!isSchema(discriminator) || typeof discriminator.propertyName !== 'string') return node
   const { propertyName } = discriminator
-  const mapping = Object.entries(discriminator.mapping ?? {})
-  const mapped = new Set(mapping.map(([, target]) => componentSchemaKey(target)))
-  const unmapped = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].flatMap((member) => {
+  const mapping = Object.entries(isRecord(discriminator.mapping) ? discriminator.mapping : {})
+  const mapped = new Set(
+    mapping.map(([, target]) =>
+      typeof target === 'string' ? componentSchemaKey(target) : undefined,
+    ),
+  )
+  const members = [...listOf(node.oneOf), ...listOf(node.anyOf)]
+  const unmapped = members.flatMap((member) => {
+    if (!isSchema(member) || typeof member.$ref !== 'string') return []
     const ref = member.$ref
-    const key = ref === undefined ? undefined : componentSchemaKey(ref)
-    if (ref === undefined || key === undefined || mapped.has(key)) return []
+    const key = componentSchemaKey(ref)
+    if (key === undefined || mapped.has(key)) return []
     const target = Object.hasOwn(schemas, key) ? schemas[key] : undefined
     const own = target === undefined ? undefined : ownDiscriminatorValues(target, propertyName)
-    return own === undefined ? [] : [{ ref, own }]
+    return [{ ref, name: key, own }]
   })
-  // A value another member or a mapping key also claims would not tell the members apart,
-  // so such a member keeps its schema name, as schema-truth's `discriminatedMembers` does.
-  const claims = new Map<string, number>()
-  const claim = (value: string) => claims.set(value, (claims.get(value) ?? 0) + 1)
-  for (const [value] of mapping) claim(value)
-  for (const { own } of unmapped) for (const value of new Set(own)) claim(value)
-  const pinned = unmapped
-    .filter(({ own }) => own.every((value) => claims.get(value) === 1))
-    .flatMap(({ ref, own }) => own.map((value) => [value, ref] as const))
+  const chosen = distinctOwnValues(
+    mapping.map(([value]) => value),
+    unmapped,
+  )
+  const pinned = unmapped.flatMap(({ ref }, index) =>
+    (chosen[index] ?? []).map((value) => [value, ref] as const),
+  )
   if (pinned.length === 0) return node
   return {
     ...node,

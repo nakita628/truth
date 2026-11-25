@@ -37,11 +37,48 @@ function ownDiscriminatorValues(
 }
 
 /**
+ * The own values each unmapped member keeps: those no other member, mapping key or
+ * fallback name also claims, since a shared value would not tell the members apart. A
+ * member left with none falls back to its name (`undefined` here), and that name is then
+ * claimed too, until nothing changes.
+ */
+function distinctOwnValues(
+  mappingKeys: readonly string[],
+  members: readonly ({ name: string; own: readonly string[] | undefined } | undefined)[],
+) {
+  const counts = new Map<string, number>()
+  for (const value of [...mappingKeys, ...members.flatMap((member) => [...new Set(member?.own)])]) {
+    counts.set(value, (counts.get(value) ?? 0) + 1)
+  }
+  const settle = (chosen: readonly (readonly string[] | undefined)[]): typeof chosen => {
+    const fallbacks = new Set(
+      members.flatMap((member, index) =>
+        member !== undefined && chosen[index] === undefined ? [member.name] : [],
+      ),
+    )
+    const next = chosen.map((values) => {
+      const kept = values?.filter((value) => !fallbacks.has(value)) ?? []
+      return kept.length > 0 ? kept : undefined
+    })
+    return next.every((values, index) => values?.length === chosen[index]?.length)
+      ? next
+      : settle(next)
+  }
+  return settle(
+    members.map((member) => {
+      const kept = member?.own?.filter((value) => counts.get(value) === 1) ?? []
+      return kept.length > 0 ? kept : undefined
+    }),
+  )
+}
+
+/**
  * The discriminator values that select each `oneOf` / `anyOf` member (OpenAPI 3.x
  * Discriminator Object): the `mapping` keys whose target names the member's `$ref`; when
  * the mapping names it nowhere, the values the member's own discriminator property is held
- * to (`const` / `enum`), unless another member or a mapping key claims one of them; and
- * otherwise the definition name itself (the specification's implicit mapping). Preferring
+ * to (`const` / `enum`), less any another member, a mapping key or a fallback name also
+ * claims; and when none is left, the definition name itself (the specification's implicit
+ * mapping). Preferring
  * the member's own values departs from the
  * specification on purpose: a document such as OpenAI's `CompoundFilter`, whose member
  * declares `type: { enum: [eq, ne] }`, means those values, and its schema name could never
@@ -70,19 +107,18 @@ export function discriminatedMembers(
         : ownDiscriminatorValues(definition, propertyName)
     return { member, name, mapped, own }
   })
-  // A value another member or a mapping key also claims would not tell the members apart
-  // (every member inlining the same `enum`), so such a member keeps its schema name.
-  const claims = new Map<string, number>()
-  const claim = (value: string) => claims.set(value, (claims.get(value) ?? 0) + 1)
-  for (const [value] of mapping) claim(value)
-  for (const { own } of resolved) for (const value of new Set(own)) claim(value)
+  const chosen = distinctOwnValues(
+    mapping.map(([value]) => value),
+    resolved.map(({ name, mapped, own }) =>
+      name === undefined || mapped.length > 0 ? undefined : { name, own },
+    ),
+  )
   return {
     propertyName,
-    members: resolved.map(({ member, name, mapped, own }) => {
+    members: resolved.map(({ member, name, mapped }, index) => {
       if (name === undefined) return { member, values: undefined }
       if (mapped.length > 0) return { member, values: mapped }
-      const isOwnDistinct = own?.every((value) => claims.get(value) === 1) === true
-      return { member, values: isOwnDistinct ? own : [name] }
+      return { member, values: chosen[index] ?? [name] }
     }),
   }
 }
