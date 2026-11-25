@@ -64,6 +64,44 @@ export const Query = Type.Object({
       .Decode((value) => Number(value))
       .Encode((value) => String(value)),
   ),
+  small: Type.Optional(
+    Codec(
+      Type.Refine(
+        Type.Refine(
+          Type.Refine(
+            Type.String({ pattern: '^-?(?:0|[1-9]\\d*)$' }),
+            (value) => Number.isSafeInteger(Number(value)),
+            () => 'must be a safe integer',
+          ),
+          (value) => Number(value) >= -2147483648,
+          () => 'must be >= -2147483648',
+        ),
+        (value) => Number(value) <= 2147483647,
+        () => 'must be <= 2147483647',
+      ),
+    )
+      .Decode((value) => Number(value))
+      .Encode((value) => String(value)),
+  ),
+  single: Type.Optional(
+    Codec(
+      Type.Refine(
+        Type.Refine(
+          Type.Refine(
+            Type.String({ pattern: '^-?(?:0|[1-9]\\d*)(?:\\.\\d+)?(?:[eE][+-]?\\d+)?$' }),
+            (value) => Number.isFinite(Number(value)),
+            () => 'must be a finite number',
+          ),
+          (value) => Number(value) >= -3.4028234663852886e38,
+          () => 'must be >= -3.4028234663852886e38',
+        ),
+        (value) => Number(value) <= 3.4028234663852886e38,
+        () => 'must be <= 3.4028234663852886e38',
+      ),
+    )
+      .Decode((value) => Number(value))
+      .Encode((value) => String(value)),
+  ),
 })
 
 export type Query = Static<typeof Query>

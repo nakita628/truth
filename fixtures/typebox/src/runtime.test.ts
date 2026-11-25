@@ -909,4 +909,22 @@ describe('wire-number', () => {
     })
     expect(() => Value.Decode(WireNumberQuery, { total: '9007199254740993' })).toThrow()
   })
+
+  it.each<[string, string, number]>([
+    ['small', '2147483647', 2147483647],
+    ['small', '-2147483648', -2147483648],
+    ['single', '3.4e38', 3.4e38],
+  ])('decodes %s=%s inside the range of its format to %d', (key, text, expected) => {
+    expect(Value.Decode(WireNumberQuery, { [key]: text })).toStrictEqual({ [key]: expected })
+  })
+
+  it.each<[string, string]>([
+    ['small', '3000000000'],
+    ['small', '-2147483649'],
+    ['single', '1e39'],
+    ['single', '-1e39'],
+  ])('rejects %s=%s, outside the range of its format', (key, text) => {
+    expect(Value.Check(WireNumberQuery, { [key]: text })).toBe(false)
+    expect(() => Value.Decode(WireNumberQuery, { [key]: text })).toThrow()
+  })
 })
