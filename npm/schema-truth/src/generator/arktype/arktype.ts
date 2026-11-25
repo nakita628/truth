@@ -514,7 +514,8 @@ function node(
         schema,
       )
       const unevalItemsMessage = schema['x-unevaluatedItems-message']
-      return unevaluatedItems === false
+      // An empty message is no message.
+      return unevaluatedItems === false && unevalItemsMessage
         ? describeWithMessage(baseTuple, unevalItemsMessage)
         : baseTuple
     }
