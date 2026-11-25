@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.9.5
+
+### Patch Changes
+
+- [#104](https://github.com/nakita628/truth/pull/104) [`e07eb5d`](https://github.com/nakita628/truth/commit/e07eb5d4a4fae060a76fcfbf33364bf345d21da8) Thanks [@nakita628](https://github.com/nakita628)! - ArkType: inside a `scope`, a `prefixItems` tuple is now a definition (`["A"]`) instead of the global `type(["A"])`, which could not resolve the scope's aliases, and a `$ref` beside `type: 'array'` emits `"A[]"` instead of `"A".array()`, which threw a `TypeError` when the module loaded.
+
 ## 0.9.4
 
 ### Patch Changes
