@@ -56,12 +56,16 @@ export const Query = Type.Object({
   total: Type.Optional(
     Codec(
       Type.Refine(
-        Type.String({ pattern: '^-?(?:0|[1-9]\\d*)$' }),
-        (value) => Number.isSafeInteger(Number(value)),
-        () => 'must be a safe integer',
+        Type.Refine(
+          Type.String({ pattern: '^-?\\d+$' }),
+          (value) => BigInt(value) >= -9223372036854775808n,
+          () => 'must be >= -9223372036854775808',
+        ),
+        (value) => BigInt(value) <= 9223372036854775807n,
+        () => 'must be <= 9223372036854775807',
       ),
     )
-      .Decode((value) => Number(value))
+      .Decode((value) => BigInt(value))
       .Encode((value) => String(value)),
   ),
   small: Type.Optional(

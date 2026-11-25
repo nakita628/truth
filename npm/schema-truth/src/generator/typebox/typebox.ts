@@ -1,6 +1,7 @@
 import {
   DEFAULT_ROOT_NAME,
   DEFINITION_REF_PREFIXES,
+  INTEGER_TEXT_PATTERN,
   INTEGER_WIRE_PATTERN,
   NUMBER_RANGES,
   NUMBER_WIRE_PATTERN,
@@ -16,6 +17,7 @@ import {
   isShapelessMember,
   isStringWireLocation,
 } from '../../guard/index.js'
+import { bigintBounds, bigintLiteral } from '../../helper/bigint.js'
 import {
   enumWithoutWrappedNull,
   foldAllOfMembers,
@@ -136,22 +138,124 @@ function wireString(schema: JSONSchema, ref?: string, pattern?: string) {
  * JSON Schema form (a `RegExp` serializes as `{}`), and each numeric bound is a
  * `Type.Refine` on the text read as a number, since the decoded value is not checked.
  * The first check rejects a number that overflows to `Infinity` and an integer outside
- * the safe integer range, where `Number` may round it. That holds for an int64, uint64 or
- * bigint `format` too, since this wire decodes it with `Number`. A fixed-width `format`
- * (`int32`, `uint32`, `float`, `float32`) adds its range after it.
+ * the safe integer range, where `Number` may round it. A fixed-width `format` (`int32`,
+ * `uint32`, `float`, `float32`) adds its range after it. An int64, uint64 or bigint
+ * integer is a {@link bigintWire} instead.
  */
 function numericWire(schema: JSONSchema, kind: 'integer' | 'number', ref?: string) {
   const pattern = kind === 'integer' ? INTEGER_WIRE_PATTERN : NUMBER_WIRE_PATTERN
-  return [numericRange(kind), ...formatRange(schema, kind), ...numericBounds(schema)].reduce(
-    (wire, [check, keyword, message]) =>
-      `Type.Refine(${wire},(value)=>${check},()=>${JSON.stringify(
+  return refineWire(schema, wireString(schema, ref, JSON.stringify(pattern.source)), [
+    numericRange(kind),
+    ...formatRange(schema, kind),
+    ...numericBounds(schema),
+  ])
+}
+
+/**
+ * A bigint-from-text wire for an `int64`, `uint64` or `bigint` integer, which the other
+ * generators decode with `BigInt`: the text is a sign and digits, and each check is a
+ * `Type.Refine` on `BigInt(value)`, so no digit is lost. `int64` / `uint64` add the
+ * format's range, a side the schema bounds as tightly left to that keyword's check.
+ */
+function bigintWire(schema: JSONSchema, ref?: string) {
+  return refineWire(
+    schema,
+    wireString(schema, ref, JSON.stringify(INTEGER_TEXT_PATTERN.source)),
+    bigintChecks(schema),
+  )
+}
+
+/** Wraps the wire in a `Type.Refine` per check, each with its `x-*-message` or its own. */
+function refineWire(schema: JSONSchema, wire: string, checks: readonly NumericBound[]) {
+  return checks.reduce(
+    (refined, [check, keyword, message]) =>
+      `Type.Refine(${refined},(value)=>${check},()=>${JSON.stringify(
         // An empty message is absent, as `wireString` reads it.
         [schema[`x-${keyword}-message`], schema['x-error-message']].find(
           (custom) => typeof custom === 'string' && custom !== '',
         ) ?? message,
       )})`,
-    wireString(schema, ref, JSON.stringify(pattern.source)),
+    wire,
   )
+}
+
+/** Whether an integer node holds a bigint on the wire: `int64`, `uint64` or `bigint`. */
+function isBigintFormat(schema: JSONSchema) {
+  return schema.format === 'int64' || schema.format === 'uint64' || schema.format === 'bigint'
+}
+
+/**
+ * The checks of a bigint wire on `BigInt(value)`: the range of `int64` / `uint64`, then the
+ * schema's bounds and `multipleOf` made integers by `bigintBounds`.
+ */
+function bigintChecks(schema: JSONSchema): readonly NumericBound[] {
+  const { minimum, maximum, exclusiveMinimum, exclusiveMaximum, multipleOf } = bigintBounds(schema)
+  const lowers: bigint[] = []
+  const uppers: bigint[] = []
+  const bounds: NumericBound[] = []
+  if (minimum !== undefined) {
+    lowers.push(BigInt(minimum))
+    bounds.push(
+      exclusiveMinimum === true
+        ? [
+            `BigInt(value)>${bigintLiteral(minimum)}`,
+            'exclusiveMinimum',
+            `must be > ${BigInt(minimum)}`,
+          ]
+        : [`BigInt(value)>=${bigintLiteral(minimum)}`, 'minimum', `must be >= ${BigInt(minimum)}`],
+    )
+  }
+  if (typeof exclusiveMinimum === 'number') {
+    lowers.push(BigInt(exclusiveMinimum))
+    bounds.push([
+      `BigInt(value)>${bigintLiteral(exclusiveMinimum)}`,
+      'exclusiveMinimum',
+      `must be > ${BigInt(exclusiveMinimum)}`,
+    ])
+  }
+  if (maximum !== undefined) {
+    uppers.push(BigInt(maximum))
+    bounds.push(
+      exclusiveMaximum === true
+        ? [
+            `BigInt(value)<${bigintLiteral(maximum)}`,
+            'exclusiveMaximum',
+            `must be < ${BigInt(maximum)}`,
+          ]
+        : [`BigInt(value)<=${bigintLiteral(maximum)}`, 'maximum', `must be <= ${BigInt(maximum)}`],
+    )
+  }
+  if (typeof exclusiveMaximum === 'number') {
+    uppers.push(BigInt(exclusiveMaximum))
+    bounds.push([
+      `BigInt(value)<${bigintLiteral(exclusiveMaximum)}`,
+      'exclusiveMaximum',
+      `must be < ${BigInt(exclusiveMaximum)}`,
+    ])
+  }
+  if (multipleOf !== undefined) {
+    bounds.push([
+      `BigInt(value)%${bigintLiteral(multipleOf)}===0n`,
+      'multipleOf',
+      `must be multiple of ${BigInt(multipleOf)}`,
+    ])
+  }
+  const range =
+    schema.format === 'int64' || schema.format === 'uint64'
+      ? NUMBER_RANGES[schema.format]
+      : undefined
+  if (range === undefined) return bounds
+  const low = range.minimum.slice(0, -1)
+  const high = range.maximum.slice(0, -1)
+  return [
+    ...(lowers.some((bound) => bound >= BigInt(low))
+      ? []
+      : [[`BigInt(value)>=${range.minimum}`, 'error', `must be >= ${low}`] as const]),
+    ...(uppers.some((bound) => bound <= BigInt(high))
+      ? []
+      : [[`BigInt(value)<=${range.maximum}`, 'error', `must be <= ${high}`] as const]),
+    ...bounds,
+  ]
 }
 
 type NumericBound = readonly [
@@ -531,6 +635,14 @@ export function typebox(
     return typeboxWrap(number(schema, hostRef), schema)
   }
   if (types.includes('integer')) {
+    if (isStringWireParam && isBigintFormat(schema)) {
+      return typeboxWrap(
+        `Codec(${bigintWire(schema, hostRef)}).Decode((value)=>BigInt(value)).Encode((value)=>String(value))`,
+        schema,
+        undefined,
+        { stringWire: true },
+      )
+    }
     if (isStringWireParam) {
       const wire = numericWire(schema, 'integer', hostRef)
       return typeboxWrap(

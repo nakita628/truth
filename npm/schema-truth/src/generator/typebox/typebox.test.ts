@@ -764,12 +764,47 @@ describe('typebox', () => {
       expect(typebox(input, 'Schema', false, { paramIn: 'query' })).toBe(expected)
     })
 
-    it.each(['int64', 'uint64', 'bigint'] as const)(
-      'query: integer with format %s decodes with Number, so it keeps the safe-integer check',
-      (format) => {
-        expect(typebox({ type: 'integer', format }, 'Schema', false, { paramIn: 'query' })).toBe(
-          'Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
-        )
+    it.each([
+      [
+        { type: 'integer', format: 'int64' },
+        'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?\\\\d+$"}),(value)=>BigInt(value)>=-9223372036854775808n,()=>"must be >= -9223372036854775808"),(value)=>BigInt(value)<=9223372036854775807n,()=>"must be <= 9223372036854775807")).Decode((value)=>BigInt(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'integer', format: 'uint64' },
+        'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?\\\\d+$"}),(value)=>BigInt(value)>=0n,()=>"must be >= 0"),(value)=>BigInt(value)<=18446744073709551615n,()=>"must be <= 18446744073709551615")).Decode((value)=>BigInt(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'integer', format: 'bigint' },
+        'Codec(Type.String({pattern:"^-?\\\\d+$"})).Decode((value)=>BigInt(value)).Encode((value)=>String(value))',
+      ],
+      [
+        {
+          type: 'integer',
+          format: 'int64',
+          minimum: 0.5,
+          maximum: 100,
+          'x-maximum-message': 'too big',
+        },
+        'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?\\\\d+$"}),(value)=>BigInt(value)>=1n,()=>"must be >= 1"),(value)=>BigInt(value)<=100n,()=>"too big")).Decode((value)=>BigInt(value)).Encode((value)=>String(value))',
+      ],
+      [
+        {
+          type: 'integer',
+          format: 'bigint',
+          exclusiveMinimum: 0,
+          exclusiveMaximum: 1e21,
+          multipleOf: 2.5,
+        },
+        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?\\\\d+$"}),(value)=>BigInt(value)>0n,()=>"must be > 0"),(value)=>BigInt(value)<1000000000000000000000n,()=>"must be < 1000000000000000000000"),(value)=>BigInt(value)%5n===0n,()=>"must be multiple of 5")).Decode((value)=>BigInt(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'integer', format: 'uint64', 'x-error-message': 'bad' },
+        'Codec(Type.Refine(Type.Refine(Type.String({pattern:"^-?\\\\d+$",errorMessage:"bad"}),(value)=>BigInt(value)>=0n,()=>"bad"),(value)=>BigInt(value)<=18446744073709551615n,()=>"bad")).Decode((value)=>BigInt(value)).Encode((value)=>String(value))',
+      ],
+    ] as const)(
+      'query: %o decodes with BigInt and checks its range (#84) → %s',
+      (input, expected) => {
+        expect(typebox(input, 'Schema', false, { paramIn: 'query' })).toBe(expected)
       },
     )
 
@@ -1003,7 +1038,7 @@ describe('typebox property whose bigint default is left out', () => {
         paramIn: 'query',
       }),
     ).toBe(
-      'Type.Object({plain:Type.Optional(Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$",default:"5"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer")).Decode((value)=>Number(value)).Encode((value)=>String(value)))})',
+      'Type.Object({plain:Type.Optional(Codec(Type.String({pattern:"^-?\\\\d+$",default:"5"})).Decode((value)=>BigInt(value)).Encode((value)=>String(value)))})',
     )
   })
 })
