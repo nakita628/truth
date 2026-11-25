@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.9.4
+
+### Patch Changes
+
+- [#99](https://github.com/nakita628/truth/pull/99) [`3711c85`](https://github.com/nakita628/truth/commit/3711c85e8a85703cd6e92f0c88cec6b4236504d0) Thanks [@nakita628](https://github.com/nakita628)! - `allOf` bound folding now keeps the stricter of a member's `minimum` and numeric `exclusiveMinimum` (and of `maximum` and `exclusiveMaximum`) instead of only the exclusive one: `allOf: [{ type: 'number', minimum: 0 }, { minimum: 10, exclusiveMinimum: 5 }]` emits `z.number().min(10)` rather than `.gt(5)`, which accepted `7`. Every target is affected. The member's custom message carries over to whichever bound wins.
+
 ## 0.9.3
 
 ### Patch Changes
