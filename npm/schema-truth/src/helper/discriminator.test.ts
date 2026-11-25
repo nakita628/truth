@@ -121,4 +121,24 @@ describe("discriminatedMembers reads a member's own values (#73)", () => {
       ['Open'],
     ])
   })
+
+  it("drops a member whose schema name is another schema's mapping key (#74)", () => {
+    const defs = {
+      Cmp: { properties: { type: { enum: ['eq', 'ne'] } } },
+      Cpd: { properties: { type: { type: 'string' } } },
+      Alias: { properties: { type: { type: 'string' } } },
+      Other: { properties: { type: { const: 'Cpd' } } },
+    } satisfies { [name: string]: JSONSchema }
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'type', mapping: { Cpd: '#/$defs/Alias' } } },
+      ['Cmp', 'Cpd', 'Alias', 'Other'].map((name) => ({ $ref: `#/$defs/${name}` })),
+      defs,
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([
+      ['eq', 'ne'],
+      undefined,
+      ['Cpd'],
+      ['Other'],
+    ])
+  })
 })

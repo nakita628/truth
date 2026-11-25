@@ -151,19 +151,23 @@ function ownDiscriminatorValues(schema: Schema, propertyName: string) {
 /**
  * The own values each unmapped member keeps: those no other member, mapping key or
  * fallback name also claims, as schema-truth's `discriminatedMembers` decides. A member
- * left with none keeps its schema name (`undefined` here), which is then claimed too.
+ * left with none keeps its schema name (`undefined` here), which is then claimed too,
+ * unless that name is already a mapping key for another schema (#74).
  */
 function distinctOwnValues(
   mappingKeys: readonly string[],
   members: readonly { readonly name: string; readonly own: readonly string[] | undefined }[],
 ) {
+  const mappingKeySet = new Set(mappingKeys)
   const counts = new Map<string, number>()
   for (const value of [...mappingKeys, ...members.flatMap(({ own }) => [...new Set(own)])]) {
     counts.set(value, (counts.get(value) ?? 0) + 1)
   }
   const settle = (chosen: readonly (readonly string[] | undefined)[]): typeof chosen => {
     const fallbacks = new Set(
-      members.flatMap(({ name }, index) => (chosen[index] === undefined ? [name] : [])),
+      members.flatMap(({ name }, index) =>
+        chosen[index] === undefined && !mappingKeySet.has(name) ? [name] : [],
+      ),
     )
     const next = chosen.map((values) => {
       const kept = values?.filter((value) => !fallbacks.has(value)) ?? []
@@ -237,6 +241,8 @@ function makeCyclicContainer(
     return groupIdent === undefined ? undefined : `#/$defs/${groupIdent}Schema`
   }
   const keyByLocalRef = new Map(group.map((name) => [localRef(name), name]))
+  const memberKey = (member: Schema) =>
+    member.$ref === undefined ? undefined : keyByLocalRef.get(member.$ref)
   /**
    * A member localized to `#/$defs/<Ident>Schema` would take that name as its implicit
    * discriminator value, so the schema name is pinned in the mapping, and mapping targets
@@ -250,21 +256,41 @@ function makeCyclicContainer(
     // An explicit value is never replaced by an implicit one spelled the same.
     const values = new Set(mapping.map(([value]) => value))
     const implicit = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].flatMap((member) => {
-      const key = member.$ref === undefined ? undefined : keyByLocalRef.get(member.$ref)
+      const key = memberKey(member)
       return key === undefined || mapped.has(key) || values.has(key)
         ? []
         : [[key, member.$ref] as const]
     })
+    // A member whose schema name another schema already holds as a mapping key has no
+    // value of its own: wrapped in `allOf`, it is no `$ref` the discriminator can name, so
+    // the local `#/$defs/<Ident>Schema` name never becomes its value (#74).
+    const unconstrain = (members: readonly Schema[] | undefined) =>
+      members?.map((member) => {
+        const key = memberKey(member)
+        return key !== undefined && !mapped.has(key) && values.has(key)
+          ? { allOf: [member] }
+          : member
+      })
+    const oneOf = unconstrain(node.oneOf)
+    const anyOf = unconstrain(node.anyOf)
+    const isUnconstrained =
+      oneOf?.some((member, index) => member !== node.oneOf?.[index]) === true ||
+      anyOf?.some((member, index) => member !== node.anyOf?.[index]) === true
     const localized = mapping.map(([value, target]) => {
       const key = componentSchemaKey(target)
       return [value, (key === undefined ? undefined : localRef(key)) ?? target] as const
     })
     const isUnchanged =
       implicit.length === 0 &&
+      !isUnconstrained &&
       localized.every(([, target], index) => target === mapping[index]?.[1])
     if (isUnchanged) return node
+    const members: [string, unknown][] = []
+    if (oneOf !== undefined) members.push(['oneOf', oneOf])
+    if (anyOf !== undefined) members.push(['anyOf', anyOf])
     const local = Object.fromEntries([
       ...Object.entries(node),
+      ...members,
       [
         'discriminator',
         { ...discriminator, mapping: Object.fromEntries([...localized, ...implicit]) },
