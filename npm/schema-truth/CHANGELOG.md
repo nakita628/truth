@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.9.1
+
+### Patch Changes
+
+- [#89](https://github.com/nakita628/truth/pull/89) [`d176510`](https://github.com/nakita628/truth/commit/d1765102ad2559a57bf59975764050c8e9c84e23) Thanks [@nakita628](https://github.com/nakita628)! - Zod, Valibot, Effect and ArkType: a `propertyNames` `enum` with no string member, such as `[]`, now emits `Object.keys(…).length===0`, and one with non-string members looks a key up only among its strings. The emitted `[].includes(key)` or number-array lookup failed to type-check (TS2345).
+
 ## 0.9.0
 
 ### Minor Changes
