@@ -11,6 +11,7 @@ import {
   ownProperties,
   propertyEmitOptions,
   propertyNamesKeyCheck,
+  withoutShadowedUnevaluated,
 } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
@@ -27,11 +28,12 @@ import { effect, wholeValueMessage } from './effect.js'
  * become `Schema.makeFilter(...)` filters passed to the schema's `.check(...)`.
  */
 export function object(
-  schema: JSONSchema,
+  input: JSONSchema,
   rootName: string,
   isEffect: boolean,
   options?: EmitOptions,
 ) {
+  const schema = withoutShadowedUnevaluated(input)
   if (hasCombinator(schema)) return effect(schema, rootName, isEffect, options)
 
   const errorMessage = schema['x-error-message']

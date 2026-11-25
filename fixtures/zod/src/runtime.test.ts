@@ -36,6 +36,7 @@ import { Schema as SimpleSchema } from '../simple/output.ts'
 import { Order as SplitNestedOrder } from '../split-nested/output.ts'
 import { User as SplitRefsUser } from '../split-refs/output.ts'
 import { User as TitleUser } from '../title/output.ts'
+import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
 
 describe('zod fixtures: error-messages runtime', () => {
   it('valid input passes', () => {
@@ -946,5 +947,15 @@ describe('zod fixtures: discriminator-own-values runtime', () => {
 
   it.each([{ type: 'Comparison', key: 'k' }, { type: 'Compound' }, { type: 'xor' }])('rejects %j', (value) => {
     expect(DiscriminatorOwnValuesFilter.safeParse(value).success).toBe(false)
+  })
+})
+
+describe('zod fixtures: unevaluated-shadowed runtime (#93)', () => {
+  it.each([{ typed: { a: 'x', b: 's' } }, { open: { a: 'x', b: 1 } }])('accepts %j, whose extra keys additionalProperties evaluates', (value) => {
+    expect(UnevaluatedShadowed.safeParse(value).success).toBe(true)
+  })
+
+  it.each([{ typed: { b: 1 } }])('rejects %j, which additionalProperties refuses', (value) => {
+    expect(UnevaluatedShadowed.safeParse(value).success).toBe(false)
   })
 })

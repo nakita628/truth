@@ -12,6 +12,7 @@ import {
   ownProperties,
   propertyEmitOptions,
   propertyNamesKeyCheck,
+  withoutShadowedUnevaluated,
 } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
@@ -37,11 +38,12 @@ import { valibot } from './valibot.js'
  * (`valibot.ts:readonly`), so this function does NOT add it itself.
  */
 export function object(
-  schema: JSONSchema,
+  input: JSONSchema,
   rootName: string,
   isValibot: boolean,
   options?: EmitOptions,
 ) {
+  const schema = withoutShadowedUnevaluated(input)
   if (hasCombinator(schema)) return valibot(schema, rootName, isValibot, options)
 
   const errorMessage = schema['x-error-message']

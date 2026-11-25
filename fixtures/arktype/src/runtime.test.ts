@@ -48,6 +48,7 @@ import { Order as SplitNestedOrder } from '../split-nested/output.ts'
 import { User as SplitRefsUser } from '../split-refs/output.ts'
 import { User as TitleUser } from '../title/output.ts'
 import { Account } from '../write-only-password/output.ts'
+import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
 
 const issues = (result: unknown) => {
   if (!(result instanceof type.errors)) {
@@ -1117,5 +1118,15 @@ describe('discriminator-own-values', () => {
 
   it.each([{ type: 'Comparison', key: 'k' }, { type: 'Compound' }, { type: 'xor' }])('rejects %j', (value) => {
     expect(DiscriminatorOwnValuesFilter(value)).toBeInstanceOf(type.errors)
+  })
+})
+
+describe('unevaluated-shadowed (#93)', () => {
+  it.each([{ typed: { a: 'x', b: 's' } }, { open: { a: 'x', b: 1 } }])('accepts %j, whose extra keys additionalProperties evaluates', (value) => {
+    expect(UnevaluatedShadowed(value)).not.toBeInstanceOf(type.errors)
+  })
+
+  it.each([{ typed: { b: 1 } }])('rejects %j, which additionalProperties refuses', (value) => {
+    expect(UnevaluatedShadowed(value)).toBeInstanceOf(type.errors)
   })
 })

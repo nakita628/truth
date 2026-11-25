@@ -10,6 +10,7 @@ import {
   isEvaluatedObjectKeyExpression,
   objectEvaluatedKeys,
   propertyNamesKeyCheck,
+  withoutShadowedUnevaluated,
 } from '../../helper/unevaluated.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
@@ -33,12 +34,8 @@ const OWN_PROPERTIES_PREPROCESS =
  * `patternProperties`, `dependentRequired`) are emitted as `.refine(...)`
  * chains.
  */
-export function object(
-  schema: JSONSchema,
-  rootName: string,
-  isZod: boolean,
-  options?: EmitOptions,
-) {
+export function object(input: JSONSchema, rootName: string, isZod: boolean, options?: EmitOptions) {
+  const schema = withoutShadowedUnevaluated(input)
   if (hasCombinator(schema)) return zod(schema, rootName, isZod, options)
 
   const errorMessage = schema['x-error-message']

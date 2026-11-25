@@ -9,6 +9,7 @@ import {
   objectEvaluatedKeys,
   propertyNamesEnumCheck,
   propertyNamesKeyCheck,
+  withoutShadowedUnevaluated,
 } from './unevaluated.js'
 
 describe('evaluatedProperties', () => {
@@ -200,5 +201,31 @@ describe('objectEvaluatedKeys', () => {
     expect(isEvaluatedObjectKeyExpression(keys, 'key', 'input', () => 'IF')).toBe(
       'Object.hasOwn(input,"a")',
     )
+  })
+})
+
+describe('withoutShadowedUnevaluated (#93)', () => {
+  it.each<[JSONSchema, JSONSchema]>([
+    [
+      {
+        properties: { a: {} },
+        additionalProperties: { type: 'string' },
+        unevaluatedProperties: false,
+        'x-unevaluatedProperties-message': 'no',
+      },
+      { properties: { a: {} }, additionalProperties: { type: 'string' } },
+    ],
+    [
+      { additionalProperties: true, unevaluatedProperties: { type: 'integer' } },
+      { additionalProperties: true },
+    ],
+    [
+      { additionalProperties: false, unevaluatedProperties: false },
+      { additionalProperties: false },
+    ],
+    [{ unevaluatedProperties: false }, { unevaluatedProperties: false }],
+    [{ additionalProperties: true }, { additionalProperties: true }],
+  ])('withoutShadowedUnevaluated(%o) → %o', (schema, expected) => {
+    expect(withoutShadowedUnevaluated(schema)).toStrictEqual(expected)
   })
 })
