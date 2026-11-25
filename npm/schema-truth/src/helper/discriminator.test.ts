@@ -121,4 +121,43 @@ describe("discriminatedMembers reads a member's own values (#73)", () => {
       ['Open'],
     ])
   })
+
+  it("drops a member whose schema name is another schema's mapping key (#74)", () => {
+    const defs = {
+      Cmp: { properties: { type: { enum: ['eq', 'ne'] } } },
+      Cpd: { properties: { type: { type: 'string' } } },
+      Alias: { properties: { type: { type: 'string' } } },
+      Other: { properties: { type: { const: 'Cpd' } } },
+    } satisfies { [name: string]: JSONSchema }
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'type', mapping: { Cpd: '#/$defs/Alias' } } },
+      ['Cmp', 'Cpd', 'Alias', 'Other'].map((name) => ({ $ref: `#/$defs/${name}` })),
+      defs,
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([
+      ['eq', 'ne'],
+      undefined,
+      ['Cpd'],
+      ['Other'],
+    ])
+  })
+
+  it('reads a bare schema name as a mapping target', () => {
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'type', mapping: { Cat: 'Cat', dog: '#/$defs/Dog' } } },
+      ['Cat', 'Dog'].map((name) => ({ $ref: `#/$defs/${name}` })),
+      {},
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([['Cat'], ['dog']])
+  })
+
+  it('keeps the schema name when the mapping key of that name resolves to no schema', () => {
+    const mapping = { Cat: 'openapi.yaml#/components/schemas/Cat', dog: '#/$defs/Dog', x: 42 }
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'type', mapping: mapping as never } },
+      ['Cat', 'Dog'].map((name) => ({ $ref: `#/$defs/${name}` })),
+      {},
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([['Cat'], ['dog']])
+  })
 })

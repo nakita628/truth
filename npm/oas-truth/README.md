@@ -97,7 +97,7 @@ const source = `${declarations[0]?.importLine}\n\n${declarations[0]?.code}`
 
 ## Discriminator values
 
-A `discriminator` member that no `mapping` entry names takes its own discriminator property's `const` / `enum` values before its schema name, as in schema-truth. This departs from the specification's implicit mapping on purpose, so that documents such as OpenAI's `CompoundFilter` validate as intended.
+A `discriminator` member that no `mapping` entry names takes its own discriminator property's `const` / `enum` values before its schema name, as in schema-truth; when that name is already a `mapping` key for another schema, the member keeps no discriminator constraint. Components inside a cycle (ArkType `scope`, TypeBox `Type.Cyclic`) get the same values as the rest, and a scope alias such as `CompoundFilterSchema` is never one of them. This departs from the specification's implicit mapping on purpose, so that documents such as OpenAI's `CompoundFilter` validate as intended.
 
 ## License
 

@@ -126,6 +126,14 @@ function componentSchemaKey(ref: string) {
   return ref.startsWith('#/components/schemas/') ? schemaRefToName(ref) : undefined
 }
 
+/**
+ * The component key a discriminator `mapping` target names: a `#/components/schemas/...`
+ * reference, or a bare schema name, which the Discriminator Object also allows.
+ */
+function mappingTargetKey(target: string) {
+  return target.includes('#') || target.includes('/') ? componentSchemaKey(target) : target
+}
+
 /** A keyword's value as a list, or none when the unsanitized document holds something else. */
 function listOf(value: unknown): readonly unknown[] {
   return Array.isArray(value) ? value : []
@@ -151,10 +159,12 @@ function ownDiscriminatorValues(schema: Schema, propertyName: string) {
 /**
  * The own values each unmapped member keeps: those no other member, mapping key or
  * fallback name also claims, as schema-truth's `discriminatedMembers` decides. A member
- * left with none keeps its schema name (`undefined` here), which is then claimed too.
+ * left with none keeps its schema name (`undefined` here), which is then claimed too,
+ * unless that name is a mapping key whose target resolves to another schema (#74).
  */
 function distinctOwnValues(
   mappingKeys: readonly string[],
+  takenNames: ReadonlySet<string>,
   members: readonly { readonly name: string; readonly own: readonly string[] | undefined }[],
 ) {
   const counts = new Map<string, number>()
@@ -163,7 +173,9 @@ function distinctOwnValues(
   }
   const settle = (chosen: readonly (readonly string[] | undefined)[]): typeof chosen => {
     const fallbacks = new Set(
-      members.flatMap(({ name }, index) => (chosen[index] === undefined ? [name] : [])),
+      members.flatMap(({ name }, index) =>
+        chosen[index] === undefined && !takenNames.has(name) ? [name] : [],
+      ),
     )
     const next = chosen.map((values) => {
       const kept = values?.filter((value) => !fallbacks.has(value)) ?? []
@@ -196,7 +208,7 @@ function pinOwnDiscriminatorValues(node: Schema, schemas: { readonly [k: string]
   const mapping = Object.entries(isRecord(discriminator.mapping) ? discriminator.mapping : {})
   const mapped = new Set(
     mapping.map(([, target]) =>
-      typeof target === 'string' ? componentSchemaKey(target) : undefined,
+      typeof target === 'string' ? mappingTargetKey(target) : undefined,
     ),
   )
   const members = [...listOf(node.oneOf), ...listOf(node.anyOf)]
@@ -211,6 +223,11 @@ function pinOwnDiscriminatorValues(node: Schema, schemas: { readonly [k: string]
   })
   const chosen = distinctOwnValues(
     mapping.map(([value]) => value),
+    new Set(
+      mapping.flatMap(([value, target]) =>
+        typeof target === 'string' && mappingTargetKey(target) !== undefined ? [value] : [],
+      ),
+    ),
     unmapped,
   )
   const pinned = unmapped.flatMap(({ ref }, index) =>
@@ -237,6 +254,8 @@ function makeCyclicContainer(
     return groupIdent === undefined ? undefined : `#/$defs/${groupIdent}Schema`
   }
   const keyByLocalRef = new Map(group.map((name) => [localRef(name), name]))
+  const memberKey = (member: Schema) =>
+    member.$ref === undefined ? undefined : keyByLocalRef.get(member.$ref)
   /**
    * A member localized to `#/$defs/<Ident>Schema` would take that name as its implicit
    * discriminator value, so the schema name is pinned in the mapping, and mapping targets
@@ -245,26 +264,53 @@ function makeCyclicContainer(
   const localizeDiscriminator = (node: Schema) => {
     const { discriminator } = node
     if (discriminator?.propertyName === undefined) return node
-    const mapping = Object.entries(discriminator.mapping ?? {})
-    const mapped = new Set(mapping.map(([, target]) => componentSchemaKey(target)))
-    // An explicit value is never replaced by an implicit one spelled the same.
-    const values = new Set(mapping.map(([value]) => value))
+    // The document is not sanitized yet, so a mapping target may not be a string.
+    const mapping = Object.entries(discriminator.mapping ?? {}).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    )
+    const mapped = new Set(mapping.map(([, target]) => mappingTargetKey(target)))
+    // A mapping key whose target resolves to a schema is another schema's name: an explicit
+    // value is never replaced by an implicit one spelled the same. A key whose target
+    // resolves nowhere (a reference into another document) names no schema here.
+    const taken = new Set(
+      mapping.flatMap(([value, target]) => (mappingTargetKey(target) === undefined ? [] : [value])),
+    )
     const implicit = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].flatMap((member) => {
-      const key = member.$ref === undefined ? undefined : keyByLocalRef.get(member.$ref)
-      return key === undefined || mapped.has(key) || values.has(key)
+      const key = memberKey(member)
+      return key === undefined || mapped.has(key) || taken.has(key)
         ? []
         : [[key, member.$ref] as const]
     })
+    // A member whose schema name another schema already holds as a mapping key has no
+    // value of its own: wrapped in `allOf`, it is no `$ref` the discriminator can name, so
+    // the local `#/$defs/<Ident>Schema` name never becomes its value (#74).
+    const dropConstraint = (members: readonly Schema[] | undefined) =>
+      members?.map((member) => {
+        const key = memberKey(member)
+        return key !== undefined && !mapped.has(key) && taken.has(key)
+          ? { allOf: [member] }
+          : member
+      })
+    const oneOf = dropConstraint(node.oneOf)
+    const anyOf = dropConstraint(node.anyOf)
+    const isDropped =
+      oneOf?.some((member, index) => member !== node.oneOf?.[index]) === true ||
+      anyOf?.some((member, index) => member !== node.anyOf?.[index]) === true
     const localized = mapping.map(([value, target]) => {
-      const key = componentSchemaKey(target)
+      const key = mappingTargetKey(target)
       return [value, (key === undefined ? undefined : localRef(key)) ?? target] as const
     })
     const isUnchanged =
       implicit.length === 0 &&
+      !isDropped &&
       localized.every(([, target], index) => target === mapping[index]?.[1])
     if (isUnchanged) return node
+    const members: [string, unknown][] = []
+    if (oneOf !== undefined) members.push(['oneOf', oneOf])
+    if (anyOf !== undefined) members.push(['anyOf', anyOf])
     const local = Object.fromEntries([
       ...Object.entries(node),
+      ...members,
       [
         'discriminator',
         { ...discriminator, mapping: Object.fromEntries([...localized, ...implicit]) },

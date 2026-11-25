@@ -1,5 +1,16 @@
 # oas-truth
 
+## 0.10.0
+
+### Minor Changes
+
+- [#111](https://github.com/nakita628/truth/pull/111) [`20ebf40`](https://github.com/nakita628/truth/commit/20ebf40225ac1915d92c0429fa5704d2ecac0cbc) Thanks [@nakita628](https://github.com/nakita628)! - A `discriminator` member that no `mapping` entry names, has no `const` / `enum` of its own, and whose schema name is already a `mapping` key for another schema now keeps no discriminator constraint, instead of taking that name (or, inside an ArkType `scope` / TypeBox `Type.Cyclic`, the local alias such as `CompoundFilterSchema`) as its value.
+
+### Patch Changes
+
+- Updated dependencies [[`20ebf40`](https://github.com/nakita628/truth/commit/20ebf40225ac1915d92c0429fa5704d2ecac0cbc)]:
+  - schema-truth@0.11.0
+
 ## 0.9.0
 
 ### Minor Changes

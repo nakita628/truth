@@ -14,6 +14,15 @@ function definitionName(ref: string) {
 }
 
 /**
+ * The definition a discriminator `mapping` target names: a reference such as
+ * `#/components/schemas/Cat`, or a bare schema name such as `Cat`, which the Discriminator
+ * Object also allows.
+ */
+function mappingTargetName(target: string) {
+  return target.includes('#') || target.includes('/') ? definitionName(target) : target
+}
+
+/**
  * The string values a schema's own `propertyName` property is held to (`const`, or the
  * strings of `enum`), read from its `properties` or from those of an `allOf` member;
  * `undefined` when it holds the property to no fixed value.
@@ -40,10 +49,12 @@ function ownDiscriminatorValues(
  * The own values each unmapped member keeps: those no other member, mapping key or
  * fallback name also claims, since a shared value would not tell the members apart. A
  * member left with none falls back to its name (`undefined` here), and that name is then
- * claimed too, until nothing changes.
+ * claimed too, until nothing changes. A name in `takenNames` (a mapping key whose target
+ * resolves to a schema) is no fallback: that member is left unconstrained instead.
  */
 function distinctOwnValues(
   mappingKeys: readonly string[],
+  takenNames: ReadonlySet<string>,
   members: readonly ({ name: string; own: readonly string[] | undefined } | undefined)[],
 ) {
   const counts = new Map<string, number>()
@@ -53,7 +64,9 @@ function distinctOwnValues(
   const settle = (chosen: readonly (readonly string[] | undefined)[]): typeof chosen => {
     const fallbacks = new Set(
       members.flatMap((member, index) =>
-        member !== undefined && chosen[index] === undefined ? [member.name] : [],
+        member !== undefined && chosen[index] === undefined && !takenNames.has(member.name)
+          ? [member.name]
+          : [],
       ),
     )
     const next = chosen.map((values) => {
@@ -78,7 +91,8 @@ function distinctOwnValues(
  * the mapping names it nowhere, the values the member's own discriminator property is held
  * to (`const` / `enum`), less any another member, a mapping key or a fallback name also
  * claims; and when none is left, the definition name itself (the specification's implicit
- * mapping). Preferring
+ * mapping), unless that name is already a mapping key for another schema, in which case the
+ * member is left unconstrained (`values: undefined`). Preferring
  * the member's own values departs from the
  * specification on purpose: a document such as OpenAI's `CompoundFilter`, whose member
  * declares `type: { enum: [eq, ne] }`, means those values, and its schema name could never
@@ -92,12 +106,15 @@ export function discriminatedMembers(
 ) {
   const propertyName = schema.discriminator?.propertyName
   if (propertyName === undefined) return undefined
-  const mapping = Object.entries(schema.discriminator?.mapping ?? {})
+  // The document is parsed JSON, never checked against the type: a target may not be a string.
+  const mapping = Object.entries(schema.discriminator?.mapping ?? {}).filter(
+    (entry): entry is [string, string] => typeof entry[1] === 'string',
+  )
   const resolved = members.map((member) => {
     const name = member.$ref === undefined ? undefined : definitionName(member.$ref)
     if (name === undefined) return { member, name, mapped: [], own: undefined }
     const mapped = mapping
-      .filter(([, target]) => target === member.$ref || definitionName(target) === name)
+      .filter(([, target]) => target === member.$ref || mappingTargetName(target) === name)
       .map(([value]) => value)
     const definition =
       definitions !== undefined && Object.hasOwn(definitions, name) ? definitions[name] : undefined
@@ -107,8 +124,14 @@ export function discriminatedMembers(
         : ownDiscriminatorValues(definition, propertyName)
     return { member, name, mapped, own }
   })
+  // A mapping key whose target resolves to a schema: an unmapped member named so is another
+  // schema's name, and is left unconstrained rather than take it.
+  const takenNames = new Set(
+    mapping.flatMap(([value, target]) => (mappingTargetName(target) === undefined ? [] : [value])),
+  )
   const chosen = distinctOwnValues(
     mapping.map(([value]) => value),
+    takenNames,
     resolved.map(({ name, mapped, own }) =>
       name === undefined || mapped.length > 0 ? undefined : { name, own },
     ),
@@ -118,7 +141,9 @@ export function discriminatedMembers(
     members: resolved.map(({ member, name, mapped }, index) => {
       if (name === undefined) return { member, values: undefined }
       if (mapped.length > 0) return { member, values: mapped }
-      return { member, values: chosen[index] ?? [name] }
+      const values = chosen[index]
+      if (values !== undefined) return { member, values }
+      return { member, values: takenNames.has(name) ? undefined : [name] }
     }),
   }
 }

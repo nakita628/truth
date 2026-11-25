@@ -143,7 +143,7 @@ export const User = yup.object({
 
 ## Discriminator values
 
-For an OpenAPI `discriminator`, a member that no `mapping` entry names takes the values its own discriminator property is held to (`const`, or the strings of `enum`), and only when it has neither, its schema name. The specification's implicit mapping always uses the schema name; schema-truth departs from it on purpose, because a document whose member declares `type: { enum: [eq, ne] }` means those values, and the schema name could never match.
+For an OpenAPI `discriminator`, a member that no `mapping` entry names takes the values its own discriminator property is held to (`const`, or the strings of `enum`), and only when it has neither, its schema name. If that schema name is already a `mapping` key for another schema, the member keeps no discriminator constraint at all: the name stays with the schema the explicit entry names. The unconstrained member still accepts that value when the rest of its shape fits, so under `oneOf` a payload that fits both members is rejected where the target library checks exclusivity (Zod's `z.xor`). The specification's implicit mapping always uses the schema name; schema-truth departs from it on purpose, because a document whose member declares `type: { enum: [eq, ne] }` means those values, and the schema name could never match.
 
 ## License
 
