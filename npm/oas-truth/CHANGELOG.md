@@ -1,5 +1,16 @@
 # oas-truth
 
+## 0.11.0
+
+### Minor Changes
+
+- [#115](https://github.com/nakita628/truth/pull/115) [`6655334`](https://github.com/nakita628/truth/commit/66553348bc7690175bd7a39dff96339a2f1b9174) Thanks [@nakita628](https://github.com/nakita628)! - Valibot wire parameters are fully documented on the input side (`@valibot/to-json-schema` with `typeMode: 'input'`). A pipe that reads text through a transform now starts with `v.metadata(...)` holding the spec's own schema. This covers arrays, nullable parameters, booleans, literals, 64-bit integers and parameter objects. Number pipes also carry `format`, `description`, `examples` and `deprecated`.
+
+### Patch Changes
+
+- Updated dependencies [[`6655334`](https://github.com/nakita628/truth/commit/66553348bc7690175bd7a39dff96339a2f1b9174)]:
+  - schema-truth@0.12.0
+
 ## 0.10.0
 
 ### Minor Changes
