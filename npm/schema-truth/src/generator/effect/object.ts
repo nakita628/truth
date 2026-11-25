@@ -107,11 +107,15 @@ export function object(
     typeof schema.additionalProperties === 'object'
       ? schema['x-additionalProperties-message']
       : schema['x-unevaluatedProperties-message']
-  const checksKeys = undeclaredRequired.length > 0 || extraSchema !== undefined || closed
+  // `propertyNames` holds every key, whatever else the object declares.
+  const checksKeys =
+    undeclaredRequired.length > 0 ||
+    extraSchema !== undefined ||
+    closed ||
+    schema.propertyNames !== undefined
   if (!schema.properties && !checksKeys) {
     // v3.2: patternProperties without properties → unknown-typed Record + filter.
-    // `propertyNames` holds every key, whatever else the object declares.
-    if (schema.patternProperties || schema.propertyNames) {
+    if (schema.patternProperties) {
       const record = 'Schema.Record(Schema.String,Schema.Unknown)'
       const checks = [propertyNamesFilter(), ...patternPropertiesFilters()].filter((a) => a !== '')
       return checks.length > 0 ? `${record}.check(${checks.join(',')})` : record

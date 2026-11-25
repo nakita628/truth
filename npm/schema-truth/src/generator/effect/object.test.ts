@@ -79,15 +79,19 @@ describe('object', () => {
     it.each<[JSONSchema, string]>([
       [
         { type: 'object', propertyNames: { enum: [] } },
-        'Schema.Record(Schema.String,Schema.Unknown).check(Schema.makeFilter((input)=>Object.keys(input).length===0))',
+        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).length===0))',
       ],
       [
         { type: 'object', propertyNames: { pattern: '^a' } },
-        'Schema.Record(Schema.String,Schema.Unknown).check(Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
+        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
       ],
       [
         { type: 'object', additionalProperties: true, propertyNames: { pattern: '^a' } },
-        'Schema.Record(Schema.String,Schema.Unknown).check(Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
+        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
+      ],
+      [
+        { type: 'object', propertyNames: { pattern: '^a' }, minProperties: 1 },
+        'Schema.StructWithRest(Schema.Struct({}),[Schema.Record(Schema.String,Schema.Unknown)]).check(Schema.makeFilter((input)=>Object.keys(input).length>=1),Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
       ],
     ])(
       'checks the keys of an object with no properties or additionalProperties schema (#88): %o → %s',

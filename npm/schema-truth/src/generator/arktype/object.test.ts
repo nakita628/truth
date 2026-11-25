@@ -80,6 +80,10 @@ describe('object', () => {
         { type: 'object', additionalProperties: true, propertyNames: { pattern: '^a' } },
         'type({}).narrow((data) => Object.keys(data).every((key) => new RegExp("^a").test(key)))',
       ],
+      [
+        { type: 'object', propertyNames: { pattern: '^a' }, minProperties: 1 },
+        'type({}).narrow((data) => Object.keys(data).length >= 1).narrow((data) => Object.keys(data).every((key) => new RegExp("^a").test(key)))',
+      ],
     ])(
       'checks the keys of an object with no properties or additionalProperties schema (#88): %o → %s',
       (input, expected) => {

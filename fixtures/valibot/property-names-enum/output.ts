@@ -15,15 +15,15 @@ export const Schema = v.partial(
       v.check((input) => Object.keys(input).length === 0),
     ),
     bare: v.pipe(
-      v.record(v.string(), v.unknown()),
+      v.partial(v.looseObject({})),
       v.check((input) => Object.keys(input).length === 0),
     ),
     pattern: v.pipe(
-      v.record(v.string(), v.unknown()),
+      v.partial(v.looseObject({})),
       v.check((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
     ),
     open: v.pipe(
-      v.record(v.string(), v.unknown()),
+      v.partial(v.looseObject({})),
       v.check((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
     ),
   }),

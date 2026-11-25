@@ -123,10 +123,14 @@ export function object(
     typeof schema.additionalProperties === 'object'
       ? schema['x-additionalProperties-message']
       : schema['x-unevaluatedProperties-message']
-  const checksKeys = undeclaredRequired.length > 0 || extraSchema !== undefined || closed
+  // `propertyNames` holds every key, whatever else the object declares.
+  const checksKeys =
+    undeclaredRequired.length > 0 ||
+    extraSchema !== undefined ||
+    closed ||
+    schema.propertyNames !== undefined
   if (!schema.properties && !checksKeys) {
-    // `propertyNames` holds every key, whatever else the object declares.
-    if (schema.patternProperties || schema.propertyNames) {
+    if (schema.patternProperties) {
       const record = `v.record(v.string(),v.unknown())`
       const actions = [propertyNamesCheck(), ...patternPropertiesChecks()].filter((a) => a !== '')
       return actions.length > 0 ? `v.pipe(${record},${actions.join(',')})` : record

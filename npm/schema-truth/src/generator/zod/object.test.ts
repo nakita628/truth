@@ -120,6 +120,10 @@ describe('object', () => {
         { type: 'object', additionalProperties: true, propertyNames: { pattern: '^a' } },
         'z.looseObject({}).refine((val)=>Object.keys(val).every((key)=>new RegExp("^a").test(key)))',
       ],
+      [
+        { type: 'object', propertyNames: { pattern: '^a' }, minProperties: 1 },
+        'z.looseObject({}).refine((val)=>Object.keys(val).length>=1).refine((val)=>Object.keys(val).every((key)=>new RegExp("^a").test(key)))',
+      ],
     ])(
       'checks the keys of an object with no properties or additionalProperties schema (#88): %o → %s',
       (input, expected) => {
