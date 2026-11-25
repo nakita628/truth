@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.13.3
+
+### Patch Changes
+
+- [#133](https://github.com/nakita628/truth/pull/133) [`98dda66`](https://github.com/nakita628/truth/commit/98dda669800584079eb3d022883cdf6af291105a) Thanks [@nakita628](https://github.com/nakita628)! - Check more of a `propertyNames` schema in Zod, Valibot, Effect and ArkType: `pattern` together with `enum`, plus `const`, `minLength`, `maxLength`, and `propertyNames: false` (no key allowed). The key pattern gets the `u` flag that a Unicode escape needs, so `^\p{L}+$` matches letters.
+
 ## 0.13.2
 
 ### Patch Changes
