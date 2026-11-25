@@ -2,6 +2,7 @@ import {
   DEFAULT_ROOT_NAME,
   DEFINITION_REF_PREFIXES,
   INTEGER_WIRE_PATTERN,
+  NUMBER_RANGES,
   NUMBER_WIRE_PATTERN,
 } from '../../constants/index.js'
 import {
@@ -136,14 +137,18 @@ function wireString(schema: JSONSchema, ref?: string, pattern?: string) {
  * `Type.Refine` on the text read as a number, since the decoded value is not checked.
  * The first check rejects a number that overflows to `Infinity` and an integer outside
  * the safe integer range, where `Number` may round it. That holds for an int64, uint64 or
- * bigint `format` too, since this wire decodes it with `Number`.
+ * bigint `format` too, since this wire decodes it with `Number`. A fixed-width `format`
+ * (`int32`, `uint32`, `float`, `float32`) adds its range after it.
  */
 function numericWire(schema: JSONSchema, kind: 'integer' | 'number', ref?: string) {
   const pattern = kind === 'integer' ? INTEGER_WIRE_PATTERN : NUMBER_WIRE_PATTERN
-  return [numericRange(kind), ...numericBounds(schema)].reduce(
+  return [numericRange(kind), ...formatRange(schema, kind), ...numericBounds(schema)].reduce(
     (wire, [check, keyword, message]) =>
       `Type.Refine(${wire},(value)=>${check},()=>${JSON.stringify(
-        schema[`x-${keyword}-message`] ?? schema['x-error-message'] ?? message,
+        // An empty message is absent, as `wireString` reads it.
+        [schema[`x-${keyword}-message`], schema['x-error-message']].find(
+          (custom) => typeof custom === 'string' && custom !== '',
+        ) ?? message,
       )})`,
     wireString(schema, ref, JSON.stringify(pattern.source)),
   )
@@ -161,6 +166,44 @@ function numericRange(kind: 'integer' | 'number'): NumericBound {
   return kind === 'integer'
     ? ['Number.isSafeInteger(Number(value))', 'error', 'must be a safe integer']
     : ['Number.isFinite(Number(value))', 'error', 'must be a finite number']
+}
+
+/**
+ * The range of a fixed-width `format` on `Number(value)`: `int32` / `uint32` on an integer
+ * wire, `float` / `float32` on a number wire, with the bounds the other generators' wires
+ * check (`float32` is bounded by the double nearest `FLT_MAX`, as `z.float32()` is). A
+ * side the schema already bounds as tightly is left to that keyword's check and message.
+ * Its messages are the `x-error-message`, since it is the format's range, not a keyword's.
+ */
+function formatRange(schema: JSONSchema, kind: 'integer' | 'number'): readonly NumericBound[] {
+  const { format, minimum, maximum, exclusiveMinimum, exclusiveMaximum } = schema
+  const range =
+    kind === 'integer'
+      ? format === 'int32' || format === 'uint32'
+        ? NUMBER_RANGES[format]
+        : undefined
+      : format === 'float' || format === 'float32'
+        ? NUMBER_RANGES.float32
+        : undefined
+  if (range === undefined) return []
+  const low = Number(range.minimum)
+  const high = Number(range.maximum)
+  const lowerBounds = [
+    ...(minimum === undefined ? [] : [minimum]),
+    ...(typeof exclusiveMinimum === 'number' ? [exclusiveMinimum] : []),
+  ]
+  const upperBounds = [
+    ...(maximum === undefined ? [] : [maximum]),
+    ...(typeof exclusiveMaximum === 'number' ? [exclusiveMaximum] : []),
+  ]
+  return [
+    ...(lowerBounds.some((bound) => bound >= low)
+      ? []
+      : [[`Number(value)>=${range.minimum}`, 'error', `must be >= ${range.minimum}`] as const]),
+    ...(upperBounds.some((bound) => bound <= high)
+      ? []
+      : [[`Number(value)<=${range.maximum}`, 'error', `must be <= ${range.maximum}`] as const]),
+  ]
 }
 
 /** The checks of the numeric keywords on `Number(value)`, with TypeBox's own messages. */

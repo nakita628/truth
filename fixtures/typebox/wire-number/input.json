@@ -19,6 +19,14 @@
     "total": {
       "type": "integer",
       "format": "int64"
+    },
+    "small": {
+      "type": "integer",
+      "format": "int32"
+    },
+    "single": {
+      "type": "number",
+      "format": "float"
     }
   }
 }

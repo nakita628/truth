@@ -725,6 +725,45 @@ describe('typebox', () => {
       expect(typebox(input, 'Schema', false, { paramIn: 'query' })).toBe(expected)
     })
 
+    it.each([
+      [
+        { type: 'integer', format: 'int32' },
+        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer"),(value)=>Number(value)>=-2147483648,()=>"must be >= -2147483648"),(value)=>Number(value)<=2147483647,()=>"must be <= 2147483647")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'integer', format: 'uint32', maximum: 10 },
+        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer"),(value)=>Number(value)>=0,()=>"must be >= 0"),(value)=>Number(value)<=10,()=>"must be <= 10")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        {
+          type: 'integer',
+          format: 'int32',
+          exclusiveMinimum: 0,
+          maximum: 100,
+          'x-maximum-message': 'too big',
+        },
+        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer"),(value)=>Number(value)>0,()=>"must be > 0"),(value)=>Number(value)<=100,()=>"too big")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'number', format: 'float' },
+        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$"}),(value)=>Number.isFinite(Number(value)),()=>"must be a finite number"),(value)=>Number(value)>=-3.4028234663852886e38,()=>"must be >= -3.4028234663852886e38"),(value)=>Number(value)<=3.4028234663852886e38,()=>"must be <= 3.4028234663852886e38")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'number', format: 'float32', 'x-error-message': 'bad' },
+        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$",errorMessage:"bad"}),(value)=>Number.isFinite(Number(value)),()=>"bad"),(value)=>Number(value)>=-3.4028234663852886e38,()=>"bad"),(value)=>Number(value)<=3.4028234663852886e38,()=>"bad")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'integer', format: 'int32', 'x-error-message': '' },
+        'Codec(Type.Refine(Type.Refine(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"}),(value)=>Number.isSafeInteger(Number(value)),()=>"must be a safe integer"),(value)=>Number(value)>=-2147483648,()=>"must be >= -2147483648"),(value)=>Number(value)<=2147483647,()=>"must be <= 2147483647")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+      [
+        { type: 'number', format: 'double' },
+        'Codec(Type.Refine(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)(?:\\\\.\\\\d+)?(?:[eE][+-]?\\\\d+)?$"}),(value)=>Number.isFinite(Number(value)),()=>"must be a finite number")).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+      ],
+    ] as const)('query: %o checks the range of its format (#83) → %s', (input, expected) => {
+      expect(typebox(input, 'Schema', false, { paramIn: 'query' })).toBe(expected)
+    })
+
     it.each(['int64', 'uint64', 'bigint'] as const)(
       'query: integer with format %s decodes with Number, so it keeps the safe-integer check',
       (format) => {
