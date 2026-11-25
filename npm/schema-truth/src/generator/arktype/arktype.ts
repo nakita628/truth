@@ -310,7 +310,14 @@ function node(
     }
     const items = itemsSchemaOf(schema.items)
     if (schema.type === 'array' && items?.$ref) {
-      return arktypeWrap(`${ref(items)}.array()`, schema)
+      // A scope names its aliases by quoted definitions, which have no `.array()`.
+      const item = ref(items)
+      const array = isPlainOperand(item, true)
+        ? `"${item.slice(1, -1)}[]"`
+        : isArktypeDefinition(item)
+          ? `[${item},"[]"]`
+          : `${item}.array()`
+      return arktypeWrap(array, schema)
     }
     return arktypeWrap(ref(schema), schema)
   }
@@ -490,6 +497,9 @@ function node(
       // prefixItems. ArkType tuples reject extras by default; `unevaluatedItems`
       // as a schema is represented as a trailing variadic `...rest[]`.
       const unevaluatedItems = schema.unevaluatedItems
+      // Inside a scope the tuple stays a definition, so the scope resolves an alias in it;
+      // the global `type(...)` cannot.
+      const tuple = (definition: string) => (isArktype ? definition : `type(${definition})`)
       const tupleExpr = isSchemaObject(unevaluatedItems)
         ? (() => {
             const rest = arktype(unevaluatedItems, rootName, isArktype, options)
@@ -500,9 +510,9 @@ function node(
               : isArktypeDefinition(rest)
                 ? `[${rest},"[]"]`
                 : `${rest}.array()`
-            return `type([${items.join(',')},"...",${restArray}])`
+            return tuple(`[${items.join(',')},"...",${restArray}]`)
           })()
-        : `type([${items.join(',')}])`
+        : tuple(`[${items.join(',')}]`)
       const baseTuple = arktypeWrap(
         wireArray(describeWithMessage(tupleExpr, schema['x-prefixItems-message'])),
         schema,
