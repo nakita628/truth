@@ -107,14 +107,14 @@ export function wireNumberMetadata(
     ...(typeof exclusiveMinimum === 'number' ? [`exclusiveMinimum:${exclusiveMinimum}`] : []),
     ...(maximums.length > 0 ? [`maximum:${Math.min(...maximums)}`] : []),
     ...(typeof exclusiveMaximum === 'number' ? [`exclusiveMaximum:${exclusiveMaximum}`] : []),
-    ...(schema.multipleOf !== undefined ? [`multipleOf:${schema.multipleOf}`] : []),
+    ...(schema.multipleOf !== undefined ? [`multipleOf:${JSON.stringify(schema.multipleOf)}`] : []),
     // The pipe's own `v.description` / `v.metadata` come after the transform, where the
     // converter no longer reads, so they are documented here too.
     ...(schema.description === undefined
       ? []
       : [`description:${JSON.stringify(schema.description)}`]),
     ...(examples === undefined ? [] : [`examples:${serializeJSValue(examples)}`]),
-    ...(schema.deprecated === undefined ? [] : [`deprecated:${schema.deprecated}`]),
+    ...(schema.deprecated === undefined ? [] : [`deprecated:${JSON.stringify(schema.deprecated)}`]),
   ]
   return `v.metadata({${entries.join(',')}})`
 }

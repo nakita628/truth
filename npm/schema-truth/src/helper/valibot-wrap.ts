@@ -44,11 +44,13 @@ export type ValibotWrapOptions = CodeExtensionOptions & {
 }
 
 /** OpenAPI keywords a JSON Schema document has no use for. */
-const NON_JSON_SCHEMA_KEYS = new Set(['discriminator', 'xml', 'externalDocs', 'example', 'default'])
+const NON_JSON_SCHEMA_KEYS = new Set(['discriminator', 'xml', 'externalDocs', 'example'])
 
 /** The keywords whose value is a schema or a list of schemas. */
 const SCHEMA_VALUED_KEYS = new Set([
   'items',
+  'additionalItems',
+  'contentSchema',
   'prefixItems',
   'additionalProperties',
   'unevaluatedProperties',
@@ -67,11 +69,39 @@ const SCHEMA_VALUED_KEYS = new Set([
 /** The keywords whose value maps names to schemas. */
 const SCHEMA_MAP_KEYS = new Set([
   'properties',
+  'dependencies',
   'patternProperties',
   'dependentSchemas',
   '$defs',
   'definitions',
 ])
+
+/**
+ * The `v.string(...)` a pipe starts with, if it does. The document goes after it, so the
+ * pipe still expects a string (a union's message names what its members expect); the
+ * original pipe follows as a nested schema, where the converter stops before its regex.
+ */
+function leadingStringSchema(expression: string) {
+  const head = 'v.pipe(v.string('
+  if (!expression.startsWith(head)) return undefined
+  let depth = 1
+  let quote: string | undefined = undefined
+  let isEscaped = false
+  for (let index = head.length; index < expression.length; index += 1) {
+    const char = expression[index]
+    if (quote !== undefined) {
+      if (isEscaped) isEscaped = false
+      else if (char === '\\') isEscaped = true
+      else if (char === quote) quote = undefined
+    } else if (char === '"' || char === "'" || char === '`') quote = char
+    else if (char === '(') depth += 1
+    else if (char === ')') {
+      depth -= 1
+      if (depth === 0) return expression.slice('v.pipe('.length, index + 1)
+    }
+  }
+  return undefined
+}
 
 /** An object's entries; none for anything else. */
 function entriesOf(value: unknown): [string, unknown][] {
@@ -83,12 +113,13 @@ function entriesOf(value: unknown): [string, unknown][] {
 /**
  * The spec's own schema of a wire node as a JSON Schema document: `x-` extensions and the
  * OpenAPI-only keywords left out, OpenAPI 3.0's `nullable` written as a `null` type and
- * `example` as `examples`. A `default` is left to `v.optional`. `undefined` when a `$ref`
+ * `example` as `examples`. The root's `default` is left to `v.optional`, and a property
+ * with a default is not `required`. `undefined` when a `$ref`
  * sits anywhere inside, since the document would point at a definition it does not hold.
  */
 export function wireDocument(schema: JSONSchema): { readonly [key: string]: unknown } | undefined {
   const state = { hasRef: false }
-  const visit = (value: unknown, isSchema: boolean): unknown => {
+  const visit = (value: unknown, isSchema: boolean, isRoot = false): unknown => {
     if (Array.isArray(value)) return value.map((item: unknown) => visit(item, isSchema))
     if (typeof value !== 'object' || value === null) return value
     const entries = entriesOf(value)
@@ -100,6 +131,9 @@ export function wireDocument(schema: JSONSchema): { readonly [key: string]: unkn
     const out = new Map<string, unknown>()
     for (const [key, item] of entries) {
       if (key.startsWith('x-') || key === 'nullable' || NON_JSON_SCHEMA_KEYS.has(key)) continue
+      // The root's `default` is documented by `v.optional`; below it the converter never
+      // reaches the inner pipes, so the document carries it.
+      if (key === 'default' && isRoot) continue
       out.set(
         key,
         SCHEMA_MAP_KEYS.has(key)
@@ -110,14 +144,46 @@ export function wireDocument(schema: JSONSchema): { readonly [key: string]: unkn
     if (!record.has('examples') && record.has('example')) {
       out.set('examples', [record.get('example')])
     }
+    // A property with a default may be left out, as `v.optional` lets it.
+    const required: unknown = out.get('required')
+    if (Array.isArray(required)) {
+      const properties = new Map(entriesOf(record.get('properties')))
+      const kept = required.filter(
+        (name: unknown) =>
+          typeof name !== 'string' || !new Map(entriesOf(properties.get(name))).has('default'),
+      )
+      if (kept.length > 0) out.set('required', kept)
+      else out.delete('required')
+    }
     const type: unknown = out.get('type')
-    if (record.get('nullable') === true && type !== undefined) {
-      const types: unknown[] = Array.isArray(type) ? type : [type]
-      if (!types.includes('null')) out.set('type', [...types, 'null'])
+    const enumValues: unknown = out.get('enum')
+    if (record.get('nullable') === true) {
+      if (type !== undefined) {
+        const types: unknown[] = Array.isArray(type) ? type : [type]
+        if (!types.includes('null')) out.set('type', [...types, 'null'])
+      }
+      if (Array.isArray(enumValues) && !enumValues.includes(null)) {
+        const values: unknown[] = enumValues
+        out.set('enum', [...values, null])
+      }
+    }
+    // OpenAPI 3.0's boolean exclusive bounds, in the numeric form of draft-07 and 2020-12.
+    for (const [exclusive, bound] of [
+      ['exclusiveMinimum', 'minimum'],
+      ['exclusiveMaximum', 'maximum'],
+    ] as const) {
+      const flag = out.get(exclusive)
+      if (typeof flag !== 'boolean') continue
+      out.delete(exclusive)
+      const boundValue = out.get(bound)
+      if (flag && typeof boundValue === 'number') {
+        out.delete(bound)
+        out.set(exclusive, boundValue)
+      }
     }
     return Object.fromEntries(out)
   }
-  const document = entriesOf(visit(schema, true))
+  const document = entriesOf(visit(schema, true, true))
   return state.hasRef ? undefined : Object.fromEntries(document)
 }
 
@@ -159,12 +225,15 @@ export function valibotWrap(valibotStr: string, schema: JSONSchema, options?: Va
     ? `v.pipe(v.unknown(),v.transform(${wireNullText('input')}),${withNullable})`
     : withNullable
   const document = options?.wireDocument === true || nullText ? wireDocument(schema) : undefined
+  const leadingString = leadingStringSchema(withNullTextRead)
   const withNullText =
     document === undefined
       ? withNullTextRead
-      : withNullTextRead.startsWith('v.pipe(v.unknown(),')
-        ? `v.pipe(v.unknown(),v.metadata(${serializeJSValue(document)}),${withNullTextRead.slice('v.pipe(v.unknown(),'.length)}`
-        : `v.pipe(v.unknown(),v.metadata(${serializeJSValue(document)}),${withNullTextRead})`
+      : leadingString !== undefined
+        ? `v.pipe(${leadingString},v.metadata(${serializeJSValue(document)}),${withNullTextRead})`
+        : withNullTextRead.startsWith('v.pipe(v.unknown(),')
+          ? `v.pipe(v.unknown(),v.metadata(${serializeJSValue(document)}),${withNullTextRead.slice('v.pipe(v.unknown(),'.length)}`
+          : `v.pipe(v.unknown(),v.metadata(${serializeJSValue(document)}),${withNullTextRead})`
   const defaultResult =
     schema.default !== undefined
       ? coerceDefault(schema, schema.default, options?.definitions)

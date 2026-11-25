@@ -1357,11 +1357,16 @@ describe('valibot fixtures: wire-query runtime', () => {
 
   it('documents every pipe that reads text through a transform with the spec schema (#77)', () => {
     const { entries } = WireQuery.pipe[3]
-    expect(v.getMetadata(WireQuery)).toMatchObject({
+    // `page` has a default, so it is documented with it and is not required.
+    const document = v.getMetadata(WireQuery)
+    expect(document).toMatchObject({
       type: 'object',
-      required: ['page'],
-      properties: { ids: { type: 'array', items: { type: 'integer' } } },
+      properties: {
+        page: { type: 'integer', minimum: 1, default: 1 },
+        ids: { type: 'array', items: { type: 'integer' } },
+      },
     })
+    expect(document).not.toHaveProperty('required')
     expect(v.getMetadata(entries.ids.wrapped)).toStrictEqual({
       type: 'array',
       items: { type: 'integer' },
@@ -1372,6 +1377,13 @@ describe('valibot fixtures: wire-query runtime', () => {
       type: 'integer',
       format: 'uint64',
     })
+  })
+
+  it('keeps the union message naming the string a wire member expects (#77)', () => {
+    const result = v.safeParse(WireQuery, { flag: 'abc' })
+    expect(result.issues?.map((issue) => issue.message)).toStrictEqual([
+      'Invalid type: Expected string but received "abc"',
+    ])
   })
 
   it('reports a bad array element at its index', () => {

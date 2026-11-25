@@ -73,12 +73,12 @@ the spec's type and bounds back, and a numeric `default` is annotated as the num
 text `v.optional` holds; the text's `pattern` stays beside them. The pipe also carries the
 spec's `format`, `description`, `examples` and `deprecated`. Every other wire pipe that reads
 its text through a transform (an array, a nullable parameter, a boolean, a literal, a 64-bit
-integer read into a `bigint`, a parameter object) starts with `v.unknown(), v.metadata(...)`
-holding the spec's own schema, so the input-side document is complete. `x-` extensions are left
+integer read into a `bigint`, a parameter object) carries `v.metadata(...)` with the spec's own
+schema ahead of that transform, after a leading `v.string()` where the pipe starts with one, so the input-side document is complete. `x-` extensions are left
 out of that document, `nullable` is written as a `null` type, and a schema with a `$ref` inside
 is not annotated. A boolean `default` is annotated as the boolean. An exclusive bound is written as a number, the form of the converter's default
 target (draft-07); a target that spells it another way, such as OpenAPI 3.0's boolean
-`exclusiveMinimum`, is not followed. A 64-bit integer, read into a `bigint`, is not annotated.
+`exclusiveMinimum`, is not followed; in the spec document, a boolean exclusive bound is rewritten as the number.
 
 `wrapSchema(expr, slot)` is slot-aware (`response-content`, `request-content`, `header`,
 `parameter`, `media-type`). TypeBox imports from `typebox` and reserves `Compile`. Pass

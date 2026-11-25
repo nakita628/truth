@@ -442,7 +442,8 @@ function node(
     const expression = primitive(primitiveType)
     // A wire number documents itself (`wireNumberMetadata`) ahead of its transform.
     const documented =
-      primitiveType === 'number' || (primitiveType === 'integer' && !isInt64(schema))
+      primitiveType === 'number' ||
+      (primitiveType === 'integer' && !isInt64(schema) && schema.format !== 'bigint')
     if (expression !== undefined) return valibotWrap(expression, schema, { documented })
   }
 

@@ -107,6 +107,11 @@ describe('valibot wireNumberMetadata', () => {
       'v.metadata({type:\'number\',format:"float",minimum:-3.4028234663852886e+38,maximum:3.4028234663852886e+38})',
     ],
     [['integer', {}, [1, -1]], "v.metadata({type:'integer',enum:[1,-1]})"],
+    // A keyword the type does not allow is written as data, never as code.
+    [
+      ['number', { deprecated: 'yes' as never, multipleOf: '1)' as never }],
+      `v.metadata({type:'number',multipleOf:"1)",deprecated:"yes"})`,
+    ],
   ])('wireNumberMetadata(%o) → %s', (args, expected) => {
     expect(wireNumberMetadata(...args)).toBe(expected)
   })

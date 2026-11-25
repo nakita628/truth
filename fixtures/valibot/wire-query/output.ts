@@ -6,7 +6,7 @@ export const Query = v.pipe(
     title: 'Query',
     type: 'object',
     properties: {
-      page: { type: 'integer', minimum: 1 },
+      page: { type: 'integer', minimum: 1, default: 1 },
       ids: { type: 'array', items: { type: 'integer' } },
       sort: { type: 'integer', enum: [1, -1] },
       active: { type: 'boolean', enum: [true] },
@@ -18,7 +18,6 @@ export const Query = v.pipe(
       constructor: { type: 'integer' },
       email: { type: 'string', format: 'email' },
     },
-    required: ['page'],
   }),
   v.transform((input) =>
     typeof input === 'object' && input !== null && !Array.isArray(input)
@@ -69,7 +68,7 @@ export const Query = v.pipe(
     ),
     active: v.optional(
       v.pipe(
-        v.unknown(),
+        v.string(),
         v.metadata({ type: 'boolean', enum: [true] }),
         v.pipe(
           v.string(),
@@ -98,7 +97,7 @@ export const Query = v.pipe(
     ),
     cursor: v.optional(
       v.pipe(
-        v.unknown(),
+        v.string(),
         v.metadata({ type: 'integer', format: 'uint64' }),
         v.pipe(
           v.string(),
@@ -145,7 +144,7 @@ export const Query = v.pipe(
             v.safeInteger(),
           ),
           v.pipe(
-            v.unknown(),
+            v.string(),
             v.metadata({ type: 'boolean' }),
             v.pipe(
               v.string(),
