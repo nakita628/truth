@@ -123,7 +123,12 @@ export function object(
     typeof schema.additionalProperties === 'object'
       ? schema['x-additionalProperties-message']
       : schema['x-unevaluatedProperties-message']
-  const checksKeys = undeclaredRequired.length > 0 || extraSchema !== undefined || closed
+  // `propertyNames` holds every key, whatever else the object declares.
+  const checksKeys =
+    undeclaredRequired.length > 0 ||
+    extraSchema !== undefined ||
+    closed ||
+    schema.propertyNames !== undefined
   if (!schema.properties && !checksKeys) {
     if (schema.patternProperties) {
       const record = `v.record(v.string(),v.unknown())`

@@ -912,11 +912,11 @@ describe('zod fixtures: wire-number runtime', () => {
 })
 
 describe('zod fixtures: property-names-enum runtime', () => {
-  it.each([{}, { none: {} }, { mixed: { a: 'x' } }, { record: {} }])('accepts %j', (value) => {
+  it.each([{}, { none: {} }, { mixed: { a: 'x' } }, { record: {} }, { bare: {} }, { pattern: { ab: 1 } }, { open: { a: 1, ab: 'x' } }])('accepts %j', (value) => {
     expect(PropertyNamesEnumSchema.safeParse(value).success).toBe(true)
   })
 
-  it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }])('rejects %j, whose key the enum does not list', (value) => {
+  it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }, { bare: { a: 1 } }, { pattern: { b: 1 } }, { open: { a: 1, b: 2 } }])('rejects %j, whose key propertyNames does not allow', (value) => {
     expect(PropertyNamesEnumSchema.safeParse(value).success).toBe(false)
   })
 })
