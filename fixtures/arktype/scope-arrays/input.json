@@ -40,6 +40,22 @@
         "$ref": "#/$defs/Leaf"
       },
       "minItems": 1
+    },
+    "bigIds": {
+      "$ref": "#/$defs/BigIds",
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "minItems": 1
+    },
+    "labels": {
+      "$ref": "#/$defs/Label",
+      "type": [
+        "string",
+        "array"
+      ]
     }
   },
   "$defs": {
@@ -60,6 +76,23 @@
         "$ref": "#/$defs/Leaf"
       },
       "maxItems": 2
+    },
+    "BigIds": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "maxItems": 2
+    },
+    "Label": {
+      "type": [
+        "string",
+        "array"
+      ],
+      "items": {
+        "type": "string"
+      }
     }
   }
 }

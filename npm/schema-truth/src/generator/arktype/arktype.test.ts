@@ -1182,4 +1182,40 @@ describe('a $ref beside an array holds the value to the target and the array (#1
   ])('%o (in a scope: %s) → %s', (schema, isArktype, expected) => {
     expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
   })
+
+  it('leaves a type list with another non-null type to the target', () => {
+    expect(arktype({ $ref: '#/$defs/S', type: ['string', 'array'] }, 'Schema', true)).toBe('"S"')
+  })
+
+  it.each<[boolean, string]>([
+    [
+      true,
+      '[type(type("bigint | number.integer").or(/^-?\\d+$/).pipe((data) => BigInt(data)).narrow((data, ctx) => (data >= -9223372036854775808n && data <= 9223372036854775807n) || ctx.mustBe("an int64"))).array(),"|>","Ids"]',
+    ],
+    [
+      false,
+      'type(type("bigint | number.integer").or(/^-?\\d+$/).pipe((data) => BigInt(data)).narrow((data, ctx) => (data >= -9223372036854775808n && data <= 9223372036854775807n) || ctx.mustBe("an int64"))).array().to(Ids)',
+    ],
+  ])(
+    'pipes an array that reads its input into the target, which ArkType cannot intersect (in a scope: %s)',
+    (isArktype, expected) => {
+      const schema: JSONSchema = {
+        $ref: '#/$defs/Ids',
+        type: 'array',
+        items: { type: 'integer', format: 'int64' },
+      }
+      expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
+    },
+  )
+
+  it('coerces the items on the wire before the target checks them', () => {
+    const schema: JSONSchema = {
+      $ref: '#/components/schemas/Ids',
+      type: 'array',
+      items: { type: 'integer' },
+    }
+    expect(arktype(schema, 'Schema', false, { openapi: true, paramIn: 'query' })).toBe(
+      'type("unknown").pipe((data)=>(data===undefined||Array.isArray(data)?data:[data]),type(type("string").pipe((data, ctx) => { const value = /^-?(?:0|[1-9]\\d*)$/.test(data) ? Number(data) : Number.NaN; return Number.isSafeInteger(value) ? value : ctx.error("an integer") })).array()).to(IdsSchema)',
+    )
+  })
 })

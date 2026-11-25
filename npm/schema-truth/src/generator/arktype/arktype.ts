@@ -332,15 +332,24 @@ function node(
       return '"unknown"'
     }
     // An array beside the `$ref` holds the value to both: the target, and the array its
-    // own keywords build. The array is read off the wire once, outside the intersection,
-    // since the target expects the array rather than its text.
-    if (normalizeTypes(schema.type).includes('array')) {
+    // own keywords build. A `type` that lists another type besides `null` is a union the
+    // target already decides, so only an array-only node takes this path.
+    const types = normalizeTypes(schema.type)
+    if (types.includes('array') && types.every((type) => type === 'array' || type === 'null')) {
       const arraySchema = Object.fromEntries(
         Object.entries(schema).filter(([key]) => ARRAY_KEYWORDS.has(key)),
       )
-      const { paramIn: _, ...withoutWire } = options ?? {}
-      const array = node({ ...arraySchema, type: 'array' }, rootName, isArktype, withoutWire)
-      return arktypeWrap(wireArray(intersectionStr([ref(schema), array], isArktype)), schema)
+      const array = node({ ...arraySchema, type: 'array' }, rootName, isArktype, options)
+      const target = ref(schema)
+      // ArkType cannot intersect two distinct morphs, and the target expects the value the
+      // array reads, not its wire text: an array that reads its input (the wire, a bigint
+      // item) runs first, and the target checks what it returns.
+      const both = !isMorph(array)
+        ? intersectionStr([target, array], isArktype)
+        : isArktype
+          ? `[${array},"|>",${target}]`
+          : `${asRuntime(array)}.to(${target})`
+      return arktypeWrap(both, schema)
     }
     return arktypeWrap(ref(schema), schema)
   }
