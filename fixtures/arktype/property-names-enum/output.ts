@@ -7,10 +7,16 @@ export const Schema = type({
   ),
   'record?': type({ '[string]': 'string' }).narrow((data) => Object.keys(data).length === 0),
   'bare?': type({}).narrow((data) => Object.keys(data).length === 0),
-  'pattern?': type({}).narrow((data) =>
-    Object.keys(data).every((key) => new RegExp('^a').test(key)),
+  'pattern?': type({}).narrow((data) => Object.keys(data).every((key) => /^a/.test(key))),
+  'open?': type({}).narrow((data) => Object.keys(data).every((key) => /^a/.test(key))),
+  'both?': type({}).narrow(
+    (data) =>
+      Object.keys(data).every((key) => /^[a-z]+$/.test(key)) &&
+      Object.keys(data).every((key) => ['a', 'B'].includes(key)),
   ),
-  'open?': type({}).narrow((data) => Object.keys(data).every((key) => new RegExp('^a').test(key))),
+  'closed?': type({}).narrow((data) => Object.keys(data).length === 0),
+  'single?': type({}).narrow((data) => Object.keys(data).every((key) => ['a'].includes(key))),
+  'letters?': type({}).narrow((data) => Object.keys(data).every((key) => /^\p{L}+$/u.test(key))),
 })
 
 export type Schema = typeof Schema.infer

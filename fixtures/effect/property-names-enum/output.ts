@@ -23,12 +23,36 @@ export const Schema_ = Schema.Struct({
   ),
   pattern: Schema.optionalKey(
     Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
-      Schema.makeFilter((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
+      Schema.makeFilter((input) => Object.keys(input).every((key) => /^a/.test(key))),
     ),
   ),
   open: Schema.optionalKey(
     Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
-      Schema.makeFilter((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
+      Schema.makeFilter((input) => Object.keys(input).every((key) => /^a/.test(key))),
+    ),
+  ),
+  both: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter(
+        (input) =>
+          Object.keys(input).every((key) => /^[a-z]+$/.test(key)) &&
+          Object.keys(input).every((key) => ['a', 'B'].includes(key)),
+      ),
+    ),
+  ),
+  closed: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter((input) => Object.keys(input).length === 0),
+    ),
+  ),
+  single: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter((input) => Object.keys(input).every((key) => ['a'].includes(key))),
+    ),
+  ),
+  letters: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter((input) => Object.keys(input).every((key) => /^\p{L}+$/u.test(key))),
     ),
   ),
 })

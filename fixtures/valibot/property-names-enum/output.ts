@@ -20,11 +20,31 @@ export const Schema = v.partial(
     ),
     pattern: v.pipe(
       v.partial(v.looseObject({})),
-      v.check((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
+      v.check((input) => Object.keys(input).every((key) => /^a/.test(key))),
     ),
     open: v.pipe(
       v.partial(v.looseObject({})),
-      v.check((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
+      v.check((input) => Object.keys(input).every((key) => /^a/.test(key))),
+    ),
+    both: v.pipe(
+      v.partial(v.looseObject({})),
+      v.check(
+        (input) =>
+          Object.keys(input).every((key) => /^[a-z]+$/.test(key)) &&
+          Object.keys(input).every((key) => ['a', 'B'].includes(key)),
+      ),
+    ),
+    closed: v.pipe(
+      v.partial(v.looseObject({})),
+      v.check((input) => Object.keys(input).length === 0),
+    ),
+    single: v.pipe(
+      v.partial(v.looseObject({})),
+      v.check((input) => Object.keys(input).every((key) => ['a'].includes(key))),
+    ),
+    letters: v.pipe(
+      v.partial(v.looseObject({})),
+      v.check((input) => Object.keys(input).every((key) => /^\p{L}+$/u.test(key))),
     ),
   }),
 )

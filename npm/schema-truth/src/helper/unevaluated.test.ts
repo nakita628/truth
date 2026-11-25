@@ -8,6 +8,7 @@ import {
   isEvaluatedObjectKeyExpression,
   objectEvaluatedKeys,
   propertyNamesEnumCheck,
+  propertyNamesKeyCheck,
 } from './unevaluated.js'
 
 describe('evaluatedProperties', () => {
@@ -53,6 +54,30 @@ describe('isEvaluatedKeyExpression', () => {
       'new RegExp("^x-").test(k)',
     )
     expect(isEvaluatedKeyExpression({ names: [], patterns: [] }, 'k')).toBeUndefined()
+  })
+})
+
+describe('propertyNamesKeyCheck (#90)', () => {
+  it.each<[JSONSchema | boolean | undefined, string | undefined]>([
+    [undefined, undefined],
+    [true, undefined],
+    [{}, undefined],
+    [false, 'Object.keys(input).length===0'],
+    [{ const: 'a' }, 'Object.keys(input).every((key)=>["a"].includes(key))'],
+    [{ const: 1 }, 'Object.keys(input).length===0'],
+    [{ pattern: '^[a-z]+$' }, 'Object.keys(input).every((key)=>/^[a-z]+$/.test(key))'],
+    [{ pattern: '^\\p{L}+$' }, 'Object.keys(input).every((key)=>/^\\p{L}+$/u.test(key))'],
+    [{ pattern: 'a/b' }, 'Object.keys(input).every((key)=>/a\\/b/.test(key))'],
+    [
+      { pattern: '^[a-z]+$', enum: ['a', 'B'] },
+      'Object.keys(input).every((key)=>/^[a-z]+$/.test(key))&&Object.keys(input).every((key)=>["a","B"].includes(key))',
+    ],
+    [
+      { enum: ['a', 'b'], const: 'a' },
+      'Object.keys(input).every((key)=>["a","b"].includes(key))&&Object.keys(input).every((key)=>["a"].includes(key))',
+    ],
+  ])('propertyNamesKeyCheck(%o) → %s', (propertyNames, expected) => {
+    expect(propertyNamesKeyCheck(propertyNames, 'input')).toBe(expected)
   })
 })
 

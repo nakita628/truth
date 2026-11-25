@@ -54,6 +54,32 @@
       "propertyNames": {
         "pattern": "^a"
       }
+    },
+    "both": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^[a-z]+$",
+        "enum": [
+          "a",
+          "B"
+        ]
+      }
+    },
+    "closed": {
+      "type": "object",
+      "propertyNames": false
+    },
+    "single": {
+      "type": "object",
+      "propertyNames": {
+        "const": "a"
+      }
+    },
+    "letters": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^\\p{L}+$"
+      }
     }
   }
 }

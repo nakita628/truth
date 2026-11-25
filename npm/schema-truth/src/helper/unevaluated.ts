@@ -1,5 +1,6 @@
 import { DEFINITION_REF_PREFIXES } from '../constants/index.js'
 import type { JSONSchema } from '../parser/index.js'
+import { regexLiteral } from './regex.js'
 import type { SchemaDefinitions } from './schema.js'
 
 /** The property names and `patternProperties` patterns a schema evaluates. */
@@ -103,6 +104,31 @@ export function propertyNamesEnumCheck(values: readonly unknown[], input: string
   return names.length === 0
     ? `Object.keys(${input}).length===0`
     : `Object.keys(${input}).every((key)=>${JSON.stringify(names)}.includes(key))`
+}
+
+/**
+ * The emitted check that every key of `input` holds a `propertyNames` schema, or `undefined`
+ * when the schema does not constrain keys: every keyword it carries must hold, so the
+ * checks are ANDed. `false` allows no key and `const` allows one (as an enum of that
+ * value), `enum` is {@link propertyNamesEnumCheck}, and `pattern` is a regular-expression
+ * literal built as every other `pattern` is (`regexLiteral`: the `u` flag a Unicode
+ * escape needs, an escaped `/`).
+ */
+export function propertyNamesKeyCheck(
+  propertyNames: JSONSchema | boolean | undefined,
+  input: string,
+) {
+  if (propertyNames === false) return propertyNamesEnumCheck([], input)
+  if (typeof propertyNames !== 'object') return undefined
+  const { pattern, enum: values, const: constValue } = propertyNames
+  const checks = [
+    ...(typeof pattern === 'string'
+      ? [`Object.keys(${input}).every((key)=>${regexLiteral(pattern)}.test(key))`]
+      : []),
+    ...(Array.isArray(values) ? [propertyNamesEnumCheck(values, input)] : []),
+    ...(constValue !== undefined ? [propertyNamesEnumCheck([constValue], input)] : []),
+  ]
+  return checks.length === 0 ? undefined : checks.join('&&')
 }
 
 /** The keys a branch evaluates when it applies, or `all` when every key then is. */

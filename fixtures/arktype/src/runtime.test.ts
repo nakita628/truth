@@ -1020,11 +1020,11 @@ describe('wire-number', () => {
 })
 
 describe('property-names-enum', () => {
-  it.each([{}, { none: {} }, { mixed: { a: 'x' } }, { record: {} }, { bare: {} }, { pattern: { ab: 1 } }, { open: { a: 1, ab: 'x' } }])('accepts %j', (value) => {
+  it.each([{}, { none: {} }, { mixed: { a: 'x' } }, { record: {} }, { bare: {} }, { pattern: { ab: 1 } }, { open: { a: 1, ab: 'x' } }, { both: { a: 1 } }, { closed: {} }, { single: { a: 1 } }, { letters: { é: 1, 名前: 2 } }])('accepts %j', (value) => {
     expect(PropertyNamesEnumSchema(value)).not.toBeInstanceOf(type.errors)
   })
 
-  it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }, { bare: { a: 1 } }, { pattern: { b: 1 } }, { open: { a: 1, b: 2 } }])('rejects %j, whose key propertyNames does not allow', (value) => {
+  it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }, { bare: { a: 1 } }, { pattern: { b: 1 } }, { open: { a: 1, b: 2 } }, { both: { b: 1 } }, { both: { B: 1 } }, { closed: { x: 1 } }, { single: { b: 1 } }, { letters: { 'p{L}': 1 } }, { letters: { a1: 1 } }])('rejects %j, whose key propertyNames does not allow', (value) => {
     expect(PropertyNamesEnumSchema(value)).toBeInstanceOf(type.errors)
   })
 })

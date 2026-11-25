@@ -12,7 +12,7 @@ import {
   objectEvaluatedKeys,
   ownProperties,
   propertyEmitOptions,
-  propertyNamesEnumCheck,
+  propertyNamesKeyCheck,
 } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
@@ -71,19 +71,8 @@ export function object(
   const unevalPropsRawMessage = schema['x-unevaluatedProperties-message']
 
   const propertyNamesNarrow = () => {
-    if (schema.propertyNames?.pattern) {
-      return narrowPredicate(
-        `Object.keys(data).every((key) => new RegExp(${JSON.stringify(schema.propertyNames.pattern)}).test(key))`,
-        propNamesMessage,
-      )
-    }
-    if (schema.propertyNames?.enum) {
-      return narrowPredicate(
-        propertyNamesEnumCheck(schema.propertyNames.enum, 'data'),
-        propNamesMessage,
-      )
-    }
-    return ''
+    const check = propertyNamesKeyCheck(schema.propertyNames, 'data')
+    return check === undefined ? '' : narrowPredicate(check, propNamesMessage)
   }
 
   const patternPropertiesNarrows = () =>

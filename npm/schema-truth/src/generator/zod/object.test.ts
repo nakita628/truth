@@ -114,15 +114,15 @@ describe('object', () => {
       ],
       [
         { type: 'object', propertyNames: { pattern: '^a' } },
-        'z.looseObject({}).refine((val)=>Object.keys(val).every((key)=>new RegExp("^a").test(key)))',
+        'z.looseObject({}).refine((val)=>Object.keys(val).every((key)=>/^a/.test(key)))',
       ],
       [
         { type: 'object', additionalProperties: true, propertyNames: { pattern: '^a' } },
-        'z.looseObject({}).refine((val)=>Object.keys(val).every((key)=>new RegExp("^a").test(key)))',
+        'z.looseObject({}).refine((val)=>Object.keys(val).every((key)=>/^a/.test(key)))',
       ],
       [
         { type: 'object', propertyNames: { pattern: '^a' }, minProperties: 1 },
-        'z.looseObject({}).refine((val)=>Object.keys(val).length>=1).refine((val)=>Object.keys(val).every((key)=>new RegExp("^a").test(key)))',
+        'z.looseObject({}).refine((val)=>Object.keys(val).length>=1).refine((val)=>Object.keys(val).every((key)=>/^a/.test(key)))',
       ],
     ])(
       'checks the keys of an object with no properties or additionalProperties schema (#88): %o → %s',
@@ -144,7 +144,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'z.looseObject({a:z.string()}).refine((val)=>Object.keys(val).every((key)=>new RegExp("^[a-z]+$").test(key)))',
+        'z.looseObject({a:z.string()}).refine((val)=>Object.keys(val).every((key)=>/^[a-z]+$/.test(key)))',
       )
     })
 
@@ -179,7 +179,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'z.looseObject({a:z.string()}).refine((val)=>Object.keys(val).every((key)=>new RegExp("^[a-z]+$").test(key)),{error:"lowercase only"})',
+        'z.looseObject({a:z.string()}).refine((val)=>Object.keys(val).every((key)=>/^[a-z]+$/.test(key)),{error:"lowercase only"})',
       )
     })
   })
