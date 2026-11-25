@@ -14,6 +14,7 @@ import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts
 import { Payload as ParamJsonContentPayload } from '../param-json-content/output.ts'
 import { Formats as StringFormats } from '../string-formats/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Schema as PropertyNamesEnumSchema } from '../property-names-enum/output.ts'
 import { Query as WireNumberQuery } from '../wire-number/output.ts'
 import { Merged } from '../allof-message/output.ts'
 import { StringOrNumber } from '../anyof/output.ts'
@@ -905,5 +906,15 @@ describe('zod fixtures: wire-number runtime', () => {
     ['count', '9007199254740993'],
   ])('rejects %s=%s, which overflows or loses precision', (key, text) => {
     expect(WireNumberQuery.safeParse({ [key]: text }).success).toBe(false)
+  })
+})
+
+describe('zod fixtures: property-names-enum runtime', () => {
+  it.each([{}, { none: {} }, { mixed: { a: 'x' } }, { record: {} }])('accepts %j', (value) => {
+    expect(PropertyNamesEnumSchema.safeParse(value).success).toBe(true)
+  })
+
+  it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }])('rejects %j, whose key the enum does not list', (value) => {
+    expect(PropertyNamesEnumSchema.safeParse(value).success).toBe(false)
   })
 })

@@ -88,3 +88,16 @@ export function isEvaluatedKeyExpression(
 export function unlessEvaluated(isEvaluated: string | undefined, body: string) {
   return isEvaluated === undefined ? body : `if(!(${isEvaluated})){${body}}`
 }
+
+/**
+ * The emitted check that every key of `input` is one of a `propertyNames` enum. A key is a
+ * string, so only the string members can match. With none, no key is allowed and the
+ * lookup is left out: `[].includes(key)` does not type-check (`never[]`), and neither does
+ * a lookup in a number array.
+ */
+export function propertyNamesEnumCheck(values: readonly unknown[], input: string, arrow = '=>') {
+  const names = values.filter((value) => typeof value === 'string')
+  return names.length === 0
+    ? `Object.keys(${input}).length===0`
+    : `Object.keys(${input}).every((key)${arrow}${JSON.stringify(names)}.includes(key))`
+}

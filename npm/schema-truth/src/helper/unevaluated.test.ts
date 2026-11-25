@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vite-plus/test'
 
-import { evaluatedProperties, isEvaluatedKeyExpression } from './unevaluated.js'
+import {
+  evaluatedProperties,
+  isEvaluatedKeyExpression,
+  propertyNamesEnumCheck,
+} from './unevaluated.js'
 
 describe('evaluatedProperties', () => {
   it('reads the properties of every allOf member through its $ref (#405)', () => {
@@ -45,5 +49,16 @@ describe('isEvaluatedKeyExpression', () => {
       'new RegExp("^x-").test(k)',
     )
     expect(isEvaluatedKeyExpression({ names: [], patterns: [] }, 'k')).toBeUndefined()
+  })
+})
+
+describe('propertyNamesEnumCheck', () => {
+  it.each<[readonly unknown[], string]>([
+    [['a', 'b'], 'Object.keys(input).every((key)=>["a","b"].includes(key))'],
+    [['a', 1, null], 'Object.keys(input).every((key)=>["a"].includes(key))'],
+    [[], 'Object.keys(input).length===0'],
+    [[1, true], 'Object.keys(input).length===0'],
+  ])('%j → %s', (values, expected) => {
+    expect(propertyNamesEnumCheck(values, 'input')).toBe(expected)
   })
 })

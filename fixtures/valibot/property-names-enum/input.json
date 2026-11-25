@@ -1,0 +1,21 @@
+{
+  "title": "Schema",
+  "type": "object",
+  "properties": {
+    "none": {
+      "type": "object",
+      "properties": { "a": { "type": "string" } },
+      "propertyNames": { "enum": [] }
+    },
+    "mixed": {
+      "type": "object",
+      "properties": { "a": { "type": "string" } },
+      "propertyNames": { "enum": ["a", 1] }
+    },
+    "record": {
+      "type": "object",
+      "additionalProperties": { "type": "string" },
+      "propertyNames": { "enum": [] }
+    }
+  }
+}

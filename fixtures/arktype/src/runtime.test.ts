@@ -34,6 +34,7 @@ import { Config as ReadonlyConfig } from '../readonly/output.ts'
 import { Organization as ScopeMetadataOrganization } from '../scope-metadata/output.ts'
 import { Schema as SimpleSchema } from '../simple/output.ts'
 import { Query as WireQuery } from '../wire-query/output.ts'
+import { Schema as PropertyNamesEnumSchema } from '../property-names-enum/output.ts'
 import { Query as WireNumberQuery } from '../wire-number/output.ts'
 import { Formats as StringFormats } from '../string-formats/output.ts'
 import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts'
@@ -1011,5 +1012,15 @@ describe('wire-number', () => {
     ['count', '9007199254740993'],
   ])('rejects %s=%s, which overflows or loses precision', (key, text) => {
     expect(WireNumberQuery({ [key]: text })).toBeInstanceOf(type.errors)
+  })
+})
+
+describe('property-names-enum', () => {
+  it.each([{}, { none: {} }, { mixed: { a: 'x' } }, { record: {} }])('accepts %j', (value) => {
+    expect(PropertyNamesEnumSchema(value)).not.toBeInstanceOf(type.errors)
+  })
+
+  it.each([{ none: { a: 'x' } }, { mixed: { b: 'x' } }, { record: { a: 'x' } }])('rejects %j, whose key the enum does not list', (value) => {
+    expect(PropertyNamesEnumSchema(value)).toBeInstanceOf(type.errors)
   })
 })

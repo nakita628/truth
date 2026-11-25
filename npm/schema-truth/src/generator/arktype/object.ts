@@ -11,6 +11,7 @@ import {
   isEvaluatedKeyExpression,
   ownProperties,
   propertyEmitOptions,
+  propertyNamesEnumCheck,
 } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
@@ -77,7 +78,7 @@ export function object(
     }
     if (schema.propertyNames?.enum) {
       return narrowPredicate(
-        `Object.keys(data).every((key) => ${JSON.stringify(schema.propertyNames.enum)}.includes(key))`,
+        propertyNamesEnumCheck(schema.propertyNames.enum, 'data', ' => '),
         propNamesMessage,
       )
     }

@@ -5,7 +5,7 @@ import {
   isStringWireLocation,
 } from '../../guard/index.js'
 import { propertyEmitOptions } from '../../helper/parameter.js'
-import { isEvaluatedKeyExpression } from '../../helper/unevaluated.js'
+import { isEvaluatedKeyExpression, propertyNamesEnumCheck } from '../../helper/unevaluated.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { makeSafeKey, zodError, zodErrorPart } from '../../utils/index.js'
@@ -69,7 +69,7 @@ export function object(
     const recordPropNames = schema.propertyNames?.pattern
       ? `.refine((val)=>Object.keys(val).every((key)=>new RegExp(${JSON.stringify(schema.propertyNames.pattern)}).test(key))${propNamesErrorArg})`
       : schema.propertyNames?.enum
-        ? `.refine((val)=>Object.keys(val).every((key)=>${JSON.stringify(schema.propertyNames.enum)}.includes(key))${propNamesErrorArg})`
+        ? `.refine((val)=>${propertyNamesEnumCheck(schema.propertyNames.enum, 'val')}${propNamesErrorArg})`
         : ''
     return `${record}${recordPropNames}`
   }
@@ -167,7 +167,7 @@ export function object(
   const propertyNames = schema.propertyNames?.pattern
     ? `.refine((val)=>Object.keys(val).every((key)=>new RegExp(${JSON.stringify(schema.propertyNames.pattern)}).test(key))${propNamesErrorArg})`
     : schema.propertyNames?.enum
-      ? `.refine((val)=>Object.keys(val).every((key)=>${JSON.stringify(schema.propertyNames.enum)}.includes(key))${propNamesErrorArg})`
+      ? `.refine((val)=>${propertyNamesEnumCheck(schema.propertyNames.enum, 'val')}${propNamesErrorArg})`
       : ''
   const patternProperties = schema.patternProperties
     ? Object.entries(schema.patternProperties)
