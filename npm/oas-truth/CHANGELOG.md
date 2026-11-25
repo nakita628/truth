@@ -1,5 +1,13 @@
 # oas-truth
 
+## 0.11.1
+
+### Patch Changes
+
+- [#118](https://github.com/nakita628/truth/pull/118) [`4e416e2`](https://github.com/nakita628/truth/commit/4e416e261730ead6625c5ead923f7567e9f26c2a) Thanks [@nakita628](https://github.com/nakita628)! - A TypeBox `boolean` / `number` / `integer` parameter read from text, and every `date` node, now keeps its `description`, `examples` (as wire text), `deprecated`, `externalDocs`, `readOnly` and `writeOnly` on the inner `Type.String`. It also keeps a non-empty `x-error-message` / `x-pattern-message` as `errorMessage`.
+- Updated dependencies [[`4e416e2`](https://github.com/nakita628/truth/commit/4e416e261730ead6625c5ead923f7567e9f26c2a)]:
+  - schema-truth@0.12.1
+
 ## 0.11.0
 
 ### Minor Changes
