@@ -16,6 +16,13 @@
           "type": "number"
         }
       }
+    },
+    "constructor": {
+      "properties": {
+        "c2": {
+          "type": "number"
+        }
+      }
     }
   },
   "if": {

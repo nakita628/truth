@@ -22,12 +22,18 @@ export const Schema_ = Schema.StructWithRest(
           }),
         )(input) &&
           ['y'].includes(key)) ||
-        ('a' in input && ['b'].includes(key)),
+        (Object.hasOwn(input, 'a') && ['b'].includes(key)) ||
+        (Object.hasOwn(input, 'constructor') && ['c2'].includes(key)),
     ),
   ),
   Schema.makeFilter(
     (input) =>
       !('a' in input) || Schema.is(Schema.Struct({ b: Schema.optionalKey(Schema.Number) }))(input),
+  ),
+  Schema.makeFilter(
+    (input) =>
+      !('constructor' in input) ||
+      Schema.is(Schema.Struct({ c2: Schema.optionalKey(Schema.Number) }))(input),
   ),
   Schema.makeFilter(
     (input) =>

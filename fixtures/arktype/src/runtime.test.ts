@@ -1038,6 +1038,7 @@ describe('unevaluated-branches', () => {
     { b: 'not a number' },
     { kind: 'x', y: 'str' },
     { kind: 'z', flag: true },
+    { c2: 1 },
   ])('rejects %j, which has a key nothing declares', (value) => {
     expect(UnevaluatedBranchesSchema(value)).toBeInstanceOf(type.errors)
   })

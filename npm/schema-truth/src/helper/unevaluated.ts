@@ -161,17 +161,26 @@ export function objectEvaluatedKeys(
   if (schema.additionalProperties !== undefined || schema.unevaluatedProperties === undefined) {
     return { own, dependent: [] }
   }
+  // The key check reads the parsed value, which holds a property's `default` whether or not
+  // the input sent it, so a branch whose condition reads a defaulted property cannot tell
+  // whether it applies: its keys are left unevaluated, which refuses rather than accepts.
+  const isDefaulted = (key: string) => {
+    const property = schema.properties?.[key]
+    return typeof property === 'object' && property.default !== undefined
+  }
+  const ifReadsDefault =
+    typeof schema.if === 'object' && Object.keys(schema.if.properties ?? {}).some(isDefaulted)
   // `then` and `else` do nothing without an `if`.
   const conditional =
-    schema.if === undefined
+    schema.if === undefined || ifReadsDefault
       ? undefined
       : {
           passed: branchEvaluated([schema.if, schema.then], own, definitions),
           failed: branchEvaluated([schema.else], own, definitions),
         }
-  const dependent = Object.entries(schema.dependentSchemas ?? {}).map(
-    ([key, member]) => [key, branchEvaluated([member], own, definitions)] as const,
-  )
+  const dependent = Object.entries(schema.dependentSchemas ?? {})
+    .filter(([key]) => !isDefaulted(key))
+    .map(([key, member]) => [key, branchEvaluated([member], own, definitions)] as const)
   return { own, ...(conditional && { conditional }), dependent }
 }
 
@@ -193,7 +202,8 @@ function branchCheck(condition: string, evaluated: BranchEvaluated, key: string)
 /**
  * The emitted expression that tells whether `key` of `input` is evaluated: an own key, or
  * one a branch that applies declares. `ifPasses` is the target's test of `input` against
- * the `if` schema. `undefined` when no key is evaluated.
+ * the `if` schema. A `dependentSchemas` entry applies when its key is the object's own, not
+ * an inherited name such as `constructor`. `undefined` when no key is evaluated.
  */
 export function isEvaluatedObjectKeyExpression(
   keys: ObjectEvaluatedKeys,
@@ -207,10 +217,10 @@ export function isEvaluatedObjectKeyExpression(
       ? []
       : [
           branchCheck(ifPasses(), keys.conditional.passed, key),
-          branchCheck(`!${ifPasses()}`, keys.conditional.failed, key),
+          branchCheck(`!(${ifPasses()})`, keys.conditional.failed, key),
         ]),
     ...keys.dependent.map(([dependentKey, evaluated]) =>
-      branchCheck(`${JSON.stringify(dependentKey)} in ${input}`, evaluated, key),
+      branchCheck(`Object.hasOwn(${input},${JSON.stringify(dependentKey)})`, evaluated, key),
     ),
   ].filter((check) => check !== undefined)
   return checks.length > 0 ? checks.join('||') : undefined

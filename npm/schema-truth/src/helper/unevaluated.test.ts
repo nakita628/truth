@@ -91,7 +91,7 @@ describe('objectEvaluatedKeys', () => {
     })
     expect(hasBranchKeys(keys)).toBe(true)
     expect(isEvaluatedObjectKeyExpression(keys, 'key', 'input', () => 'IF')).toBe(
-      '["a"].includes(key)||new RegExp("^x-").test(key)||(IF&&(["flag","c"].includes(key)))||(!IF&&(["d"].includes(key)))||("a" in input&&(["b"].includes(key)))',
+      '["a"].includes(key)||new RegExp("^x-").test(key)||(IF&&(["flag","c"].includes(key)))||(!(IF)&&(["d"].includes(key)))||(Object.hasOwn(input,"a")&&(["b"].includes(key)))',
     )
   })
 
@@ -115,6 +115,22 @@ describe('objectEvaluatedKeys', () => {
     expect(isEvaluatedObjectKeyExpression(keys, 'key', 'input', () => 'IF')).toBeUndefined()
   })
 
+  it('leaves out a branch whose condition reads a defaulted property', () => {
+    const keys = objectEvaluatedKeys(
+      {
+        type: 'object',
+        properties: { a: { type: 'number', default: 0 }, kind: { default: 'x' } },
+        dependentSchemas: { a: { properties: { b: {} } } },
+        if: { properties: { kind: { const: 'x' } } },
+        // oxlint-disable-next-line unicorn/no-thenable -- the JSON Schema keyword, not a promise
+        then: { properties: { c: {} } },
+        unevaluatedProperties: false,
+      },
+      undefined,
+    )
+    expect(hasBranchKeys(keys)).toBe(false)
+  })
+
   it('allows every key where a branch whose keys cannot be told applies', () => {
     const keys = objectEvaluatedKeys(
       {
@@ -124,6 +140,8 @@ describe('objectEvaluatedKeys', () => {
       },
       {},
     )
-    expect(isEvaluatedObjectKeyExpression(keys, 'key', 'input', () => 'IF')).toBe('"a" in input')
+    expect(isEvaluatedObjectKeyExpression(keys, 'key', 'input', () => 'IF')).toBe(
+      'Object.hasOwn(input,"a")',
+    )
   })
 })

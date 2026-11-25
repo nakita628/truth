@@ -12,11 +12,17 @@ export const Schema = z
         (!z.object({ kind: z.literal('x'), flag: z.literal(true).exactOptional() }).safeParse(val)
           .success &&
           ['y'].includes(key)) ||
-        ('a' in val && ['b'].includes(key)),
+        (Object.hasOwn(val, 'a') && ['b'].includes(key)) ||
+        (Object.hasOwn(val, 'constructor') && ['c2'].includes(key)),
     ),
   )
   .refine(
     (val) => !('a' in val) || z.object({ b: z.number().exactOptional() }).safeParse(val).success,
+  )
+  .refine(
+    (val) =>
+      !('constructor' in val) ||
+      z.object({ c2: z.number().exactOptional() }).safeParse(val).success,
   )
   .refine(
     (val) =>

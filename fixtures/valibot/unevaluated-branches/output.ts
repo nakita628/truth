@@ -12,12 +12,18 @@ export const Schema = v.pipe(
         (!v.safeParse(v.object({ kind: v.literal('x'), flag: v.optional(v.literal(true)) }), input)
           .success &&
           ['y'].includes(key)) ||
-        ('a' in input && ['b'].includes(key)),
+        (Object.hasOwn(input, 'a') && ['b'].includes(key)) ||
+        (Object.hasOwn(input, 'constructor') && ['c2'].includes(key)),
     ),
   ),
   v.check(
     (input) =>
       !('a' in input) || v.safeParse(v.partial(v.object({ b: v.number() })), input).success,
+  ),
+  v.check(
+    (input) =>
+      !('constructor' in input) ||
+      v.safeParse(v.partial(v.object({ c2: v.number() })), input).success,
   ),
   v.check(
     (input) =>
