@@ -49,14 +49,14 @@ function ownDiscriminatorValues(
  * The own values each unmapped member keeps: those no other member, mapping key or
  * fallback name also claims, since a shared value would not tell the members apart. A
  * member left with none falls back to its name (`undefined` here), and that name is then
- * claimed too, until nothing changes. A name that is already a mapping key for another
- * schema is no fallback: that member is left unconstrained instead.
+ * claimed too, until nothing changes. A name in `takenNames` (a mapping key whose target
+ * resolves to a schema) is no fallback: that member is left unconstrained instead.
  */
 function distinctOwnValues(
   mappingKeys: readonly string[],
+  takenNames: ReadonlySet<string>,
   members: readonly ({ name: string; own: readonly string[] | undefined } | undefined)[],
 ) {
-  const mappingKeySet = new Set(mappingKeys)
   const counts = new Map<string, number>()
   for (const value of [...mappingKeys, ...members.flatMap((member) => [...new Set(member?.own)])]) {
     counts.set(value, (counts.get(value) ?? 0) + 1)
@@ -64,7 +64,7 @@ function distinctOwnValues(
   const settle = (chosen: readonly (readonly string[] | undefined)[]): typeof chosen => {
     const fallbacks = new Set(
       members.flatMap((member, index) =>
-        member !== undefined && chosen[index] === undefined && !mappingKeySet.has(member.name)
+        member !== undefined && chosen[index] === undefined && !takenNames.has(member.name)
           ? [member.name]
           : [],
       ),
@@ -106,7 +106,10 @@ export function discriminatedMembers(
 ) {
   const propertyName = schema.discriminator?.propertyName
   if (propertyName === undefined) return undefined
-  const mapping = Object.entries(schema.discriminator?.mapping ?? {})
+  // The document is parsed JSON, never checked against the type: a target may not be a string.
+  const mapping = Object.entries(schema.discriminator?.mapping ?? {}).filter(
+    (entry): entry is [string, string] => typeof entry[1] === 'string',
+  )
   const resolved = members.map((member) => {
     const name = member.$ref === undefined ? undefined : definitionName(member.$ref)
     if (name === undefined) return { member, name, mapped: [], own: undefined }
@@ -121,10 +124,14 @@ export function discriminatedMembers(
         : ownDiscriminatorValues(definition, propertyName)
     return { member, name, mapped, own }
   })
-  const mappingKeys = mapping.map(([value]) => value)
-  const mappingKeySet = new Set(mappingKeys)
+  // A mapping key whose target resolves to a schema: an unmapped member named so is another
+  // schema's name, and is left unconstrained rather than take it.
+  const takenNames = new Set(
+    mapping.flatMap(([value, target]) => (mappingTargetName(target) === undefined ? [] : [value])),
+  )
   const chosen = distinctOwnValues(
-    mappingKeys,
+    mapping.map(([value]) => value),
+    takenNames,
     resolved.map(({ name, mapped, own }) =>
       name === undefined || mapped.length > 0 ? undefined : { name, own },
     ),
@@ -136,7 +143,7 @@ export function discriminatedMembers(
       if (mapped.length > 0) return { member, values: mapped }
       const values = chosen[index]
       if (values !== undefined) return { member, values }
-      return { member, values: mappingKeySet.has(name) ? undefined : [name] }
+      return { member, values: takenNames.has(name) ? undefined : [name] }
     }),
   }
 }

@@ -436,6 +436,39 @@ describe('makeSchemaDeclarations', () => {
     expect(code).toContain(`["NodeSchema","&",{"type":"'Node'"}]`)
   })
 
+  it.each(['arktype', 'typebox'] as const)(
+    '%s: a cycle member keeps its name when the mapping key of that name resolves to no schema',
+    (lib) => {
+      const nodes = {
+        Leaf: { type: 'object', required: ['type'], properties: { type: { type: 'string' } } },
+        Node: {
+          type: 'object',
+          required: ['type'],
+          properties: {
+            type: { type: 'string' },
+            children: {
+              type: 'array',
+              items: {
+                oneOf: [
+                  { $ref: '#/components/schemas/Leaf' },
+                  { $ref: '#/components/schemas/Node' },
+                ],
+                discriminator: {
+                  propertyName: 'type',
+                  mapping: { Node: 'other.yaml#/components/schemas/Node', leaf: 'Leaf', x: 42 },
+                },
+              },
+            },
+          },
+        },
+      }
+      const code = makeSchemaDeclarations(nodes as never, makeAdapter(lib)).map((d) => d.code)[1]
+      expect(code).not.toContain(`"type":"'NodeSchema'"`)
+      expect(code).not.toContain('Literal("NodeSchema")')
+      expect(code).toContain(lib === 'arktype' ? `{"type":"'Node'"}` : 'Type.Literal("Node")')
+    },
+  )
+
   it("zod: outside a cycle, a member whose name is another schema's mapping key is unconstrained (#74)", () => {
     const pets = {
       A: { type: 'object', properties: { type: { type: 'string' } } },

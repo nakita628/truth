@@ -150,4 +150,14 @@ describe("discriminatedMembers reads a member's own values (#73)", () => {
     )
     expect(result?.members.map((m) => m.values)).toStrictEqual([['Cat'], ['dog']])
   })
+
+  it('keeps the schema name when the mapping key of that name resolves to no schema', () => {
+    const mapping = { Cat: 'openapi.yaml#/components/schemas/Cat', dog: '#/$defs/Dog', x: 42 }
+    const result = discriminatedMembers(
+      { discriminator: { propertyName: 'type', mapping: mapping as never } },
+      ['Cat', 'Dog'].map((name) => ({ $ref: `#/$defs/${name}` })),
+      {},
+    )
+    expect(result?.members.map((m) => m.values)).toStrictEqual([['Cat'], ['dog']])
+  })
 })

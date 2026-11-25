@@ -160,13 +160,13 @@ function ownDiscriminatorValues(schema: Schema, propertyName: string) {
  * The own values each unmapped member keeps: those no other member, mapping key or
  * fallback name also claims, as schema-truth's `discriminatedMembers` decides. A member
  * left with none keeps its schema name (`undefined` here), which is then claimed too,
- * unless that name is already a mapping key for another schema (#74).
+ * unless that name is a mapping key whose target resolves to another schema (#74).
  */
 function distinctOwnValues(
   mappingKeys: readonly string[],
+  takenNames: ReadonlySet<string>,
   members: readonly { readonly name: string; readonly own: readonly string[] | undefined }[],
 ) {
-  const mappingKeySet = new Set(mappingKeys)
   const counts = new Map<string, number>()
   for (const value of [...mappingKeys, ...members.flatMap(({ own }) => [...new Set(own)])]) {
     counts.set(value, (counts.get(value) ?? 0) + 1)
@@ -174,7 +174,7 @@ function distinctOwnValues(
   const settle = (chosen: readonly (readonly string[] | undefined)[]): typeof chosen => {
     const fallbacks = new Set(
       members.flatMap(({ name }, index) =>
-        chosen[index] === undefined && !mappingKeySet.has(name) ? [name] : [],
+        chosen[index] === undefined && !takenNames.has(name) ? [name] : [],
       ),
     )
     const next = chosen.map((values) => {
@@ -223,6 +223,11 @@ function pinOwnDiscriminatorValues(node: Schema, schemas: { readonly [k: string]
   })
   const chosen = distinctOwnValues(
     mapping.map(([value]) => value),
+    new Set(
+      mapping.flatMap(([value, target]) =>
+        typeof target === 'string' && mappingTargetKey(target) !== undefined ? [value] : [],
+      ),
+    ),
     unmapped,
   )
   const pinned = unmapped.flatMap(({ ref }, index) =>
@@ -259,13 +264,20 @@ function makeCyclicContainer(
   const localizeDiscriminator = (node: Schema) => {
     const { discriminator } = node
     if (discriminator?.propertyName === undefined) return node
-    const mapping = Object.entries(discriminator.mapping ?? {})
+    // The document is not sanitized yet, so a mapping target may not be a string.
+    const mapping = Object.entries(discriminator.mapping ?? {}).filter(
+      (entry): entry is [string, string] => typeof entry[1] === 'string',
+    )
     const mapped = new Set(mapping.map(([, target]) => mappingTargetKey(target)))
-    // An explicit value is never replaced by an implicit one spelled the same.
-    const values = new Set(mapping.map(([value]) => value))
+    // A mapping key whose target resolves to a schema is another schema's name: an explicit
+    // value is never replaced by an implicit one spelled the same. A key whose target
+    // resolves nowhere (a reference into another document) names no schema here.
+    const taken = new Set(
+      mapping.flatMap(([value, target]) => (mappingTargetKey(target) === undefined ? [] : [value])),
+    )
     const implicit = [...(node.oneOf ?? []), ...(node.anyOf ?? [])].flatMap((member) => {
       const key = memberKey(member)
-      return key === undefined || mapped.has(key) || values.has(key)
+      return key === undefined || mapped.has(key) || taken.has(key)
         ? []
         : [[key, member.$ref] as const]
     })
@@ -275,7 +287,7 @@ function makeCyclicContainer(
     const dropConstraint = (members: readonly Schema[] | undefined) =>
       members?.map((member) => {
         const key = memberKey(member)
-        return key !== undefined && !mapped.has(key) && values.has(key)
+        return key !== undefined && !mapped.has(key) && taken.has(key)
           ? { allOf: [member] }
           : member
       })
