@@ -138,6 +138,11 @@ function isStringHost(schema: JSONSchema) {
   return true
 }
 
+/** A message a generator reports: a non-empty string, as the generators read `''` as none. */
+function isMessage(value: unknown): value is string {
+  return typeof value === 'string' && value !== ''
+}
+
 type MessageKeyword =
   | 'minimum'
   | 'maximum'
@@ -154,9 +159,7 @@ type MessageKeyword =
  * into a host or merged with other leftovers.
  */
 function keywordMessage(schema: JSONSchema, keyword: MessageKeyword) {
-  const message = [schema[`x-${keyword}-message`], schema['x-error-message']].find(
-    (candidate) => typeof candidate === 'string',
-  )
+  const message = [schema[`x-${keyword}-message`], schema['x-error-message']].find(isMessage)
   return message === undefined ? {} : { [`x-${keyword}-message`]: message }
 }
 
@@ -260,8 +263,8 @@ function absorbUpper(host: JSONSchema, extra: JSONSchema) {
 }
 
 /**
- * Whether the host reports its own message for `bound`: the exact keyword's, or its
- * `x-error-message`, which a generator falls back to for every check.
+ * Whether the host reports its own message for `bound`: the exact keyword's. Its
+ * `x-error-message` does not count, since not every generator's bound check reads it.
  */
 function hasOwnBoundMessage(host: JSONSchema, bound: Bound, direction: 'lower' | 'upper') {
   const keyword =
@@ -272,7 +275,7 @@ function hasOwnBoundMessage(host: JSONSchema, bound: Bound, direction: 'lower' |
       : bound.exclusive
         ? 'x-exclusiveMaximum-message'
         : 'x-maximum-message'
-  return host[keyword] !== undefined || host['x-error-message'] !== undefined
+  return isMessage(host[keyword])
 }
 
 function isSameBound(left: Bound, right: Bound) {
@@ -283,11 +286,7 @@ function isSameBound(left: Bound, right: Bound) {
 function equalValueMessage(host: JSONSchema, extra: JSONSchema, keyword: MessageKeyword) {
   const key = `x-${keyword}-message` as const
   const message = extra[key]
-  return host[key] === undefined &&
-    host['x-error-message'] === undefined &&
-    typeof message === 'string'
-    ? { [key]: message }
-    : {}
+  return !isMessage(host[key]) && isMessage(message) ? { [key]: message } : {}
 }
 
 function absorbMultipleOf(host: JSONSchema, extra: JSONSchema) {
@@ -317,8 +316,10 @@ function absorbString(host: JSONSchema, extra: JSONSchema) {
   let next = host
   if (typeof extra.minLength === 'number') {
     if (next.minLength === undefined || extra.minLength > next.minLength) {
+      // The host's message described its looser length, so only the member's is kept.
+      const { 'x-minLength-message': _stale, ...rest } = next
       next = {
-        ...next,
+        ...rest,
         minLength: extra.minLength,
         ...(extra['x-minLength-message'] !== undefined
           ? { 'x-minLength-message': extra['x-minLength-message'] }
@@ -330,8 +331,9 @@ function absorbString(host: JSONSchema, extra: JSONSchema) {
   }
   if (typeof extra.maxLength === 'number') {
     if (next.maxLength === undefined || extra.maxLength < next.maxLength) {
+      const { 'x-maxLength-message': _stale, ...rest } = next
       next = {
-        ...next,
+        ...rest,
         maxLength: extra.maxLength,
         ...(extra['x-maxLength-message'] !== undefined
           ? { 'x-maxLength-message': extra['x-maxLength-message'] }
@@ -357,6 +359,15 @@ function absorbString(host: JSONSchema, extra: JSONSchema) {
   return next
 }
 
+/** Every `x-*-message` a part carries, as one comparable string. */
+function messagesOf(schema: JSONSchema) {
+  return JSON.stringify(
+    Object.entries(schema)
+      .filter(([key]) => key.startsWith('x-') && key.endsWith('-message'))
+      .toSorted(([left], [right]) => left.localeCompare(right)),
+  )
+}
+
 function collapse(parts: readonly JSONSchema[], kind: 'number' | 'string', isWire: boolean) {
   const groups: JSONSchema[] = []
   for (const part of parts) {
@@ -364,7 +375,7 @@ function collapse(parts: readonly JSONSchema[], kind: 'number' | 'string', isWir
     // Leftovers become one check with one message, so parts reporting different messages
     // stay apart.
     const absorbed =
-      last === undefined || constraintMessage(last) !== constraintMessage(part)
+      last === undefined || messagesOf(last) !== messagesOf(part)
         ? undefined
         : kind === 'number'
           ? tryAbsorbNumeric(last, part)

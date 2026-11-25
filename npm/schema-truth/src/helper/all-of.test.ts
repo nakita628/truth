@@ -144,14 +144,42 @@ describe('foldAllOfMembers keeps a member message (#100)', () => {
         { type: 'integer', minimum: 5, 'x-error-message': 'host' },
         { minimum: 5, 'x-minimum-message': 'need 5' },
       ],
-      [{ type: 'integer', minimum: 5, 'x-error-message': 'host' }],
+      [{ type: 'integer', minimum: 5, 'x-error-message': 'host', 'x-minimum-message': 'need 5' }],
     ],
     [
       [
         { type: 'string', minLength: 2, 'x-error-message': 'host' },
         { minLength: 2, 'x-minLength-message': 'short' },
       ],
-      [{ type: 'string', minLength: 2, 'x-error-message': 'host' }],
+      [{ type: 'string', minLength: 2, 'x-error-message': 'host', 'x-minLength-message': 'short' }],
+    ],
+    [
+      [
+        { type: 'integer', minimum: 5, 'x-minimum-message': '' },
+        { minimum: 5, 'x-minimum-message': 'x' },
+      ],
+      [{ type: 'integer', minimum: 5, 'x-minimum-message': 'x' }],
+    ],
+    [
+      [{ type: 'string', minLength: 2, 'x-minLength-message': 'at least 2' }, { minLength: 5 }],
+      [{ type: 'string', minLength: 5 }],
+    ],
+    [
+      [
+        { minimum: 1, 'x-minimum-message': 'a' },
+        { minimum: 1, 'x-minimum-message': 'a', maximum: 9, 'x-maximum-message': 'b' },
+      ],
+      [
+        { minimum: 1, 'x-minimum-message': 'a' },
+        { minimum: 1, 'x-minimum-message': 'a', maximum: 9, 'x-maximum-message': 'b' },
+      ],
+    ],
+    [
+      [
+        { minimum: 1, 'x-minimum-message': 'm' },
+        { minimum: 5, 'x-minimum-message': 'm' },
+      ],
+      [{ minimum: 5, 'x-minimum-message': 'm' }],
     ],
     [
       [
