@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.13.1
+
+### Patch Changes
+
+- [#126](https://github.com/nakita628/truth/pull/126) [`b98d7d4`](https://github.com/nakita628/truth/commit/b98d7d46f0bfe17482fa42a9887a15575873731b) Thanks [@nakita628](https://github.com/nakita628)! - Read a TypeBox `default` by the node that is actually emitted. A union with a `format: bigint` member writes a number default for a member that takes it (`"5"` for a string member) instead of one `Type.BigInt` rejects. A node of several types writes it for the first type TypeBox emits (`type: ['integer', 'string']` is a `Type.String` with the default `"5"`), including through a `$ref`, a union member or an `allOf` member.
+
 ## 0.13.0
 
 ### Minor Changes
