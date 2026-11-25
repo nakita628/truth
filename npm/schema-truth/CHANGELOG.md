@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.8.17
+
+### Patch Changes
+
+- [#79](https://github.com/nakita628/truth/pull/79) [`45d4530`](https://github.com/nakita628/truth/commit/45d45304517d7758a2b12be622c7785d22739bf8) Thanks [@nakita628](https://github.com/nakita628)! - Emit the TypeBox pattern of a boolean read from text (a query, path, header, cookie or form field) as a string that spells both cases of each letter, so the schema serializes to JSON Schema and an OpenAPI document shows the pattern instead of `{}`. The accepted spellings are unchanged.
+
 ## 0.8.16
 
 ### Patch Changes
