@@ -138,11 +138,6 @@ function isStringHost(schema: JSONSchema) {
   return true
 }
 
-/**
- * The message a member's keyword reports: its own `x-<keyword>-message`, or else the
- * member's `x-error-message`, which covers every check the member adds once it is folded
- * into a host or merged with other leftovers.
- */
 type MessageKeyword =
   | 'minimum'
   | 'maximum'
@@ -153,9 +148,16 @@ type MessageKeyword =
   | 'maxLength'
   | 'pattern'
 
+/**
+ * The message a member's keyword reports: its own `x-<keyword>-message`, or else the
+ * member's `x-error-message`, which covers every check the member adds once it is folded
+ * into a host or merged with other leftovers.
+ */
 function keywordMessage(schema: JSONSchema, keyword: MessageKeyword) {
-  const message = schema[`x-${keyword}-message`] ?? schema['x-error-message']
-  return typeof message === 'string' ? { [`x-${keyword}-message`]: message } : {}
+  const message = [schema[`x-${keyword}-message`], schema['x-error-message']].find(
+    (candidate) => typeof candidate === 'string',
+  )
+  return message === undefined ? {} : { [`x-${keyword}-message`]: message }
 }
 
 function numericPart(schema: JSONSchema) {
@@ -233,7 +235,7 @@ function absorbLower(host: JSONSchema, extra: JSONSchema) {
   const extraMessage = boundMessage(extra, extraBound, 'lower')
   if (hostBound !== undefined && !isStricter(extraBound, hostBound, 'lower')) {
     return isSameBound(hostBound, extraBound) &&
-      boundMessage(host, hostBound, 'lower') === undefined &&
+      !hasOwnBoundMessage(host, hostBound, 'lower') &&
       extraMessage !== undefined
       ? withLower(host, hostBound, extraMessage)
       : host
@@ -249,12 +251,28 @@ function absorbUpper(host: JSONSchema, extra: JSONSchema) {
   const extraMessage = boundMessage(extra, extraBound, 'upper')
   if (hostBound !== undefined && !isStricter(extraBound, hostBound, 'upper')) {
     return isSameBound(hostBound, extraBound) &&
-      boundMessage(host, hostBound, 'upper') === undefined &&
+      !hasOwnBoundMessage(host, hostBound, 'upper') &&
       extraMessage !== undefined
       ? withUpper(host, hostBound, extraMessage)
       : host
   }
   return withUpper(host, extraBound, extraMessage)
+}
+
+/**
+ * Whether the host reports its own message for `bound`: the exact keyword's, or its
+ * `x-error-message`, which a generator falls back to for every check.
+ */
+function hasOwnBoundMessage(host: JSONSchema, bound: Bound, direction: 'lower' | 'upper') {
+  const keyword =
+    direction === 'lower'
+      ? bound.exclusive
+        ? 'x-exclusiveMinimum-message'
+        : 'x-minimum-message'
+      : bound.exclusive
+        ? 'x-exclusiveMaximum-message'
+        : 'x-maximum-message'
+  return host[keyword] !== undefined || host['x-error-message'] !== undefined
 }
 
 function isSameBound(left: Bound, right: Bound) {
@@ -265,7 +283,11 @@ function isSameBound(left: Bound, right: Bound) {
 function equalValueMessage(host: JSONSchema, extra: JSONSchema, keyword: MessageKeyword) {
   const key = `x-${keyword}-message` as const
   const message = extra[key]
-  return host[key] === undefined && typeof message === 'string' ? { [key]: message } : {}
+  return host[key] === undefined &&
+    host['x-error-message'] === undefined &&
+    typeof message === 'string'
+    ? { [key]: message }
+    : {}
 }
 
 function absorbMultipleOf(host: JSONSchema, extra: JSONSchema) {
@@ -284,9 +306,11 @@ function absorbMultipleOf(host: JSONSchema, extra: JSONSchema) {
   }
   const multiple = leastCommonMultiple(host.multipleOf, extra.multipleOf)
   if (multiple === undefined) return host
+  // The combined divisor keeps a message only when both sides report the same one.
   const { 'x-multipleOf-message': message, ...rest } = host
-  void message
-  return { ...rest, multipleOf: multiple }
+  return message !== undefined && message === extra['x-multipleOf-message']
+    ? { ...rest, multipleOf: multiple, 'x-multipleOf-message': message }
+    : { ...rest, multipleOf: multiple }
 }
 
 function absorbString(host: JSONSchema, extra: JSONSchema) {
@@ -337,8 +361,10 @@ function collapse(parts: readonly JSONSchema[], kind: 'number' | 'string', isWir
   const groups: JSONSchema[] = []
   for (const part of parts) {
     const last = groups.at(-1)
+    // Leftovers become one check with one message, so parts reporting different messages
+    // stay apart.
     const absorbed =
-      last === undefined
+      last === undefined || constraintMessage(last) !== constraintMessage(part)
         ? undefined
         : kind === 'number'
           ? tryAbsorbNumeric(last, part)

@@ -129,6 +129,51 @@ describe('foldAllOfMembers keeps a member message (#100)', () => {
       [{ minimum: 5, 'x-minimum-message': 'own' }],
     ],
     [[{ minimum: 5, 'x-error-message': 'bad' }], [{ minimum: 5, 'x-minimum-message': 'bad' }]],
+    [
+      [
+        { minimum: 5, 'x-error-message': 'a' },
+        { maximum: 9, 'x-error-message': 'b' },
+      ],
+      [
+        { minimum: 5, 'x-minimum-message': 'a' },
+        { maximum: 9, 'x-maximum-message': 'b' },
+      ],
+    ],
+    [
+      [
+        { type: 'integer', minimum: 5, 'x-error-message': 'host' },
+        { minimum: 5, 'x-minimum-message': 'need 5' },
+      ],
+      [{ type: 'integer', minimum: 5, 'x-error-message': 'host' }],
+    ],
+    [
+      [
+        { type: 'string', minLength: 2, 'x-error-message': 'host' },
+        { minLength: 2, 'x-minLength-message': 'short' },
+      ],
+      [{ type: 'string', minLength: 2, 'x-error-message': 'host' }],
+    ],
+    [
+      [
+        { type: 'number', minimum: 3, exclusiveMinimum: 5, 'x-minimum-message': 'min3' },
+        { exclusiveMinimum: 5, 'x-exclusiveMinimum-message': 'ex' },
+      ],
+      [{ type: 'number', exclusiveMinimum: 5, 'x-exclusiveMinimum-message': 'ex' }],
+    ],
+    [
+      [
+        { type: 'integer', multipleOf: 2, 'x-multipleOf-message': 'same' },
+        { multipleOf: 3, 'x-multipleOf-message': 'same' },
+      ],
+      [{ type: 'integer', multipleOf: 6, 'x-multipleOf-message': 'same' }],
+    ],
+    [
+      [
+        { type: 'integer', multipleOf: 2, 'x-multipleOf-message': 'even' },
+        { multipleOf: 3, 'x-multipleOf-message': 'by 3' },
+      ],
+      [{ type: 'integer', multipleOf: 6 }],
+    ],
   ])('foldAllOfMembers(%j) → %j', (members, expected) => {
     expect(foldAllOfMembers(members, false)).toStrictEqual(expected)
   })
