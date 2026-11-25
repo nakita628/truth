@@ -1106,3 +1106,24 @@ describe('a quoted union that gets `[]` or `&` is parenthesized (#66)', () => {
     expect(arktype(schema, 'Schema', true)).toBe(expected)
   })
 })
+
+describe('a grouped union weighs as many members as it holds (#66)', () => {
+  const letters = Array.from({ length: 16 }, (_, i) => String.fromCodePoint(97 + i))
+  const group = `(${letters.map((letter) => `'${letter}'`).join(' | ')})[]`
+
+  it('adds null at runtime to a nullable array of a long enum', () => {
+    expect(arktype({ type: ['array', 'null'], items: { enum: letters } }, 'Schema', false)).toBe(
+      `type("${group}").or("null")`,
+    )
+  })
+
+  it('unions a long grouped member at runtime', () => {
+    expect(
+      arktype(
+        { anyOf: [{ type: 'array', items: { enum: letters } }, { type: 'null' }] },
+        'Schema',
+        false,
+      ),
+    ).toBe(`type("${group}").or("null")`)
+  })
+})

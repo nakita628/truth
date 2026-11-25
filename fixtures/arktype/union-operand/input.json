@@ -2,17 +2,163 @@
   "title": "Schema",
   "type": "object",
   "properties": {
-    "tags": { "type": "array", "items": { "enum": ["a", "b"] } },
-    "names": { "type": "array", "items": { "type": ["string", "null"] } },
+    "tags": {
+      "type": "array",
+      "items": {
+        "enum": [
+          "a",
+          "b"
+        ]
+      }
+    },
+    "names": {
+      "type": "array",
+      "items": {
+        "type": [
+          "string",
+          "null"
+        ]
+      }
+    },
     "tuple": {
       "type": "array",
-      "prefixItems": [{ "type": "string" }],
-      "unevaluatedItems": { "enum": ["a", "b"] }
+      "prefixItems": [
+        {
+          "type": "string"
+        }
+      ],
+      "unevaluatedItems": {
+        "enum": [
+          "a",
+          "b"
+        ]
+      }
     },
     "both": {
       "allOf": [
-        { "anyOf": [{ "type": "string" }, { "type": "number" }] },
-        { "type": ["string", "number"] }
+        {
+          "anyOf": [
+            {
+              "type": "string"
+            },
+            {
+              "type": "number"
+            }
+          ]
+        },
+        {
+          "type": [
+            "string",
+            "number"
+          ]
+        }
+      ]
+    },
+    "longNullable": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "enum": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e",
+          "f",
+          "g",
+          "h",
+          "i",
+          "j",
+          "k",
+          "l",
+          "m",
+          "n",
+          "o",
+          "p"
+        ]
+      }
+    },
+    "longAllOf": {
+      "anyOf": [
+        {
+          "allOf": [
+            {
+              "enum": [
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "g",
+                "h",
+                "i",
+                "j",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p"
+              ]
+            },
+            {
+              "enum": [
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f",
+                "g",
+                "h",
+                "i",
+                "j",
+                "k",
+                "l",
+                "m",
+                "n",
+                "o",
+                "p"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "longArrayOrNull": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "enum": [
+              "a",
+              "b",
+              "c",
+              "d",
+              "e",
+              "f",
+              "g",
+              "h",
+              "i",
+              "j",
+              "k",
+              "l",
+              "m",
+              "n",
+              "o",
+              "p"
+            ]
+          }
+        },
+        {
+          "type": "null"
+        }
       ]
     }
   }

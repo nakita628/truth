@@ -49,6 +49,7 @@ import {
   callbackType,
   arktypeUnionLimit,
   dslOperand,
+  dslUnionWeight,
   dslUnionMembers,
 } from '../../helper/index.js'
 import type { ArktypeWrapOptions } from '../../helper/index.js'
@@ -92,17 +93,24 @@ function unionStr(schemas: string[], inScope = false) {
   if (!schemas.every(isQuoted)) return schemas.reduce(combine('|', inScope))
   const members = schemas.flatMap((s) => dslUnionMembers(s.slice(1, -1)))
   const limit = arktypeUnionLimit(members)
-  if (members.length <= limit) return `"${members.join(' | ')}"`
+  // A grouped member (`('a' | 'b')[]`) weighs as many members as it holds.
+  const weight = members.reduce((total, member) => total + dslUnionWeight(member), 0)
+  if (weight <= limit) return `"${members.join(' | ')}"`
   if (isDslLiteralUnion(members)) return `type.enumerated(${members.join(',')})`
+  if (weight > members.length) return schemas.reduce(combine('|', inScope))
   return chunksOf(members, limit)
     .map((group) => `"${group.join(' | ')}"`)
     .reduce(combine('|', inScope))
 }
 
 function intersectionStr(schemas: string[], inScope = false) {
-  return schemas.every(isQuoted)
-    ? `"${schemas.map((s) => dslOperand(s.slice(1, -1))).join(' & ')}"`
-    : schemas.reduce(combine('&', inScope))
+  if (!schemas.every(isQuoted)) return schemas.reduce(combine('&', inScope))
+  const operands = schemas.map((s) => s.slice(1, -1))
+  // Union members already joined here keep the string within the union limit as a whole.
+  const weight = operands.reduce((total, operand) => total + dslUnionWeight(operand), 0)
+  return weight > operands.length && weight > arktypeUnionLimit(operands)
+    ? schemas.reduce(combine('&', inScope))
+    : `"${operands.map((operand) => dslOperand(operand)).join(' & ')}"`
 }
 
 /** An ArkType expression that carries methods: a quoted definition is wrapped in `type(...)`. */

@@ -1034,11 +1034,25 @@ describe('union-operand', () => {
     { tuple: ['s', 'a', 'b'] },
     { both: 'x' },
     { both: 1 },
+    { longNullable: ['a', 'p'] },
+    { longNullable: null },
+    { longAllOf: 'p' },
+    { longAllOf: null },
+    { longArrayOrNull: ['p'] },
   ])('accepts %j', (value) => {
     expect(UnionOperandSchema(value)).not.toBeInstanceOf(type.errors)
   })
 
-  it.each([{ tags: 'a' }, { tags: ['c'] }, { names: 'x' }, { tuple: ['s', 'c'] }, { both: true }])(
+  it.each([
+    { tags: 'a' },
+    { tags: ['c'] },
+    { names: 'x' },
+    { tuple: ['s', 'c'] },
+    { both: true },
+    { longNullable: 'a' },
+    { longAllOf: 'q' },
+    { longArrayOrNull: ['q'] },
+  ])(
     'rejects %j',
     (value) => {
       expect(UnionOperandSchema(value)).toBeInstanceOf(type.errors)
