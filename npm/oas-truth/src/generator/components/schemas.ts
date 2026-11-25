@@ -129,6 +129,7 @@ function componentSchemaKey(ref: string) {
 /** The string values a schema's own `propertyName` property is held to (`const` / `enum`). */
 function ownDiscriminatorValues(schema: Schema, propertyName: string) {
   for (const holder of [schema, ...(schema.allOf ?? [])]) {
+    if (!isSchema(holder)) continue
     const property = holder.properties?.[propertyName]
     if (!isSchema(property)) continue
     if (typeof property.const === 'string') return [property.const]
