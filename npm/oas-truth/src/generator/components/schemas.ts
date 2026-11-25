@@ -264,16 +264,16 @@ function makeCyclicContainer(
     // A member whose schema name another schema already holds as a mapping key has no
     // value of its own: wrapped in `allOf`, it is no `$ref` the discriminator can name, so
     // the local `#/$defs/<Ident>Schema` name never becomes its value (#74).
-    const unconstrain = (members: readonly Schema[] | undefined) =>
+    const dropConstraint = (members: readonly Schema[] | undefined) =>
       members?.map((member) => {
         const key = memberKey(member)
         return key !== undefined && !mapped.has(key) && values.has(key)
           ? { allOf: [member] }
           : member
       })
-    const oneOf = unconstrain(node.oneOf)
-    const anyOf = unconstrain(node.anyOf)
-    const isUnconstrained =
+    const oneOf = dropConstraint(node.oneOf)
+    const anyOf = dropConstraint(node.anyOf)
+    const isDropped =
       oneOf?.some((member, index) => member !== node.oneOf?.[index]) === true ||
       anyOf?.some((member, index) => member !== node.anyOf?.[index]) === true
     const localized = mapping.map(([value, target]) => {
@@ -282,7 +282,7 @@ function makeCyclicContainer(
     })
     const isUnchanged =
       implicit.length === 0 &&
-      !isUnconstrained &&
+      !isDropped &&
       localized.every(([, target], index) => target === mapping[index]?.[1])
     if (isUnchanged) return node
     const members: [string, unknown][] = []
