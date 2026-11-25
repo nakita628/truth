@@ -909,6 +909,56 @@ describe('discriminators across collision renames and cycles (#103)', () => {
     )
   })
 
+  it("zod: a renamed member whose name is another schema's mapping key is unconstrained", () => {
+    const schemas = {
+      ...renamed,
+      Other: { type: 'object', properties: { type: { type: 'string' } } },
+      U: {
+        oneOf: [{ $ref: '#/components/schemas/FooBar' }, { $ref: '#/components/schemas/Other' }],
+        discriminator: { propertyName: 'type', mapping: { FooBar: '#/components/schemas/Other' } },
+      },
+    }
+    const code = makeSchemaDeclarations(schemas as never, makeAdapter('zod')).map((d) => d.code)[3]
+    expect(code).not.toContain('FooBar2"')
+    expect(code).toContain('z.literal("FooBar")')
+  })
+
+  it('renames a mapping target once inside a cycle, beside an outside $ref', () => {
+    const seen: unknown[] = []
+    const capturing = {
+      ...typebox,
+      toExpressionParts: undefined,
+      toExpression: (...args: Parameters<typeof typebox.toExpression>) => {
+        seen.push(args[0])
+        return typebox.toExpression(...args)
+      },
+    }
+    const schemas = {
+      'Foo-Bar': { type: 'object' },
+      FooBar: { type: 'object', properties: { type: { type: 'string' } } },
+      FooBar2: { type: 'object' },
+      A: { type: 'object', properties: { next: { $ref: '#/components/schemas/U' } } },
+      U: {
+        $ref: '#/components/schemas/FooBar2',
+        oneOf: [{ $ref: '#/components/schemas/FooBar' }, { $ref: '#/components/schemas/A' }],
+        discriminator: { propertyName: 'type', mapping: { f: '#/components/schemas/FooBar' } },
+      },
+    }
+    makeSchemaDeclarations(schemas as never, capturing)
+    const text = JSON.stringify(seen)
+    expect(text).toContain('"f":"#/components/schemas/FooBar2"')
+    expect(text).not.toContain('"f":"#/components/schemas/FooBar22"')
+  })
+
+  it('arktype: a type call spelled inside a string literal does not import type', () => {
+    expect(
+      makeAdapter('arktype').renderImport({
+        cyclic: true,
+        code: `export const ESchema=scope({ESchema:"'type.created'|'type(x)'"}).export().ESchema`,
+      }),
+    ).toBe("import { scope } from 'arktype'")
+  })
+
   it('localizes the discriminator of a node that has a $ref beside its oneOf, inside a cycle', () => {
     const seen: unknown[] = []
     const capturing = {

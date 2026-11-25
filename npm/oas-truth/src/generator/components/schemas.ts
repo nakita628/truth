@@ -114,12 +114,14 @@ function markReadonly(schema: Schema) {
  * its entry. schema-truth builds the container from a `$defs` document.
  */
 function rewriteCollisionRef(node: Schema, identifiers: ReadonlyMap<string, string>): Schema {
-  const renamed = rewriteMappingTargets(node, identifiers)
-  if (typeof renamed.$ref !== 'string' || !renamed.$ref.startsWith('#/components/schemas/')) {
-    return renamed
-  }
-  const ident = renamedIdentifier(schemaRefToName(renamed.$ref), identifiers)
-  return ident === undefined ? renamed : { ...renamed, $ref: `#/components/schemas/${ident}` }
+  return rewriteRef(rewriteMappingTargets(node, identifiers), identifiers)
+}
+
+/** The node's own `$ref` renamed by a collision; its mapping is left as it is. */
+function rewriteRef(node: Schema, identifiers: ReadonlyMap<string, string>): Schema {
+  if (typeof node.$ref !== 'string' || !node.$ref.startsWith('#/components/schemas/')) return node
+  const ident = renamedIdentifier(schemaRefToName(node.$ref), identifiers)
+  return ident === undefined ? node : { ...node, $ref: `#/components/schemas/${ident}` }
 }
 
 /** The identifier a component key was renamed to by a collision, or undefined when it kept its own. */
@@ -161,18 +163,46 @@ function pinRenamedMemberValues(node: Schema, identifiers: ReadonlyMap<string, s
     ),
   )
   const values = new Set(mapping.map(([value]) => value))
-  const pinned = [...listOf(node.oneOf), ...listOf(node.anyOf)].flatMap((member) => {
-    if (!isSchema(member) || typeof member.$ref !== 'string') return []
+  // A mapping key whose target resolves is another schema's value, so a renamed member whose
+  // name spells it has no value of its own (#74).
+  const taken = new Set(
+    mapping.flatMap(([value, target]) =>
+      typeof target === 'string' && mappingTargetKey(target) !== undefined ? [value] : [],
+    ),
+  )
+  const renamedKey = (member: unknown) => {
+    if (!isSchema(member) || typeof member.$ref !== 'string') return undefined
     const key = componentSchemaKey(member.$ref)
-    if (key === undefined || mapped.has(key) || values.has(key)) return []
-    if (renamedIdentifier(key, identifiers) === undefined) return []
-    return [[key, member.$ref] as const]
-  })
-  if (pinned.length === 0) return node
-  return {
-    ...node,
-    discriminator: { ...discriminator, mapping: Object.fromEntries([...mapping, ...pinned]) },
+    if (key === undefined || mapped.has(key)) return undefined
+    return renamedIdentifier(key, identifiers) === undefined ? undefined : key
   }
+  const pinned = [...listOf(node.oneOf), ...listOf(node.anyOf)].flatMap((member) => {
+    const key = renamedKey(member)
+    return key === undefined || values.has(key) || !isSchema(member)
+      ? []
+      : [[key, member.$ref] as const]
+  })
+  // Wrapped in `allOf`, it is no `$ref` the discriminator can read a value from.
+  const unconstrained = (members: unknown): readonly unknown[] =>
+    listOf(members).map((member: unknown) => {
+      const key = renamedKey(member)
+      return key !== undefined && taken.has(key) ? { allOf: [member] } : member
+    })
+  const oneOf = unconstrained(node.oneOf)
+  const anyOf = unconstrained(node.anyOf)
+  const isWrapped =
+    listOf(oneOf).some((member, index) => member !== listOf(node.oneOf)[index]) ||
+    listOf(anyOf).some((member, index) => member !== listOf(node.anyOf)[index])
+  if (pinned.length === 0 && !isWrapped) return node
+  const entries: [string, unknown][] = Object.entries(node)
+  if (node.oneOf !== undefined) entries.push(['oneOf', oneOf])
+  if (node.anyOf !== undefined) entries.push(['anyOf', anyOf])
+  entries.push([
+    'discriminator',
+    { ...discriminator, mapping: Object.fromEntries([...mapping, ...pinned]) },
+  ])
+  const next: unknown = Object.fromEntries(entries)
+  return isSchema(next) ? next : node
 }
 
 /** The component key a `#/components/schemas/...` reference names; undefined for any other reference. */
@@ -386,7 +416,8 @@ function makeCyclicContainer(
       ])
       return isSchema(local) ? local : discriminated
     }
-    return rewriteCollisionRef(discriminated, identifiers)
+    // The mapping is already renamed above; renaming it again would chain the renames.
+    return rewriteRef(discriminated, identifiers)
   }
   const $defs = Object.fromEntries(
     group.map((name) => [
