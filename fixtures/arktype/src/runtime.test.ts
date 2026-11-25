@@ -1097,6 +1097,9 @@ describe('scope-arrays', () => {
     { pair: [{ id: 'a' }] },
     { path: [{ id: 'a' }, { children: [] }] },
     { refList: [{ id: 'a' }] },
+    { refList: [{ id: 'a' }, { id: 'b' }] },
+    { bigIds: [1, '2'] },
+    { labels: 'a' },
   ])('accepts %j', (value) => {
     expect(ScopeArraysNode(value)).not.toBeInstanceOf(type.errors)
   })
@@ -1107,8 +1110,23 @@ describe('scope-arrays', () => {
     { pair: [{ id: 1 }] },
     { path: [{ id: 'a' }, { ids: 'x' }] },
     { refList: [{ id: 1 }] },
+    // `minItems` beside the `$ref`, and `maxItems` on its target `Leaves` (#105)
+    { refList: [] },
+    { refList: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] },
+    { bigIds: [] },
+    { bigIds: [1, 2, 3] },
+    { bigIds: ['x'] },
   ])('rejects %j', (value) => {
     expect(ScopeArraysNode(value)).toBeInstanceOf(type.errors)
+  })
+
+  it('reads the bigint items before the target checks them (#105)', () => {
+    expect(ScopeArraysNode({ bigIds: [1, '2'] })).toStrictEqual({ bigIds: [1n, 2n] })
+  })
+
+  it('applies both string transforms, the sibling one first (#105)', () => {
+    expect(ScopeArraysNode({ codes: [' AB '] })).toStrictEqual({ codes: ['ab'] })
+    expect(ScopeArraysNode({ codes: ['a', 'b', 'c'] })).toBeInstanceOf(type.errors)
   })
 })
 

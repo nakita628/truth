@@ -75,6 +75,29 @@ function combine(op: '&' | '|', inScope: boolean) {
       : `type(${acc}).${op === '&' ? 'and' : 'or'}(${s})`
 }
 
+/** The keywords, and their messages, that the array branch of {@link node} reads. */
+const ARRAY_KEYWORDS: ReadonlySet<string> = new Set([
+  'items',
+  'prefixItems',
+  'unevaluatedItems',
+  'minItems',
+  'maxItems',
+  'uniqueItems',
+  'contains',
+  'minContains',
+  'maxContains',
+  'x-items-message',
+  'x-prefixItems-message',
+  'x-unevaluatedItems-message',
+  'x-length-message',
+  'x-minItems-message',
+  'x-maxItems-message',
+  'x-uniqueItems-message',
+  'x-contains-message',
+  'x-minContains-message',
+  'x-maxContains-message',
+])
+
 /** `items` in consecutive groups of at most `size`. */
 function chunksOf<T>(items: readonly T[], size: number) {
   return Array.from({ length: Math.ceil(items.length / size) }, (_, i) =>
@@ -245,7 +268,7 @@ function node(
   rootName: string,
   isArktype: boolean,
   options: EmitOptions | undefined,
-) {
+): string {
   const codeExtOpts: ArktypeWrapOptions = {
     ...(options?.unsafeCodeExtensions === true && { unsafeCodeExtensions: true }),
     ...(isArktype && { scopeMode: true }),
@@ -308,12 +331,21 @@ function node(
       }
       return '"unknown"'
     }
-    const items = itemsSchemaOf(schema.items)
-    if (schema.type === 'array' && items?.$ref) {
-      // A scope names its aliases by quoted definitions, which have no `.array()`.
-      const item = ref(items)
-      const array = isPlainOperand(item, true) ? `"${item.slice(1, -1)}[]"` : `${item}.array()`
-      return arktypeWrap(array, schema)
+    // An array beside the `$ref` holds the value to both: the target, and the array its
+    // own keywords build. A `type` that lists another type besides `null` is a union the
+    // target already decides, so only an array-only node takes this path.
+    const types = normalizeTypes(schema.type)
+    if (types.includes('array') && types.every((type) => type === 'array' || type === 'null')) {
+      const arraySchema = Object.fromEntries(
+        Object.entries(schema).filter(([key]) => ARRAY_KEYWORDS.has(key)),
+      )
+      const array = node({ ...arraySchema, type: 'array' }, rootName, isArktype, options)
+      const target = ref(schema)
+      // The array runs first and the target checks what it returns: ArkType cannot
+      // intersect two distinct morphs (a wire read, a bigint or string transform on both
+      // sides), and the target expects the value the array reads, not its wire text.
+      const both = isArktype ? `[${array},"|>",${target}]` : `${asRuntime(array)}.to(${target})`
+      return arktypeWrap(both, schema)
     }
     return arktypeWrap(ref(schema), schema)
   }

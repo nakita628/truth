@@ -38,6 +38,31 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/Leaf"
+      },
+      "minItems": 1
+    },
+    "bigIds": {
+      "$ref": "#/$defs/BigIds",
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "minItems": 1
+    },
+    "labels": {
+      "$ref": "#/$defs/Label",
+      "type": [
+        "string",
+        "array"
+      ]
+    },
+    "codes": {
+      "$ref": "#/$defs/Codes",
+      "type": "array",
+      "items": {
+        "type": "string",
+        "x-toLowerCase": true
       }
     }
   },
@@ -57,7 +82,33 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/Leaf"
+      },
+      "maxItems": 2
+    },
+    "BigIds": {
+      "type": "array",
+      "items": {
+        "type": "integer",
+        "format": "int64"
+      },
+      "maxItems": 2
+    },
+    "Label": {
+      "type": [
+        "string",
+        "array"
+      ],
+      "items": {
+        "type": "string"
       }
+    },
+    "Codes": {
+      "type": "array",
+      "items": {
+        "type": "string",
+        "x-trim": true
+      },
+      "maxItems": 2
     }
   }
 }
