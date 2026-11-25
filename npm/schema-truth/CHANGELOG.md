@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.13.2
+
+### Patch Changes
+
+- [#129](https://github.com/nakita628/truth/pull/129) [`6b907ae`](https://github.com/nakita628/truth/commit/6b907ae0e8baa81ceb7262ed80e8e4c691b318e5) Thanks [@nakita628](https://github.com/nakita628)! - Check `propertyNames` on an object that declares no `properties` and no `additionalProperties` schema (or `additionalProperties: true`) in Zod, Valibot, Effect and ArkType, which emitted an empty object that took any key.
+
 ## 0.13.1
 
 ### Patch Changes
