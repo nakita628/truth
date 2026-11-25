@@ -18,6 +18,7 @@ import {
 import {
   enumWithoutWrappedNull,
   foldAllOfMembers,
+  isBigintFormat,
   isKeywordOnlyMember,
   itemsSchemaOf,
   schemaNamer,
@@ -111,7 +112,10 @@ function wireString(schema: JSONSchema, ref?: string, pattern?: string) {
  */
 function numericWire(schema: JSONSchema, kind: 'integer' | 'number', ref?: string) {
   const pattern = kind === 'integer' ? INTEGER_WIRE_PATTERN : NUMBER_WIRE_PATTERN
-  return [numericRange(kind), ...numericBounds(schema)].reduce(
+  // An int64, uint64 or bigint wire is out of this check's reach: the other generators
+  // decode it to a `bigint`, so text beyond the safe integer range stays valid there.
+  const range = kind === 'integer' && isBigintFormat(schema) ? [] : [numericRange(kind)]
+  return [...range, ...numericBounds(schema)].reduce(
     (wire, [check, keyword, message]) =>
       `Type.Refine(${wire},(value)=>${check},()=>${JSON.stringify(
         schema[`x-${keyword}-message`] ?? schema['x-error-message'] ?? message,

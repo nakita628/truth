@@ -725,6 +725,15 @@ describe('typebox', () => {
       expect(typebox(input, 'Schema', false, { paramIn: 'query' })).toBe(expected)
     })
 
+    it.each(['int64', 'uint64', 'bigint'])(
+      'query: integer with format %s has no safe-integer check on the text',
+      (format) => {
+        expect(typebox({ type: 'integer', format }, 'Schema', false, { paramIn: 'query' })).toBe(
+          'Codec(Type.String({pattern:"^-?(?:0|[1-9]\\\\d*)$"})).Decode((value)=>Number(value)).Encode((value)=>String(value))',
+        )
+      },
+    )
+
     it("path: boolean → Type.Transform decode 'true'|'false'", () => {
       expect(typebox({ type: 'boolean' }, 'Schema', false, { paramIn: 'path' })).toBe(
         `Codec(Type.String({pattern:"^(?:[Tt][Rr][Uu][Ee]|1|[Yy][Ee][Ss]|[Oo][Nn]|[Yy]|[Ee][Nn][Aa][Bb][Ll][Ee][Dd]|[Ff][Aa][Ll][Ss][Ee]|0|[Nn][Oo]|[Oo][Ff][Ff]|[Nn]|[Dd][Ii][Ss][Aa][Bb][Ll][Ee][Dd])$"})).Decode((value)=>/^(?:true|1|yes|on|y|enabled)$/i.test(value)).Encode((value)=>value?'true':'false')`,

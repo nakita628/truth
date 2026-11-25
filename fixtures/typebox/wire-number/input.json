@@ -2,9 +2,23 @@
   "title": "Query",
   "type": "object",
   "properties": {
-    "ratio": { "type": "number" },
-    "score": { "type": "number", "minimum": 1 },
-    "id": { "type": "integer" },
-    "count": { "type": "integer", "maximum": 9007199254740991 }
+    "ratio": {
+      "type": "number"
+    },
+    "score": {
+      "type": "number",
+      "minimum": 1
+    },
+    "id": {
+      "type": "integer"
+    },
+    "count": {
+      "type": "integer",
+      "maximum": 9007199254740991
+    },
+    "total": {
+      "type": "integer",
+      "format": "int64"
+    }
   }
 }

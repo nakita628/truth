@@ -53,6 +53,11 @@ export const Query = Type.Object({
       .Decode((value) => Number(value))
       .Encode((value) => String(value)),
   ),
+  total: Type.Optional(
+    Codec(Type.String({ pattern: '^-?(?:0|[1-9]\\d*)$' }))
+      .Decode((value) => Number(value))
+      .Encode((value) => String(value)),
+  ),
 })
 
 export type Query = Static<typeof Query>
