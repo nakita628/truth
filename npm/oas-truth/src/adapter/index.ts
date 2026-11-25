@@ -346,7 +346,7 @@ function makeArktypeAdapter(): ComponentAdapter {
       // unused import fails `noUnusedLocals` (TS6133).
       // String literals (an enum value such as 'type.created') are no call.
       const code = options.code?.replaceAll(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/gu, '""')
-      return code === undefined || /\btype[.(]/u.test(code)
+      return code === undefined || /(?<![\w$.])type[(.]/u.test(code)
         ? "import { type, scope } from 'arktype'"
         : "import { scope } from 'arktype'"
     },

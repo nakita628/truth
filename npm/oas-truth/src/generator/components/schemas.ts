@@ -162,7 +162,6 @@ function pinRenamedMemberValues(node: Schema, identifiers: ReadonlyMap<string, s
       typeof target === 'string' ? mappingTargetKey(target) : undefined,
     ),
   )
-  const values = new Set(mapping.map(([value]) => value))
   // A mapping key whose target resolves is another schema's value, so a renamed member whose
   // name spells it has no value of its own (#74).
   const taken = new Set(
@@ -176,9 +175,11 @@ function pinRenamedMemberValues(node: Schema, identifiers: ReadonlyMap<string, s
     if (key === undefined || mapped.has(key)) return undefined
     return renamedIdentifier(key, identifiers) === undefined ? undefined : key
   }
+  // A mapping key whose target resolves nowhere here (another document) names no schema, so
+  // the member still takes its key, as `localizeDiscriminator` decides.
   const pinned = [...listOf(node.oneOf), ...listOf(node.anyOf)].flatMap((member) => {
     const key = renamedKey(member)
-    return key === undefined || values.has(key) || !isSchema(member)
+    return key === undefined || taken.has(key) || !isSchema(member)
       ? []
       : [[key, member.$ref] as const]
   })
@@ -195,8 +196,8 @@ function pinRenamedMemberValues(node: Schema, identifiers: ReadonlyMap<string, s
     listOf(anyOf).some((member, index) => member !== listOf(node.anyOf)[index])
   if (pinned.length === 0 && !isWrapped) return node
   const entries: [string, unknown][] = Object.entries(node)
-  if (node.oneOf !== undefined) entries.push(['oneOf', oneOf])
-  if (node.anyOf !== undefined) entries.push(['anyOf', anyOf])
+  if (Array.isArray(node.oneOf)) entries.push(['oneOf', oneOf])
+  if (Array.isArray(node.anyOf)) entries.push(['anyOf', anyOf])
   entries.push([
     'discriminator',
     { ...discriminator, mapping: Object.fromEntries([...mapping, ...pinned]) },

@@ -923,6 +923,19 @@ describe('discriminators across collision renames and cycles (#103)', () => {
     expect(code).toContain('z.literal("FooBar")')
   })
 
+  it('zod: a renamed member whose name is an external mapping key takes its schema key', () => {
+    const schemas = {
+      ...renamed,
+      U: {
+        oneOf: [{ $ref: '#/components/schemas/FooBar' }],
+        discriminator: { propertyName: 'type', mapping: { FooBar: 'other.yaml#/FooBar' } },
+      },
+    }
+    const code = makeSchemaDeclarations(schemas as never, makeAdapter('zod')).map((d) => d.code)[2]
+    expect(code).not.toContain('FooBar2"')
+    expect(code).toContain('z.literal("FooBar")')
+  })
+
   it('renames a mapping target once inside a cycle, beside an outside $ref', () => {
     const seen: unknown[] = []
     const capturing = {
