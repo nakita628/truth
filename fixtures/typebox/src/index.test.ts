@@ -17,6 +17,7 @@ const REF_FIXTURES: { readonly [name: string]: string } = {
 /** Fixtures generated as an OpenAPI parameter, with the options its Parameter Object implies. */
 const PARAM_FIXTURES: { readonly [name: string]: TypeboxGenerateOptions } = {
   'wire-boolean': { paramIn: 'query' },
+  'wire-number': { paramIn: 'query' },
 }
 
 const fixtures = readdirSync(fixturesDir, { withFileTypes: true })
