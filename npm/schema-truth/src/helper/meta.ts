@@ -1,5 +1,6 @@
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault, makeSafeKey } from '../utils/index.js'
+import type { DefaultSchema } from '../utils/index.js'
 import { bigintFormatOf, isBigintSchema } from './bigint.js'
 import { examplesOf } from './schema.js'
 import type { SchemaDefinitions } from './schema.js'
@@ -62,13 +63,22 @@ export function typeboxDefaultOpt(
   // (OpenAPI emission, Fastify route schemas, Ajv). Leaving it out keeps both right.
   if (
     typeof value === 'number' &&
-    bigintFormatOf(schema, definitions, isBigintSchema) === 'bigint'
+    bigintFormatOf(schema, definitions, isTypeboxBigint) === 'bigint'
   ) {
     return []
   }
   const formatLiteral =
     typeof value === 'boolean' || typeof value === 'number' ? `${value}` : JSON.stringify(value)
   return [`default:${formatLiteral}`]
+}
+
+/**
+ * Whether TypeBox emits the node as a `Type.BigInt`: an integer of `format: bigint`. An
+ * int64 or uint64 integer is a `Type.Integer`, which takes a number default, so a union
+ * with such a member keeps its default.
+ */
+function isTypeboxBigint(node: DefaultSchema) {
+  return node.format === 'bigint' && isBigintSchema(node)
 }
 
 /**
@@ -79,8 +89,8 @@ export function typeboxDefaultOpt(
  */
 export function hasTypeboxDefault(
   schema: JSONSchema,
-  definitions?: SchemaDefinitions,
   stringWire = false,
+  definitions?: SchemaDefinitions,
 ) {
   return typeboxDefaultOpt(schema, stringWire, definitions).length > 0
 }

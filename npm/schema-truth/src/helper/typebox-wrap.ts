@@ -42,7 +42,7 @@ export function typeboxWrap(
   // TypeBox v1's `Type.Optional(type)` takes one arg; the default value itself is
   // baked into `typeboxStr`'s own options by the factory (`typeboxDefaultOpt`).
   // Here we only mark the property optional when that default is present.
-  return hasTypeboxDefault(schema, definitions, options?.stringWire === true)
+  return hasTypeboxDefault(schema, options?.stringWire === true, definitions)
     ? `Type.Optional(${withReadonly})`
     : withReadonly
 }

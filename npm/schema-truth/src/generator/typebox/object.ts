@@ -85,7 +85,7 @@ export function object(
         const safeKey = makeSafeKey(key)
         // A property with a default its output carries is already `Type.Optional` from its
         // own emitter, so it is not wrapped a second time.
-        return required.has(key) || /^(?:Type\.Readonly\()?Type\.Optional\(/.test(parsed)
+        return required.has(key) || /^(?:Type\.Readonly\()*Type\.Optional\(/.test(parsed)
           ? `${safeKey}:${parsed}`
           : `${safeKey}:Type.Optional(${parsed})`
       })

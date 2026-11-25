@@ -889,6 +889,22 @@ describe('typebox nullable anyOf default beside a $ref to a bigint', () => {
   })
 })
 
+describe('typebox union default beside a bigint and an int64 member', () => {
+  it('keeps the default, which the int64 Type.Integer member takes', () => {
+    const definitions = { Big: { type: 'integer', format: 'bigint' } } satisfies {
+      [name: string]: JSONSchema
+    }
+    expect(
+      typebox(
+        { anyOf: [{ $ref: '#/$defs/Big' }, { type: 'integer', format: 'int64' }], default: 5 },
+        'Schema',
+        false,
+        { definitions },
+      ),
+    ).toBe('Type.Optional(Type.Union([Big,Type.Integer()],{default:5}))')
+  })
+})
+
 describe('typebox property whose bigint default is left out', () => {
   const definitions = { Big: { type: 'integer', format: 'bigint' } } satisfies {
     [name: string]: JSONSchema

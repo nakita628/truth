@@ -97,7 +97,7 @@ export const User = Type.Object({
 })
 ```
 
-A `default` on an integer with `format: bigint` is left out of the TypeBox output. `Type.BigInt` accepts only a bigint, and a bigint `default` would stop the schema from going through `JSON.stringify` (OpenAPI emission, Fastify route schemas, Ajv), so `Value.Default` does not fill such a field.
+A `default` on an integer with `format: bigint` is left out of the TypeBox output. `Type.BigInt` accepts only a bigint, and a bigint `default` would stop the schema from going through `JSON.stringify` (OpenAPI emission, Fastify route schemas, Ajv), so `Value.Default` does not fill such a field. A parameter read from text (query, path, header, cookie) is a `Type.String`, so it keeps the default as its text.
 
 ### [ArkType](https://arktype.io/)
 
