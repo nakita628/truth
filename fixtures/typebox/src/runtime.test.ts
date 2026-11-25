@@ -903,12 +903,25 @@ describe('wire-number', () => {
     expect(() => Value.Decode(WireNumberQuery, { [key]: text })).toThrow()
   })
 
-  it('rejects int64 text that Number would round, as this wire decodes it to a number', () => {
-    expect(Value.Decode(WireNumberQuery, { total: '9007199254740991' })).toStrictEqual({
-      total: 9007199254740991,
+  it('decodes int64 text to a bigint, keeping every digit (#84)', () => {
+    expect(Value.Decode(WireNumberQuery, { total: '9007199254740993' })).toStrictEqual({
+      total: 9007199254740993n,
     })
-    expect(() => Value.Decode(WireNumberQuery, { total: '9007199254740993' })).toThrow()
+    expect(Value.Decode(WireNumberQuery, { total: '-9223372036854775808' })).toStrictEqual({
+      total: -9223372036854775808n,
+    })
+    expect(Value.Encode(WireNumberQuery, { total: 9223372036854775807n })).toStrictEqual({
+      total: '9223372036854775807',
+    })
   })
+
+  it.each(['9223372036854775808', '-9223372036854775809', '1.5', '1e3', ''])(
+    'rejects total=%s, outside int64 or not integer text',
+    (text) => {
+      expect(Value.Check(WireNumberQuery, { total: text })).toBe(false)
+      expect(() => Value.Decode(WireNumberQuery, { total: text })).toThrow()
+    },
+  )
 
   it.each<[string, string, number]>([
     ['small', '2147483647', 2147483647],

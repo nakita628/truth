@@ -1,7 +1,8 @@
+import { INTEGER_TEXT_PATTERN, NUMBER_RANGES } from '../constants/index.js'
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault, makeSafeKey } from '../utils/index.js'
 import type { DefaultSchema } from '../utils/index.js'
-import { bigintFormatOf, isBigintSchema } from './bigint.js'
+import { bigintFormatOf, bigintWireText, isBigintSchema, isBigintWire } from './bigint.js'
 import { examplesOf } from './schema.js'
 import type { SchemaDefinitions } from './schema.js'
 
@@ -56,7 +57,8 @@ export function typeboxDefaultOpt(
   if (schema.default === undefined) return []
   const result = coerceDefault(schema, schema.default, definitions)
   if (!result.keep) return []
-  const value = stringWire ? String(result.value) : result.value
+  const value = stringWire ? wireDefaultText(schema, result.value) : result.value
+  if (value === undefined) return []
   // A `Type.BigInt` (on the node, or beside a `$ref` or `allOf` to one) carries no default.
   // A number default is one `Value.Default` puts in and `Type.BigInt` then rejects, and a
   // bigint default is not JSON, so the schema would no longer go through `JSON.stringify`
@@ -70,6 +72,29 @@ export function typeboxDefaultOpt(
   const formatLiteral =
     typeof value === 'boolean' || typeof value === 'number' ? `${value}` : JSON.stringify(value)
   return [`default:${formatLiteral}`]
+}
+
+/**
+ * A default as the text a string wire reads. A {@link isBigintWire} node is decoded with
+ * `BigInt`, so its default is spelled in digits, a digit-text default as written (a
+ * number would round it), and one outside the `int64` / `uint64` range, such as a `uint64`
+ * maximum a number rounds up, has no text the wire takes: `undefined`.
+ */
+function wireDefaultText(schema: JSONSchema, value: unknown) {
+  if (!isBigintWire(schema)) return String(value)
+  const raw = schema.default
+  const text =
+    typeof raw === 'string' && INTEGER_TEXT_PATTERN.test(raw) ? raw : bigintWireText(value)
+  if (!INTEGER_TEXT_PATTERN.test(text)) return text
+  const range = schema.format === undefined ? undefined : NUMBER_RANGES[schema.format]
+  const digits = BigInt(text)
+  if (
+    range !== undefined &&
+    (digits < BigInt(range.minimum.slice(0, -1)) || digits > BigInt(range.maximum.slice(0, -1)))
+  ) {
+    return undefined
+  }
+  return text
 }
 
 /**
