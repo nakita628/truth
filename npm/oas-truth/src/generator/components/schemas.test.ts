@@ -390,11 +390,97 @@ describe('makeSchemaDeclarations', () => {
         },
       },
     }
-    // The explicit value stays with the schema it names. What the cycle member that lost
-    // its implicit name accepts is undecided (#74), so it is not pinned here.
+    // The explicit value stays with the schema it names, and the cycle member whose name
+    // that value spells is left unconstrained: the scope alias never becomes a value (#74).
     expect(
       makeSchemaDeclarations(filters as never, makeAdapter('arktype')).map((d) => d.code)[1],
-    ).toContain(`["ComparisonFilterSchema","&",{"type":"'CompoundFilter'"}]`)
+    ).toBe(
+      `export const CompoundFilterSchema=scope({ComparisonFilterSchema:ComparisonFilterSchema,CompoundFilterSchema:{type:"string",filters:[[["ComparisonFilterSchema","&",{"type":"'CompoundFilter'"}],"|","CompoundFilterSchema"],"[]"]}}).export().CompoundFilterSchema`,
+    )
+    const cyclic = makeSchemaDeclarations(filters as never, makeAdapter('typebox')).map(
+      (d) => d.code,
+    )[1]
+    expect(cyclic).toContain(
+      `Type.Union([Type.Intersect([ComparisonFilterSchema,Type.Object({type:Type.Literal("CompoundFilter")})]),Type.Ref('CompoundFilterSchema')])`,
+    )
+    expect(cyclic).not.toContain('CompoundFilterSchema")')
+    expect(
+      makeSchemaDeclarations(filters as never, makeAdapter('zod')).map((d) => d.code)[1],
+    ).toContain(
+      'z.xor([z.intersection(ComparisonFilterSchema,z.object({type:z.literal("CompoundFilter")})),z.lazy(() => CompoundFilterSchema)])',
+    )
+  })
+
+  it('arktype: a bare schema name in the mapping names a cycle member', () => {
+    const nodes = {
+      Leaf: { type: 'object', required: ['type'], properties: { type: { type: 'string' } } },
+      Node: {
+        type: 'object',
+        required: ['type'],
+        properties: {
+          type: { type: 'string' },
+          children: {
+            type: 'array',
+            items: {
+              oneOf: [{ $ref: '#/components/schemas/Leaf' }, { $ref: '#/components/schemas/Node' }],
+              discriminator: { propertyName: 'type', mapping: { Node: 'Node', leaf: 'Leaf' } },
+            },
+          },
+        },
+      },
+    }
+    const code = makeSchemaDeclarations(nodes as never, makeAdapter('arktype')).map(
+      (d) => d.code,
+    )[1]
+    expect(code).toContain(`["LeafSchema","&",{"type":"'leaf'"}]`)
+    expect(code).toContain(`["NodeSchema","&",{"type":"'Node'"}]`)
+  })
+
+  it.each(['arktype', 'typebox'] as const)(
+    '%s: a cycle member keeps its name when the mapping key of that name resolves to no schema',
+    (lib) => {
+      const nodes = {
+        Leaf: { type: 'object', required: ['type'], properties: { type: { type: 'string' } } },
+        Node: {
+          type: 'object',
+          required: ['type'],
+          properties: {
+            type: { type: 'string' },
+            children: {
+              type: 'array',
+              items: {
+                oneOf: [
+                  { $ref: '#/components/schemas/Leaf' },
+                  { $ref: '#/components/schemas/Node' },
+                ],
+                discriminator: {
+                  propertyName: 'type',
+                  mapping: { Node: 'other.yaml#/components/schemas/Node', leaf: 'Leaf', x: 42 },
+                },
+              },
+            },
+          },
+        },
+      }
+      const code = makeSchemaDeclarations(nodes as never, makeAdapter(lib)).map((d) => d.code)[1]
+      expect(code).not.toContain(`"type":"'NodeSchema'"`)
+      expect(code).not.toContain('Literal("NodeSchema")')
+      expect(code).toContain(lib === 'arktype' ? `{"type":"'Node'"}` : 'Type.Literal("Node")')
+    },
+  )
+
+  it("zod: outside a cycle, a member whose name is another schema's mapping key is unconstrained (#74)", () => {
+    const pets = {
+      A: { type: 'object', properties: { type: { type: 'string' } } },
+      B: { type: 'object', properties: { type: { type: 'string' } } },
+      Pet: {
+        oneOf: [{ $ref: '#/components/schemas/A' }, { $ref: '#/components/schemas/B' }],
+        discriminator: { propertyName: 'type', mapping: { B: '#/components/schemas/A' } },
+      },
+    }
+    expect(makeSchemaDeclarations(pets as never, makeAdapter('zod')).map((d) => d.code)[2]).toBe(
+      'export const PetSchema=z.xor([z.intersection(ASchema,z.object({type:z.literal("B")})),BSchema])',
+    )
   })
 
   it.each(libs)('%s: colliding keys get a numeric suffix', (lib) => {
