@@ -257,8 +257,8 @@ function branchCheck(condition: string, evaluated: BranchEvaluated, key: string)
 
 /**
  * The emitted key check `check` builds from {@link isEvaluatedObjectKeyExpression}, with the
- * `if` schema tested once per value rather than once per key: when the expression reads
- * the test, the check is wrapped in a call that computes it first (`ifPassed`).
+ * `if` schema tested once per value rather than once per key: when a branch reads the
+ * test, the check is wrapped in a call that computes it first (`ifPassed`).
  */
 export function evaluatedObjectKeysCheck(
   keys: ObjectEvaluatedKeys,
@@ -267,10 +267,12 @@ export function evaluatedObjectKeysCheck(
   ifPasses: () => string,
   check: (isEvaluated: string | undefined) => string,
 ) {
-  const isEvaluated = isEvaluatedObjectKeyExpression(keys, key, input, () => 'ifPassed')
-  return isEvaluated?.includes('ifPassed') === true
-    ? `((ifPassed)=>${check(isEvaluated)})(${ifPasses()})`
-    : check(isEvaluated)
+  const reads = { if: false }
+  const isEvaluated = isEvaluatedObjectKeyExpression(keys, key, input, () => {
+    reads.if = true
+    return 'ifPassed'
+  })
+  return reads.if ? `((ifPassed)=>${check(isEvaluated)})(${ifPasses()})` : check(isEvaluated)
 }
 
 /**
