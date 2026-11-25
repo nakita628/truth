@@ -296,24 +296,42 @@ function collapse(parts: readonly JSONSchema[], kind: 'number' | 'string', isWir
   return groups
 }
 
+/**
+ * The stricter of a node's two bounds in one direction: a 2020-12 numeric `exclusiveMinimum`
+ * (`exclusiveMaximum`) is a bound of its own beside `minimum` (`maximum`), and both hold.
+ */
+function strictest(
+  inclusive: Bound | undefined,
+  exclusive: Bound | undefined,
+  direction: 'lower' | 'upper',
+) {
+  if (inclusive === undefined) return exclusive
+  if (exclusive === undefined) return inclusive
+  return isStricter(inclusive, exclusive, direction) ? inclusive : exclusive
+}
+
 function lowerBound(schema: JSONSchema) {
-  if (typeof schema.exclusiveMinimum === 'number') {
-    return { value: schema.exclusiveMinimum, exclusive: true }
-  }
-  if (typeof schema.minimum === 'number') {
-    return { value: schema.minimum, exclusive: schema.exclusiveMinimum === true }
-  }
-  return undefined
+  return strictest(
+    typeof schema.minimum === 'number'
+      ? { value: schema.minimum, exclusive: schema.exclusiveMinimum === true }
+      : undefined,
+    typeof schema.exclusiveMinimum === 'number'
+      ? { value: schema.exclusiveMinimum, exclusive: true }
+      : undefined,
+    'lower',
+  )
 }
 
 function upperBound(schema: JSONSchema) {
-  if (typeof schema.exclusiveMaximum === 'number') {
-    return { value: schema.exclusiveMaximum, exclusive: true }
-  }
-  if (typeof schema.maximum === 'number') {
-    return { value: schema.maximum, exclusive: schema.exclusiveMaximum === true }
-  }
-  return undefined
+  return strictest(
+    typeof schema.maximum === 'number'
+      ? { value: schema.maximum, exclusive: schema.exclusiveMaximum === true }
+      : undefined,
+    typeof schema.exclusiveMaximum === 'number'
+      ? { value: schema.exclusiveMaximum, exclusive: true }
+      : undefined,
+    'upper',
+  )
 }
 
 function isStricter(next: Bound, current: Bound, direction: 'lower' | 'upper') {
