@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.13.6
+
+### Patch Changes
+
+- [#144](https://github.com/nakita628/truth/pull/144) [`1705f55`](https://github.com/nakita628/truth/commit/1705f5577fe6bd83cbc4ca5c4ee3e51259e73a6b) Thanks [@nakita628](https://github.com/nakita628)! - Keep a keyword-only `allOf` member's custom message when it is folded into a sibling. On an equal bound, length, pattern or `multipleOf`, a sibling without its own message for that keyword takes the member's, and a member that tightens a length no longer keeps the sibling's message for the looser one. A member's `x-error-message` now reports the checks it adds instead of being dropped, and leftover members with different messages are no longer merged into one check.
+
 ## 0.13.5
 
 ### Patch Changes
