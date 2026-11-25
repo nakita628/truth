@@ -340,9 +340,12 @@ function makeArktypeAdapter(): ComponentAdapter {
       }),
     ),
     renderImport(options) {
-      return options?.cyclic === true
+      if (options?.cyclic !== true) return "import { type } from 'arktype'"
+      // A file of nothing but `scope({...}).export().Member` never calls `type`, and an
+      // unused import fails `noUnusedLocals` (TS6133).
+      return options.code === undefined || /\btype[.(]/u.test(options.code)
         ? "import { type, scope } from 'arktype'"
-        : "import { type } from 'arktype'"
+        : "import { scope } from 'arktype'"
     },
     renderTypeInfer(constName) {
       return `export type ${constName}=typeof ${constName}.infer`
