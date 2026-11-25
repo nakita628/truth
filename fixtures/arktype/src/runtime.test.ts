@@ -1039,6 +1039,11 @@ describe('union-operand', () => {
     { longAllOf: 'p' },
     { longAllOf: null },
     { longArrayOrNull: ['p'] },
+    { boundaryArray: ['k'] },
+    { boundaryAllOf: 'e' },
+    { boundaryUnion: ['a'] },
+    { boundaryUnion: 'x' },
+    { boundaryUnion: null },
   ])('accepts %j', (value) => {
     expect(UnionOperandSchema(value)).not.toBeInstanceOf(type.errors)
   })
@@ -1052,6 +1057,9 @@ describe('union-operand', () => {
     { longNullable: 'a' },
     { longAllOf: 'q' },
     { longArrayOrNull: ['q'] },
+    { boundaryArray: ['l'] },
+    { boundaryAllOf: 'f' },
+    { boundaryUnion: ['f'] },
   ])(
     'rejects %j',
     (value) => {

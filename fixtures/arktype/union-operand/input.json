@@ -160,6 +160,91 @@
           "type": "null"
         }
       ]
+    },
+    "boundaryArray": {
+      "type": [
+        "array",
+        "null"
+      ],
+      "items": {
+        "enum": [
+          "a",
+          "b",
+          "c",
+          "d",
+          "e",
+          "f",
+          "g",
+          "h",
+          "i",
+          "j",
+          "k"
+        ]
+      }
+    },
+    "boundaryAllOf": {
+      "anyOf": [
+        {
+          "allOf": [
+            {
+              "enum": [
+                "a",
+                "b",
+                "c",
+                "d",
+                "e",
+                "f"
+              ]
+            },
+            {
+              "enum": [
+                "a",
+                "b",
+                "c",
+                "d",
+                "e"
+              ]
+            }
+          ]
+        },
+        {
+          "type": "null"
+        }
+      ]
+    },
+    "boundaryUnion": {
+      "anyOf": [
+        {
+          "type": "array",
+          "items": {
+            "enum": [
+              "a",
+              "b",
+              "c",
+              "d",
+              "e"
+            ]
+          }
+        },
+        {
+          "type": "array",
+          "items": {
+            "enum": [
+              "a",
+              "b",
+              "c",
+              "d",
+              "e"
+            ]
+          }
+        },
+        {
+          "type": "string"
+        },
+        {
+          "type": "null"
+        }
+      ]
     }
   }
 }

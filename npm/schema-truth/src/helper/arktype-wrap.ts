@@ -37,41 +37,19 @@ export function dslUnionMembers(definition: string) {
 }
 
 /**
- * How many union members a string-DSL definition (its text without the outer quotes) holds
- * at any depth: one more than its ` | ` separators outside quoted literals, inside a group
- * too. TypeScript parses the whole string, so a parenthesized union weighs as much as the
- * same union at the top level.
+ * Whether a string-DSL definition (its text without the outer quotes) would need
+ * parentheses as an operand: it has a top-level `|`, or an `&` too where `withIntersection`
+ * says the operator binds tighter than `&` (`[]`). `[]` applies only to the operand right
+ * before it and `&` binds tighter than `|`, so `'a' | 'b'[]` reads as `'a' | ('b'[])`.
+ * Such an operand is combined at runtime instead (`.array()`, `.and(...)`): a parenthesized
+ * union inside a longer string costs TypeScript more instantiation depth than the
+ * union limits allow for.
  */
-export function dslUnionWeight(definition: string) {
-  let separators = 0
-  let quote = ''
-  for (let i = 0; i < definition.length; i += 1) {
-    const char = definition[i]
-    if (quote !== '') {
-      if (char === '\\') i += 1
-      else if (char === quote) quote = ''
-    } else if (char === "'" || char === '"') {
-      quote = char
-    } else if (definition.startsWith(' | ', i)) {
-      separators += 1
-      i += 2
-    }
-  }
-  return separators + 1
-}
-
-/**
- * A string-DSL definition (its text without the outer quotes) as one operand: in
- * parentheses when it has a top-level `|`, or an `&` too where `withIntersection` says
- * the operator around it binds tighter than `&` (`[]`). `[]` applies only to the operand
- * right before it and `&` binds tighter than `|`, so `'a' | 'b'[]` reads as
- * `'a' | ('b'[])`.
- */
-export function dslOperand(definition: string, withIntersection = false) {
-  const grouped =
+export function dslNeedsGroup(definition: string, withIntersection = false) {
+  return (
     dslSplit(definition, ' | ').length > 1 ||
     (withIntersection && dslSplit(definition, ' & ').length > 1)
-  return grouped ? `(${definition})` : definition
+  )
 }
 
 /** The definition split at each `separator` outside a quoted literal and outside brackets. */
@@ -179,7 +157,8 @@ export function arktypeWrap(arktypeStr: string, schema: JSONSchema, options?: Ar
   // union with `null` would be too long for the string DSL.
   const withNullable =
     isNullable(schema) && options?.nullSchema !== true
-      ? isQuoted(arktypeStr) && dslUnionWeight(arktypeStr.slice(1, -1)) < ARKTYPE_MIXED_UNION_LIMIT
+      ? isQuoted(arktypeStr) &&
+        dslUnionMembers(arktypeStr.slice(1, -1)).length < ARKTYPE_MIXED_UNION_LIMIT
         ? `"${arktypeStr.slice(1, -1)} | null"`
         : inScope && isDefinition(arktypeStr)
           ? `[${arktypeStr},"|","null"]`

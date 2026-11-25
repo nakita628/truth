@@ -1084,13 +1084,19 @@ describe('arktype const of an int64 beyond 1e21', () => {
   })
 })
 
-describe('a quoted union that gets `[]` or `&` is parenthesized (#66)', () => {
-  it.each<[JSONSchema, string]>([
-    [{ type: 'array', items: { enum: ['a', 'b'] } }, `"('a' | 'b')[]"`],
-    [{ type: 'array', items: { type: ['string', 'null'] } }, '"(string | null)[]"'],
+describe('a quoted union that gets `[]` or `&` is combined at runtime (#66)', () => {
+  it.each<[JSONSchema, boolean, string]>([
+    [{ type: 'array', items: { enum: ['a', 'b'] } }, false, `type("'a' | 'b'").array()`],
+    [{ type: 'array', items: { enum: ['a', 'b'] } }, true, `["'a' | 'b'","[]"]`],
+    [
+      { type: 'array', items: { type: ['string', 'null'] } },
+      false,
+      'type("string | null").array()',
+    ],
     [
       { type: 'array', prefixItems: [{ type: 'string' }], unevaluatedItems: { enum: ['a', 'b'] } },
-      `type(["string","...","('a' | 'b')[]"])`,
+      false,
+      `type(["string","...",["'a' | 'b'","[]"]])`,
     ],
     [
       {
@@ -1099,31 +1105,11 @@ describe('a quoted union that gets `[]` or `&` is parenthesized (#66)', () => {
           { type: ['string', 'number'] },
         ],
       },
-      '"(string | number) & (string | number)"',
+      false,
+      'type("string | number").and("string | number")',
     ],
-    [{ type: 'array', items: { type: 'string' } }, '"string[]"'],
-  ])('%o → %s', (schema, expected) => {
-    expect(arktype(schema, 'Schema', true)).toBe(expected)
-  })
-})
-
-describe('a grouped union weighs as many members as it holds (#66)', () => {
-  const letters = Array.from({ length: 16 }, (_, i) => String.fromCodePoint(97 + i))
-  const group = `(${letters.map((letter) => `'${letter}'`).join(' | ')})[]`
-
-  it('adds null at runtime to a nullable array of a long enum', () => {
-    expect(arktype({ type: ['array', 'null'], items: { enum: letters } }, 'Schema', false)).toBe(
-      `type("${group}").or("null")`,
-    )
-  })
-
-  it('unions a long grouped member at runtime', () => {
-    expect(
-      arktype(
-        { anyOf: [{ type: 'array', items: { enum: letters } }, { type: 'null' }] },
-        'Schema',
-        false,
-      ),
-    ).toBe(`type("${group}").or("null")`)
+    [{ type: 'array', items: { type: 'string' } }, false, '"string[]"'],
+  ])('%o (in a scope: %s) → %s', (schema, isArktype, expected) => {
+    expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
   })
 })

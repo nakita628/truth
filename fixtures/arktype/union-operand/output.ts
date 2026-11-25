@@ -1,12 +1,14 @@
 import { type } from 'arktype'
 
 export const Schema = type({
-  'tags?': "('a' | 'b')[]",
-  'names?': '(string | null)[]',
-  'tuple?': type(['string', '...', "('a' | 'b')[]"]),
-  'both?': '(string | number) & (string | number)',
+  'tags?': type("'a' | 'b'").array(),
+  'names?': type('string | null').array(),
+  'tuple?': type(['string', '...', ["'a' | 'b'", '[]']]),
+  'both?': type('string | number').and('string | number'),
   'longNullable?': type(
-    "('a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p')[]",
+    type(
+      "'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p'",
+    ).array(),
   ).or('null'),
   'longAllOf?': type(
     type(
@@ -16,7 +18,22 @@ export const Schema = type({
     ),
   ).or('null'),
   'longArrayOrNull?': type(
-    "('a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p')[]",
+    type(
+      "'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k' | 'l' | 'm' | 'n' | 'o' | 'p'",
+    ).array(),
+  ).or('null'),
+  'boundaryArray?': type(
+    type("'a' | 'b' | 'c' | 'd' | 'e' | 'f' | 'g' | 'h' | 'i' | 'j' | 'k'").array(),
+  ).or('null'),
+  'boundaryAllOf?': type(
+    type("'a' | 'b' | 'c' | 'd' | 'e' | 'f'").and("'a' | 'b' | 'c' | 'd' | 'e'"),
+  ).or('null'),
+  'boundaryUnion?': type(
+    type(
+      type(type("'a' | 'b' | 'c' | 'd' | 'e'").array()).or(
+        type("'a' | 'b' | 'c' | 'd' | 'e'").array(),
+      ),
+    ).or('string'),
   ).or('null'),
 })
 
