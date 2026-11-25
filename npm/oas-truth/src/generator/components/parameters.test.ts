@@ -118,7 +118,7 @@ describe('makeParametersCode', () => {
       },
     } as unknown as Components
     expect(makeParametersCode(components, valibot)).toBe(
-      "import * as v from 'valibot'\n\nexport const FilterParamsSchema=v.pipe(v.unknown(),v.transform((input)=>{if(typeof input!=='object'||input===null||Array.isArray(input))return input;const out=Object.entries(input).reduce<{[k:string]:unknown}>((acc,[key,value])=>{const name=/^[^[\\]]+\\[([^\\]]+)\\]$/u.exec(key)?.[1];return name===undefined?acc:{...acc,[name]:value}},{});return Object.keys(out).length>0?out:input}),v.partial(v.object({q:v.string()})))\n",
+      'import * as v from \'valibot\'\n\nexport const FilterParamsSchema=v.pipe(v.unknown(),v.metadata({type:"object",properties:{q:{type:"string"}}}),v.transform((input)=>{if(typeof input!==\'object\'||input===null||Array.isArray(input))return input;const out=Object.entries(input).reduce<{[k:string]:unknown}>((acc,[key,value])=>{const name=/^[^[\\]]+\\[([^\\]]+)\\]$/u.exec(key)?.[1];return name===undefined?acc:{...acc,[name]:value}},{});return Object.keys(out).length>0?out:input}),v.partial(v.object({q:v.string()})))\n',
     )
   })
 

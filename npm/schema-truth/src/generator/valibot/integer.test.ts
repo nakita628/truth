@@ -104,7 +104,7 @@ describe('valibot integer read from wire text', () => {
     ],
     [
       { type: 'integer', format: 'int32' },
-      "v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.metadata({type:'integer',minimum:-2147483648,maximum:2147483647}),v.transform((input)=>Number(input)),v.number(),v.safeInteger(),v.minValue(-2147483648),v.maxValue(2147483647))",
+      'v.pipe(v.string(),v.regex(/^-?(?:0|[1-9]\\d*)$/),v.metadata({type:\'integer\',format:"int32",minimum:-2147483648,maximum:2147483647}),v.transform((input)=>Number(input)),v.number(),v.safeInteger(),v.minValue(-2147483648),v.maxValue(2147483647))',
     ],
   ])('integer(%o, { wire: true }) → %s', (input, expected) => {
     expect(integer(input, { wire: true })).toBe(expected)

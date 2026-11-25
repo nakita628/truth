@@ -70,9 +70,13 @@ A Valibot `integer` / `number` parameter is a pipe that checks the text, then re
 `Number`. `@valibot/to-json-schema` documents the input side of a pipe only up to its
 `v.transform`, so the pipe carries a `v.metadata({ type, minimum, ... })` that gives the document
 the spec's type and bounds back, and a numeric `default` is annotated as the number over the
-text `v.optional` holds; the text's `pattern` stays beside them. Only the scalar pipe is
-annotated: an array or a nullable parameter starts with a transform of its own and is still
-documented as `{}`. An exclusive bound is written as a number, the form of the converter's default
+text `v.optional` holds; the text's `pattern` stays beside them. The pipe also carries the
+spec's `format`, `description`, `examples` and `deprecated`. Every other wire pipe that reads
+its text through a transform (an array, a nullable parameter, a boolean, a literal, a 64-bit
+integer read into a `bigint`, a parameter object) starts with `v.unknown(), v.metadata(...)`
+holding the spec's own schema, so the input-side document is complete. `x-` extensions are left
+out of that document, `nullable` is written as a `null` type, and a schema with a `$ref` inside
+is not annotated. A boolean `default` is annotated as the boolean. An exclusive bound is written as a number, the form of the converter's default
 target (draft-07); a target that spells it another way, such as OpenAPI 3.0's boolean
 `exclusiveMinimum`, is not followed. A 64-bit integer, read into a `bigint`, is not annotated.
 

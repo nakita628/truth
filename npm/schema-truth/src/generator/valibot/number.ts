@@ -1,6 +1,6 @@
 import { NUMBER_RANGES } from '../../constants/index.js'
 import type { BigintSchema } from '../../helper/bigint.js'
-import { numberWirePattern } from '../../helper/index.js'
+import { examplesOf, numberWirePattern, serializeJSValue } from '../../helper/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { valibotError, valibotErrorPart } from '../../utils/index.js'
 
@@ -98,14 +98,23 @@ export function wireNumberMetadata(
     ...(schema.maximum !== undefined && !isExclusiveMaximum ? [schema.maximum] : []),
     ...(range === undefined ? [] : [Number(range.maximum)]),
   ]
+  const examples = examplesOf(schema)
   const entries = [
     `type:'${kind}'`,
+    ...(typeof schema.format === 'string' ? [`format:${JSON.stringify(schema.format)}`] : []),
     ...(values === undefined ? [] : [`enum:${JSON.stringify(values)}`]),
     ...(minimums.length > 0 ? [`minimum:${Math.max(...minimums)}`] : []),
     ...(typeof exclusiveMinimum === 'number' ? [`exclusiveMinimum:${exclusiveMinimum}`] : []),
     ...(maximums.length > 0 ? [`maximum:${Math.min(...maximums)}`] : []),
     ...(typeof exclusiveMaximum === 'number' ? [`exclusiveMaximum:${exclusiveMaximum}`] : []),
     ...(schema.multipleOf !== undefined ? [`multipleOf:${schema.multipleOf}`] : []),
+    // The pipe's own `v.description` / `v.metadata` come after the transform, where the
+    // converter no longer reads, so they are documented here too.
+    ...(schema.description === undefined
+      ? []
+      : [`description:${JSON.stringify(schema.description)}`]),
+    ...(examples === undefined ? [] : [`examples:${serializeJSValue(examples)}`]),
+    ...(schema.deprecated === undefined ? [] : [`deprecated:${schema.deprecated}`]),
   ]
   return `v.metadata({${entries.join(',')}})`
 }

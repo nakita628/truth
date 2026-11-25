@@ -41,6 +41,8 @@ import {
   isEvaluatedKeyExpression,
   unlessEvaluated,
   discriminatedMembers,
+  serializeJSValue,
+  wireDocument,
 } from '../../helper/index.js'
 import type { ValibotWrapOptions } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
@@ -57,6 +59,25 @@ import { int64Input, integer, isInt64 } from './integer.js'
 import { number, wireNumberMetadata } from './number.js'
 import { object } from './object.js'
 import { string } from './string.js'
+
+/**
+ * Whether a wire expression reads its text through a `v.transform` of its own, ahead of any
+ * nested schema: a number, boolean, literal or date read from text, a list split from it,
+ * or an object taken from a record with inherited names. An object whose properties alone
+ * read text is documented by those properties.
+ */
+function readsWireText(expression: string) {
+  return (
+    expression.startsWith('v.pipe(v.unknown(),v.transform(') ||
+    (expression.startsWith('v.pipe(v.string(') && expression.includes('v.transform(')) ||
+    (expression.startsWith('v.union([') && expression.includes('v.transform('))
+  )
+}
+
+/** Whether pipe items that read wire text document the value ahead of their transform. */
+function isSelfDocumented(items: readonly string[] | undefined) {
+  return items?.some((item) => item.startsWith('v.metadata(')) === true
+}
 
 /** `inner` with `prefix` ahead of it in one pipe: an existing pipe is opened, not nested. */
 function prependPipe(prefix: readonly string[], inner: string) {
@@ -167,7 +188,24 @@ export function valibot(
   // The parameter's serialization reads the root's text; the nodes under it see none.
   if (hasParameterSerialization(options)) {
     const inner = valibot(schema, rootName, isValibot, withoutParameterSerialization(options))
-    return preprocess(parameterReaders(schema, options, 'input'), inner)
+    const readers = parameterReaders(schema, options, 'input')
+    // The readers are transforms, where an input-side JSON Schema converter stops, so the
+    // spec's own schema goes ahead of them.
+    const document =
+      readers.length > 0 && isStringWireLocation(options?.paramIn) && schema['x-coerce'] !== false
+        ? wireDocument(schema)
+        : undefined
+    if (document === undefined) return preprocess(readers, inner)
+    const metadata = `v.metadata(${serializeJSValue(document)})`
+    // The node documented itself the same way; once ahead of the readers is enough.
+    const ownDocument = `v.pipe(v.unknown(),${metadata},`
+    const body = inner.startsWith(ownDocument)
+      ? `v.pipe(v.unknown(),${inner.slice(ownDocument.length)}`
+      : inner
+    return prependPipe(
+      ['v.unknown()', metadata, ...readers.map((reader) => `v.transform(${reader})`)],
+      body,
+    )
   }
   return node(schema, rootName, isValibot, options)
 }
@@ -197,12 +235,15 @@ function node(
   const valibotWrap = (
     valibotStr: string,
     s: JSONSchema,
-    extra?: { readonly nullSchema?: boolean },
+    extra?: { readonly nullSchema?: boolean; readonly documented?: boolean },
   ) =>
     _valibotWrap(valibotStr, s, {
-      ...extra,
+      ...(extra?.nullSchema === true && { nullSchema: true }),
       ...codeExtOpts,
       ...wireOptions(s),
+      ...(isWireCoerced &&
+        extra?.documented !== true &&
+        readsWireText(valibotStr) && { wireDocument: true }),
       ...(options?.definitions !== undefined && { definitions: options.definitions }),
     })
   const readonly = (v: string) => (options?.readonly ? `v.pipe(${v},v.readonly())` : v)
@@ -218,7 +259,7 @@ function node(
         return [
           'v.string()',
           `v.regex(${pattern})`,
-          wireNumberMetadata(kind, {}, values),
+          wireNumberMetadata(kind, schema, values),
           'v.transform((input)=>Number(input))',
         ]
       }
@@ -361,7 +402,9 @@ function node(
           ? `v.literal(${JSON.stringify(value)}${errorPart})`
           : `v.custom<${JSON.stringify(value)}>((input) => ${deepEqualExpression(value, 'input')}${errorPart})`
     const input = literalInput([value])
-    return valibotWrap(input ? prependPipe(input, literal) : literal, schema)
+    return valibotWrap(input ? prependPipe(input, literal) : literal, schema, {
+      documented: isSelfDocumented(input),
+    })
   }
   if (schema.enum) {
     const values = schema.enum.filter((value) => value !== null)
@@ -370,7 +413,9 @@ function node(
     // `null` is matched ahead of the coercion, which would read it as `0` or `false`.
     const hasNull = values.length < schema.enum.length
     const piped = prependPipe(input, _enum({ ...schema, enum: values }))
-    return valibotWrap(hasNull && !isNullable(schema) ? `v.nullable(${piped})` : piped, schema)
+    return valibotWrap(hasNull && !isNullable(schema) ? `v.nullable(${piped})` : piped, schema, {
+      documented: !hasNull && isSelfDocumented(input),
+    })
   }
   if (schema.properties) {
     return readonly(valibotWrap(object(schema, rootName, isValibot, options), schema))
@@ -395,7 +440,10 @@ function node(
   for (const primitiveType of ['string', 'number', 'integer', 'boolean']) {
     if (!types.includes(primitiveType)) continue
     const expression = primitive(primitiveType)
-    if (expression !== undefined) return valibotWrap(expression, schema)
+    // A wire number documents itself (`wireNumberMetadata`) ahead of its transform.
+    const documented =
+      primitiveType === 'number' || (primitiveType === 'integer' && !isInt64(schema))
+    if (expression !== undefined) return valibotWrap(expression, schema, { documented })
   }
 
   if (types.includes('array')) {
