@@ -1,6 +1,6 @@
 import { INTEGER_TEXT_PATTERN, NUMBER_RANGES } from '../constants/index.js'
 import type { JSONSchema } from '../parser/index.js'
-import { coerceDefault, makeSafeKey } from '../utils/index.js'
+import { coerceDefault, makeSafeKey, normalizeTypes } from '../utils/index.js'
 import type { DefaultSchema } from '../utils/index.js'
 import { bigintFormatOf, bigintWireText, isBigintSchema, isBigintWire } from './bigint.js'
 import { examplesOf } from './schema.js'
@@ -55,7 +55,8 @@ export function typeboxDefaultOpt(
   definitions?: SchemaDefinitions,
 ) {
   if (schema.default === undefined) return []
-  const result = coerceDefault(schema, schema.default, definitions)
+  const emitted = typeboxEmitted(schema, definitions)
+  const result = coerceDefault(emitted, schema.default, definitions)
   if (!result.keep) return []
   const value = stringWire ? wireDefaultText(schema, result.value) : result.value
   if (value === undefined) return []
@@ -65,13 +66,47 @@ export function typeboxDefaultOpt(
   // (OpenAPI emission, Fastify route schemas, Ajv). Leaving it out keeps both right.
   if (
     typeof value === 'number' &&
-    bigintFormatOf(schema, definitions, isTypeboxBigint) === 'bigint'
+    bigintFormatOf(emitted, definitions, isTypeboxBigint) === 'bigint'
   ) {
     return []
   }
   const formatLiteral =
     typeof value === 'boolean' || typeof value === 'number' ? `${value}` : JSON.stringify(value)
   return [`default:${formatLiteral}`]
+}
+
+/** The primitive types in the order `typebox()` reads them: the first one it finds is emitted. */
+const TYPEBOX_PRIMITIVE_ORDER = ['string', 'number', 'integer', 'boolean'] as const
+
+/**
+ * The schema as the TypeBox node it is emitted as, for reading its default. A node of
+ * several primitive types is the first one `typebox()` reads (`['integer', 'string']` is a
+ * `Type.String`, which takes `"5"`, not `5`), and a union leaves out a member TypeBox
+ * emits as a `Type.BigInt`, which no number default fits, so the default is read by a
+ * member that takes it. A union of nothing but such members is left as it is.
+ */
+function typeboxEmitted(schema: JSONSchema, definitions?: SchemaDefinitions): JSONSchema {
+  const members = schema.anyOf ?? schema.oneOf
+  if (members !== undefined && members.length > 0) {
+    const takers = members.filter(
+      (member) => bigintFormatOf(member, definitions, isTypeboxBigint) !== 'bigint',
+    )
+    if (takers.length === 0 || takers.length === members.length) return schema
+    return schema.anyOf === undefined ? { ...schema, oneOf: takers } : { ...schema, anyOf: takers }
+  }
+  if (
+    schema.$ref !== undefined ||
+    schema.allOf !== undefined ||
+    schema.enum !== undefined ||
+    schema.const !== undefined ||
+    schema.properties !== undefined
+  ) {
+    return schema
+  }
+  const types = normalizeTypes(schema.type)
+  const primitive = TYPEBOX_PRIMITIVE_ORDER.find((type) => types.includes(type))
+  if (primitive === undefined || types.filter((type) => type !== 'null').length < 2) return schema
+  return { ...schema, type: types.includes('null') ? [primitive, 'null'] : primitive }
 }
 
 /**

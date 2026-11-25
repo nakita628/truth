@@ -1009,6 +1009,41 @@ describe('typebox union default beside a bigint and an int64 member', () => {
   })
 })
 
+describe('typebox default read by the node TypeBox emits (#86)', () => {
+  const definitions = { Big: { type: 'integer', format: 'bigint' } } satisfies {
+    [name: string]: JSONSchema
+  }
+  it.each([
+    [
+      { anyOf: [{ $ref: '#/$defs/Big' }, { type: 'string' }], default: 5 },
+      'Type.Optional(Type.Union([Big,Type.String()],{default:"5"}))',
+    ],
+    [
+      { oneOf: [{ type: 'string' }, { $ref: '#/$defs/Big' }], default: 5 },
+      'Type.Optional(Type.Union([Type.String(),Big],{default:"5"}))',
+    ],
+    [
+      { anyOf: [{ $ref: '#/$defs/Big' }, { type: 'integer' }], default: 5 },
+      'Type.Optional(Type.Union([Big,Type.Integer()],{default:5}))',
+    ],
+    [
+      { anyOf: [{ $ref: '#/$defs/Big' }, { type: 'null' }], default: 5 },
+      'Type.Union([Big,Type.Null()])',
+    ],
+    [
+      { type: ['integer', 'string'], format: 'bigint', default: 5 },
+      'Type.Optional(Type.String({default:"5"}))',
+    ],
+    [{ type: ['integer', 'string'], default: 5 }, 'Type.Optional(Type.String({default:"5"}))'],
+    [
+      { type: ['integer', 'number'], format: 'bigint', default: 5 },
+      'Type.Optional(Type.Number({default:5}))',
+    ],
+  ] satisfies [JSONSchema, string][])('%o → %s', (schema, expected) => {
+    expect(typebox(schema, 'Schema', false, { definitions })).toBe(expected)
+  })
+})
+
 describe('typebox property whose bigint default is left out', () => {
   const definitions = { Big: { type: 'integer', format: 'bigint' } } satisfies {
     [name: string]: JSONSchema
