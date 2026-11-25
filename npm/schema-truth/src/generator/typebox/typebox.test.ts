@@ -725,7 +725,7 @@ describe('typebox', () => {
       expect(typebox(input, 'Schema', false, { paramIn: 'query' })).toBe(expected)
     })
 
-    it.each(['int64', 'uint64', 'bigint'])(
+    it.each(['int64', 'uint64', 'bigint'] as const)(
       'query: integer with format %s has no safe-integer check on the text',
       (format) => {
         expect(typebox({ type: 'integer', format }, 'Schema', false, { paramIn: 'query' })).toBe(
