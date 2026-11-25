@@ -8,7 +8,7 @@ import {
   arktypePreprocess,
   callbackReturn,
   callbackType,
-  isEvaluatedObjectKeyExpression,
+  evaluatedObjectKeysCheck,
   objectEvaluatedKeys,
   ownProperties,
   propertyEmitOptions,
@@ -126,15 +126,22 @@ export function object(
   // applies declares.
   const evaluatedKeys = objectEvaluatedKeys(schema, options?.definitions)
   const conditionSchema = schema.if
-  const isEvaluated = isEvaluatedObjectKeyExpression(evaluatedKeys, 'key', 'data', () =>
-    conditionSchema === undefined
-      ? 'false'
-      : `${callbackType(arktype(conditionSchema, rootName, isArktype, options), isArktype)}.allows(data)`,
-  )
-  const onlyEvaluatedKeys =
+  const keysCheck = (check: (isEvaluated: string | undefined) => string) =>
+    evaluatedObjectKeysCheck(
+      evaluatedKeys,
+      'key',
+      'data',
+      () =>
+        conditionSchema === undefined
+          ? 'false'
+          : `${callbackType(arktype(conditionSchema, rootName, isArktype, options), isArktype)}.allows(data)`,
+      check,
+    )
+  const onlyEvaluatedKeys = keysCheck((isEvaluated) =>
     isEvaluated === undefined
       ? 'Object.keys(data).length === 0'
-      : `Object.keys(data).every((key) => ${isEvaluated})`
+      : `Object.keys(data).every((key) => ${isEvaluated})`,
+  )
   // `"+": "reject"` refuses every undeclared key, a key a pattern allows included: with
   // patterns, the narrow below refuses the keys neither covers instead.
   // `"delete"` drops the undeclared keys before a narrow reads them, so a `propertyNames`
@@ -182,17 +189,28 @@ export function object(
       ? narrowPredicate(`Object.keys(data).length <= ${schema.maxProperties}`, maximumMessage)
       : ''
   const dependentRequiredNarrows: readonly string[] = schema.dependentRequired
-    ? Object.entries(schema.dependentRequired).map(([key, deps]) => {
-        const depsCheck = deps.map((dependency) => `'${dependency}' in data`).join(' && ')
-        return narrowPredicate(`!('${key}' in data) || (${depsCheck})`, depReqMessage)
-      })
+    ? Object.entries(schema.dependentRequired)
+        // An empty list always holds.
+        .filter(([, deps]) => deps.length > 0)
+        .map(([key, deps]) => {
+          const depsCheck = deps
+            .map((dependency) => `Object.hasOwn(data,${JSON.stringify(dependency)})`)
+            .join(' && ')
+          return narrowPredicate(
+            `!Object.hasOwn(data,${JSON.stringify(key)}) || (${depsCheck})`,
+            depReqMessage,
+          )
+        })
     : []
   // v3.0: dependentSchemas — when key present, the whole object must
   // additionally satisfy the named sub-schema.
   const dependentSchemasNarrows: readonly string[] = schema.dependentSchemas
     ? Object.entries(schema.dependentSchemas).map(([key, subSchema]) => {
         const s = callbackType(arktype(subSchema, rootName, isArktype, options), isArktype)
-        return narrowPredicate(`!('${key}' in data) || ${s}.allows(data)`, depSchMessage)
+        return narrowPredicate(
+          `!Object.hasOwn(data,${JSON.stringify(key)}) || ${s}.allows(data)`,
+          depSchMessage,
+        )
       })
     : []
   // v3.0: x-additionalProperties-message narrows extras-rejection
@@ -218,9 +236,11 @@ export function object(
     if (typeof restSchema === 'object') {
       const s = callbackType(arktype(restSchema, rootName, isArktype, options), isArktype)
       return narrowPredicate(
-        isEvaluated === undefined
-          ? `Object.values(data).every((value) => ${s}.allows(value))`
-          : `Object.entries(data).every(([key, value]) => ${isEvaluated} || ${s}.allows(value))`,
+        keysCheck((isEvaluated) =>
+          isEvaluated === undefined
+            ? `Object.values(data).every((value) => ${s}.allows(value))`
+            : `Object.entries(data).every(([key, value]) => ${isEvaluated} || ${s}.allows(value))`,
+        ),
         message,
       )
     }

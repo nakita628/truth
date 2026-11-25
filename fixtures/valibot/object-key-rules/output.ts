@@ -7,7 +7,7 @@ export const KeyRules = v.pipe(
       ([key, value]) => !new RegExp('^x-').test(key) || v.safeParse(v.string(), value).success,
     ),
   ),
-  v.check((input) => ['kind'].every((key) => key in input)),
+  v.check((input) => ['kind'].every((key) => Object.hasOwn(input, key))),
   v.check((input) =>
     Object.entries(input).every(
       ([key, value]) =>

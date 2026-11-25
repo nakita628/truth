@@ -236,7 +236,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        "z.looseObject({card:z.string(),billing:z.string().exactOptional()}).refine((val)=>!('card' in val)||('billing' in val))",
+        'z.looseObject({card:z.string(),billing:z.string().exactOptional()}).refine((val)=>!Object.hasOwn(val,"card")||(Object.hasOwn(val,"billing")))',
       )
     })
 
@@ -257,7 +257,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        "z.looseObject({a:z.string().exactOptional(),b:z.string().exactOptional(),c:z.string().exactOptional()}).refine((val)=>!('a' in val)||('b' in val&&'c' in val),{error:\"a needs b and c\"})",
+        'z.looseObject({a:z.string().exactOptional(),b:z.string().exactOptional(),c:z.string().exactOptional()}).refine((val)=>!Object.hasOwn(val,"a")||(Object.hasOwn(val,"b")&&Object.hasOwn(val,"c")),{error:"a needs b and c"})',
       )
     })
   })
@@ -333,5 +333,17 @@ describe('object', () => {
     ])('reads no key it does not need: %j', (schema, expected) => {
       expect(object(schema, 'Schema', false)).toBe(expected)
     })
+  })
+})
+
+describe('dependentRequired with an empty list (#94)', () => {
+  it('adds no check, since an empty list always holds', () => {
+    expect(
+      object(
+        { type: 'object', properties: { a: { type: 'string' } }, dependentRequired: { a: [] } },
+        'Schema',
+        false,
+      ),
+    ).not.toContain('||()')
   })
 })

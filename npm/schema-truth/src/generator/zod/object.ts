@@ -7,15 +7,20 @@ import {
 import { propertyEmitOptions } from '../../helper/parameter.js'
 import {
   hasBranchKeys,
-  isEvaluatedObjectKeyExpression,
+  evaluatedObjectKeysCheck,
   objectEvaluatedKeys,
+  ownKeyCheck,
   propertyNamesKeyCheck,
+  requiredKeysCheck,
   withoutShadowedUnevaluated,
 } from '../../helper/unevaluated.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { makeSafeKey, zodError, zodErrorPart } from '../../utils/index.js'
 import { nestedIssueMessageWrap, zod } from './zod.js'
+
+/** The undeclared keys the object drops from its output before a check reads it (#130). */
+const STRIPPED_KEYS = ['__proto__']
 
 /**
  * A parameter object answers an `Object.prototype` name it was not sent with the inherited
@@ -182,9 +187,13 @@ export function object(input: JSONSchema, rootName: string, isZod: boolean, opti
     : ''
   const dependentRequired = schema.dependentRequired
     ? Object.entries(schema.dependentRequired)
+        // An empty list always holds.
+        .filter(([, deps]) => deps.length > 0)
         .map(([key, deps]) => {
-          const depsCheck = deps.map((dependency) => `'${dependency}' in val`).join('&&')
-          return `.refine((val)=>!('${key}' in val)||(${depsCheck})${depReqErrorArg})`
+          const depsCheck = deps
+            .map((dependency) => ownKeyCheck('val', dependency, STRIPPED_KEYS))
+            .join('&&')
+          return `.refine((val)=>!${ownKeyCheck('val', key, STRIPPED_KEYS)}||(${depsCheck})${depReqErrorArg})`
         })
         .join('')
     : ''
@@ -194,7 +203,7 @@ export function object(input: JSONSchema, rootName: string, isZod: boolean, opti
     ? Object.entries(schema.dependentSchemas)
         .map(([key, subSchema]) => {
           const subZod = zod(subSchema, rootName, isZod, options)
-          return `.refine((val)=>!('${key}' in val)||${subZod}.safeParse(val).success${depSchErrorArg})`
+          return `.refine((val)=>!${ownKeyCheck('val', key, STRIPPED_KEYS)}||${subZod}.safeParse(val).success${depSchErrorArg})`
         })
         .join('')
     : ''
@@ -226,20 +235,26 @@ export function object(input: JSONSchema, rootName: string, isZod: boolean, opti
 
   const requiredPresent =
     undeclaredRequired.length > 0
-      ? `.refine((val)=>${JSON.stringify(undeclaredRequired)}.every((key)=>key in val)${errorArg})`
+      ? `.refine((val)=>${requiredKeysCheck('val', undeclaredRequired, STRIPPED_KEYS)}${errorArg})`
       : ''
   // A key no property names and no pattern matches: refused when the object is closed,
   // held to `unevaluatedProperties` when that is a schema.
   const conditionSchema = schema.if
-  const isEvaluated = isEvaluatedObjectKeyExpression(evaluatedKeys, 'key', 'val', () =>
-    conditionSchema === undefined
-      ? 'false'
-      : `${zod(conditionSchema, rootName, isZod, options)}.safeParse(val).success`,
-  )
+  const keysCheck = (check: (isEvaluated: string | undefined) => string) =>
+    evaluatedObjectKeysCheck(
+      evaluatedKeys,
+      'key',
+      'val',
+      () =>
+        conditionSchema === undefined
+          ? 'false'
+          : `${zod(conditionSchema, rootName, isZod, options)}.safeParse(val).success`,
+      check,
+    )
   const unevaluatedKeys = closedByCheck
-    ? `.refine((val)=>${isEvaluated === undefined ? 'Object.keys(val).length===0' : `Object.keys(val).every((key)=>${isEvaluated})`}${zodErrorPart(strictMessage ?? errorMessage)})`
+    ? `.refine((val)=>${keysCheck((isEvaluated) => (isEvaluated === undefined ? 'Object.keys(val).length===0' : `Object.keys(val).every((key)=>${isEvaluated})`))}${zodErrorPart(strictMessage ?? errorMessage)})`
     : extraSchema !== undefined
-      ? `.refine((val)=>${isEvaluated === undefined ? 'Object.values(val).every((value)=>' : `Object.entries(val).every(([key,value])=>${isEvaluated}||`}${zod(extraSchema, rootName, isZod, options)}.safeParse(value).success)${zodErrorPart(extraMessage ?? errorMessage)})`
+      ? `.refine((val)=>${keysCheck((isEvaluated) => `${isEvaluated === undefined ? 'Object.values(val).every((value)=>' : `Object.entries(val).every(([key,value])=>${isEvaluated}||`}${zod(extraSchema, rootName, isZod, options)}.safeParse(value).success)`)}${zodErrorPart(extraMessage ?? errorMessage)})`
       : ''
   const objectExpr = `${partialBase}${minProperties}${maxProperties}${propertyNamesRefine}${patternProperties}${requiredPresent}${unevaluatedKeys}${dependentRequired}${dependentSchemas}${ifThenElse}`
   const hasInheritedName = Object.keys(properties).some(isObjectPrototypeProperty)

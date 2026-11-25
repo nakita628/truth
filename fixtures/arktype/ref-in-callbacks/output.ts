@@ -25,7 +25,7 @@ const $ = scope({
             ),
         ],
         ':',
-        (data): boolean => !('a' in data) || $.type('NeedsKind').allows(data),
+        (data): boolean => !Object.hasOwn(data, 'a') || $.type('NeedsKind').allows(data),
       ],
       ':',
       (data): boolean =>

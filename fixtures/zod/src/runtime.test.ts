@@ -37,6 +37,7 @@ import { Order as SplitNestedOrder } from '../split-nested/output.ts'
 import { User as SplitRefsUser } from '../split-refs/output.ts'
 import { User as TitleUser } from '../title/output.ts'
 import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
+import { OwnKeys as DependentOwnKeys } from '../dependent-own-keys/output.ts'
 
 describe('zod fixtures: error-messages runtime', () => {
   it('valid input passes', () => {
@@ -957,5 +958,20 @@ describe('zod fixtures: unevaluated-shadowed runtime (#93)', () => {
 
   it.each([{ typed: { b: 1 } }])('rejects %j, which additionalProperties refuses', (value) => {
     expect(UnevaluatedShadowed.safeParse(value).success).toBe(false)
+  })
+})
+
+describe('zod fixtures: dependent-own-keys runtime (#94)', () => {
+  it.each([
+    { dep: {} },
+    { dep: { "it's": 1, 'back\\slash': 2 } },
+    { dep: { toString: 1, x: 2 } },
+    { req: { toString: 1 } },
+  ])('accepts %j, whose own keys the dependencies hold', (value) => {
+    expect(DependentOwnKeys.safeParse(value).success).toBe(true)
+  })
+
+  it.each([{ dep: { "it's": 1 } }, { dep: { toString: 1 } }, { req: {} }])('rejects %j, whose own key needs another', (value) => {
+    expect(DependentOwnKeys.safeParse(value).success).toBe(false)
   })
 })

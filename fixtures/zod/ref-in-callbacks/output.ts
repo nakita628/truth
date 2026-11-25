@@ -113,6 +113,6 @@ export const Doc: z.ZodType<_Doc> = (() => {
         z.lazy(() => Base).safeParse(value).success,
     ),
   )
-  .refine((val) => !('a' in val) || z.lazy(() => NeedsKind).safeParse(val).success)
+  .refine((val) => !Object.hasOwn(val, 'a') || z.lazy(() => NeedsKind).safeParse(val).success)
 
 export type Doc = z.infer<typeof Doc>

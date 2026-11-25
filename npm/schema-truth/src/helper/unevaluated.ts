@@ -161,6 +161,32 @@ export function withoutShadowedUnevaluated(schema: JSONSchema): JSONSchema {
     : rest
 }
 
+/**
+ * The emitted test that `key` is an own key of `input`. A name the target's object drops
+ * from its output before the check runs (`stripped`: `constructor`, `prototype`,
+ * `__proto__` in Valibot, `__proto__` in Zod) cannot be read there, so it keeps the `in`
+ * test, which never refuses a value that sent the key (#130).
+ */
+export function ownKeyCheck(input: string, key: string, stripped: readonly string[] = []) {
+  return stripped.includes(key)
+    ? `(${JSON.stringify(key)} in ${input})`
+    : `Object.hasOwn(${input},${JSON.stringify(key)})`
+}
+
+/**
+ * The emitted test that every key of `required` is an own key of `input`, each as
+ * {@link ownKeyCheck} reads it: one `every` over the names when none is `stripped`.
+ */
+export function requiredKeysCheck(
+  input: string,
+  required: readonly string[],
+  stripped: readonly string[] = [],
+) {
+  return required.some((key) => stripped.includes(key))
+    ? required.map((key) => ownKeyCheck(input, key, stripped)).join('&&')
+    : `${JSON.stringify(required)}.every((key)=>Object.hasOwn(${input},key))`
+}
+
 /** The keys a branch evaluates when it applies, or `all` when every key then is. */
 type BranchEvaluated = EvaluatedProperties | 'all'
 
@@ -249,10 +275,34 @@ export function hasBranchKeys(keys: ObjectEvaluatedKeys) {
   )
 }
 
-function branchCheck(condition: string, evaluated: BranchEvaluated, key: string) {
-  if (evaluated === 'all') return condition
+/** The condition is built only for a branch that declares a key, so an empty one reads no test. */
+function branchCheck(condition: () => string, evaluated: BranchEvaluated, key: string) {
+  if (evaluated === 'all') return condition()
   const isEvaluated = isEvaluatedKeyExpression(evaluated, key)
-  return isEvaluated === undefined ? undefined : `(${condition}&&(${isEvaluated}))`
+  return isEvaluated === undefined ? undefined : `(${condition()}&&(${isEvaluated}))`
+}
+
+/** The name the `if` test is bound to, one no schema identifier takes. */
+const IF_PASSED = '__ifPassed'
+
+/**
+ * The emitted key check `check` builds from {@link isEvaluatedObjectKeyExpression}, with the
+ * `if` schema tested once per value rather than once per key: when a branch reads the
+ * test, the check is wrapped in a call that computes it first (`__ifPassed`).
+ */
+export function evaluatedObjectKeysCheck(
+  keys: ObjectEvaluatedKeys,
+  key: string,
+  input: string,
+  ifPasses: () => string,
+  check: (isEvaluated: string | undefined) => string,
+) {
+  const reads = { if: false }
+  const isEvaluated = isEvaluatedObjectKeyExpression(keys, key, input, () => {
+    reads.if = true
+    return IF_PASSED
+  })
+  return reads.if ? `((${IF_PASSED})=>${check(isEvaluated)})(${ifPasses()})` : check(isEvaluated)
 }
 
 /**
@@ -272,11 +322,11 @@ export function isEvaluatedObjectKeyExpression(
     ...(keys.conditional === undefined
       ? []
       : [
-          branchCheck(ifPasses(), keys.conditional.passed, key),
-          branchCheck(`!(${ifPasses()})`, keys.conditional.failed, key),
+          branchCheck(ifPasses, keys.conditional.passed, key),
+          branchCheck(() => `!(${ifPasses()})`, keys.conditional.failed, key),
         ]),
     ...keys.dependent.map(([dependentKey, evaluated]) =>
-      branchCheck(`Object.hasOwn(${input},${JSON.stringify(dependentKey)})`, evaluated, key),
+      branchCheck(() => `Object.hasOwn(${input},${JSON.stringify(dependentKey)})`, evaluated, key),
     ),
   ].filter((check) => check !== undefined)
   return checks.length > 0 ? checks.join('||') : undefined

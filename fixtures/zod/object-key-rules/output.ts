@@ -7,7 +7,7 @@ export const KeyRules = z
       ([key, value]) => !new RegExp('^x-').test(key) || z.string().safeParse(value).success,
     ),
   )
-  .refine((val) => ['kind'].every((key) => key in val))
+  .refine((val) => ['kind'].every((key) => Object.hasOwn(val, key)))
   .refine((val) =>
     Object.entries(val).every(
       ([key, value]) =>

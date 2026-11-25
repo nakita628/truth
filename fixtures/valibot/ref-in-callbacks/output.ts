@@ -90,7 +90,7 @@ export const Doc: v.GenericSchema<unknown, _Doc> = v.pipe(
   ),
   v.check(
     (input) =>
-      !('a' in input) ||
+      !Object.hasOwn(input, 'a') ||
       v.safeParse(
         v.lazy(() => NeedsKind),
         input,

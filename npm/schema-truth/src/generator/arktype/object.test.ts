@@ -196,7 +196,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'type({card:"string","billing?":"string"}).narrow((data) => !(\'card\' in data) || (\'billing\' in data))',
+        'type({card:"string","billing?":"string"}).narrow((data) => !Object.hasOwn(data,"card") || (Object.hasOwn(data,"billing")))',
       )
     })
 
@@ -217,7 +217,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        'type({"a?":"string","b?":"string","c?":"string"}).narrow((data, ctx) => !(\'a\' in data) || (\'b\' in data && \'c\' in data) || ctx.mustBe("a needs b and c"))',
+        'type({"a?":"string","b?":"string","c?":"string"}).narrow((data, ctx) => !Object.hasOwn(data,"a") || (Object.hasOwn(data,"b") && Object.hasOwn(data,"c")) || ctx.mustBe("a needs b and c"))',
       )
     })
   })
@@ -266,7 +266,7 @@ describe('object dependent / unevaluated / conditional keywords', () => {
         properties: { a: { type: 'string' }, b: { type: 'string' } },
         dependentRequired: { a: ['b'] },
       },
-      `type({"a?":"string","b?":"string"}).narrow((data) => !('a' in data) || ('b' in data))`,
+      `type({"a?":"string","b?":"string"}).narrow((data) => !Object.hasOwn(data,"a") || (Object.hasOwn(data,"b")))`,
     ],
     [
       {
@@ -275,7 +275,7 @@ describe('object dependent / unevaluated / conditional keywords', () => {
         dependentRequired: { a: ['b'] },
         'x-dependentRequired-message': 'need b',
       },
-      `type({"a?":"string","b?":"string"}).narrow((data, ctx) => !('a' in data) || ('b' in data) || ctx.mustBe("need b"))`,
+      `type({"a?":"string","b?":"string"}).narrow((data, ctx) => !Object.hasOwn(data,"a") || (Object.hasOwn(data,"b")) || ctx.mustBe("need b"))`,
     ],
     [
       {
@@ -283,7 +283,7 @@ describe('object dependent / unevaluated / conditional keywords', () => {
         properties: { a: { type: 'string' } },
         dependentSchemas: { a: { properties: { b: { type: 'number' } }, required: ['b'] } },
       },
-      `type({"a?":"string"}).narrow((data) => !('a' in data) || type({b:"number"}).allows(data))`,
+      `type({"a?":"string"}).narrow((data) => !Object.hasOwn(data,"a") || type({b:"number"}).allows(data))`,
     ],
     [
       {

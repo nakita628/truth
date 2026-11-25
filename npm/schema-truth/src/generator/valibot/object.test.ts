@@ -221,7 +221,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        "v.pipe(v.looseObject({card:v.string(),billing:v.optional(v.string())}),v.check((input)=>!('card' in input)||('billing' in input)))",
+        'v.pipe(v.looseObject({card:v.string(),billing:v.optional(v.string())}),v.check((input)=>!Object.hasOwn(input,"card")||(Object.hasOwn(input,"billing"))))',
       )
     })
 
@@ -242,7 +242,7 @@ describe('object', () => {
           false,
         ),
       ).toBe(
-        "v.pipe(v.partial(v.looseObject({a:v.string(),b:v.string(),c:v.string()})),v.check((input)=>!('a' in input)||('b' in input&&'c' in input),\"a needs b and c\"))",
+        'v.pipe(v.partial(v.looseObject({a:v.string(),b:v.string(),c:v.string()})),v.check((input)=>!Object.hasOwn(input,"a")||(Object.hasOwn(input,"b")&&Object.hasOwn(input,"c")),"a needs b and c"))',
       )
     })
   })
@@ -296,5 +296,22 @@ describe('object', () => {
     ])('reads no key it does not need: %j', (schema, expected) => {
       expect(object(schema, 'Schema', false)).toBe(expected)
     })
+  })
+})
+
+describe('own-key checks on names v.looseObject drops (#94, #130)', () => {
+  it('keeps the in test for constructor, so a value that sends it is not refused', () => {
+    const out = object(
+      {
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        required: ['constructor'],
+        dependentRequired: { a: ['constructor'] },
+      },
+      'Schema',
+      false,
+    )
+    expect(out).toContain('("constructor" in input)')
+    expect(out).not.toContain('Object.hasOwn(input,"constructor")')
   })
 })
