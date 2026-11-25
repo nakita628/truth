@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.10.0
+
+### Minor Changes
+
+- [#108](https://github.com/nakita628/truth/pull/108) [`deb6978`](https://github.com/nakita628/truth/commit/deb69785651a44c5273f2cedc8c906799e4d182f) Thanks [@nakita628](https://github.com/nakita628)! - A `discriminator` member that no `mapping` entry names now takes the values its own discriminator property is held to (`const` or `enum` strings) instead of its schema name, in every generator, less any value another member, a mapping key or another member's schema name also claims, and falls back to the schema name when none is left. This departs from the OpenAPI specification's implicit mapping on purpose: a document such as OpenAI's `CompoundFilter`, whose member declares `type: { enum: [eq, ne] }`, now validates as intended, and ArkType no longer throws at load.
+
 ## 0.9.5
 
 ### Patch Changes
