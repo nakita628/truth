@@ -2,13 +2,13 @@ import { scope } from 'arktype'
 
 const types = scope({
   Leaf: { id: 'string' },
-  Leaves: 'Leaf[]',
+  Leaves: ['Leaf[]', '&', 'unknown[] <= 2'],
   Node: {
     'ids?': 'Leaf[]',
     'children?': 'Node[]',
     'pair?': ['Leaf'],
     'path?': ['Leaf', '...', 'Node[]'],
-    'refList?': 'Leaf[]',
+    'refList?': ['Leaves', '&', ['Leaf[]', '&', 'unknown[] >= 1']],
   },
 }).export()
 

@@ -38,7 +38,8 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/Leaf"
-      }
+      },
+      "minItems": 1
     }
   },
   "$defs": {
@@ -57,7 +58,8 @@
       "type": "array",
       "items": {
         "$ref": "#/$defs/Leaf"
-      }
+      },
+      "maxItems": 2
     }
   }
 }

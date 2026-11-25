@@ -1097,6 +1097,7 @@ describe('scope-arrays', () => {
     { pair: [{ id: 'a' }] },
     { path: [{ id: 'a' }, { children: [] }] },
     { refList: [{ id: 'a' }] },
+    { refList: [{ id: 'a' }, { id: 'b' }] },
   ])('accepts %j', (value) => {
     expect(ScopeArraysNode(value)).not.toBeInstanceOf(type.errors)
   })
@@ -1107,6 +1108,9 @@ describe('scope-arrays', () => {
     { pair: [{ id: 1 }] },
     { path: [{ id: 'a' }, { ids: 'x' }] },
     { refList: [{ id: 1 }] },
+    // `minItems` beside the `$ref`, and `maxItems` on its target `Leaves` (#105)
+    { refList: [] },
+    { refList: [{ id: 'a' }, { id: 'b' }, { id: 'c' }] },
   ])('rejects %j', (value) => {
     expect(ScopeArraysNode(value)).toBeInstanceOf(type.errors)
   })

@@ -1136,7 +1136,7 @@ describe('an array inside a scope stays a definition the scope resolves (#72)', 
       { type: 'array', prefixItems: [{ $ref: '#/$defs/A' }], unevaluatedItems: { $ref: '#' } },
       '["A","...","Schema[]"]',
     ],
-    [{ $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' } }, '"A[]"'],
+    [{ $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' } }, '"List & A[]"'],
   ])('%o → %s', (schema, expected) => {
     expect(arktype(schema, 'Schema', true)).toBe(expected)
   })
@@ -1145,5 +1145,41 @@ describe('an array inside a scope stays a definition the scope resolves (#72)', 
     expect(arktype({ type: 'array', prefixItems: [{ type: 'string' }] }, 'Schema', false)).toBe(
       'type(["string"])',
     )
+  })
+})
+
+describe('a $ref beside an array holds the value to the target and the array (#105)', () => {
+  it.each<[JSONSchema, boolean, string]>([
+    [
+      { $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' }, minItems: 1 },
+      true,
+      '["List","&",["A[]","&","unknown[] >= 1"]]',
+    ],
+    [
+      { $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' }, minItems: 1 },
+      false,
+      'type(List).and(type(type(A).array()).and(type("unknown[] >= 1")))',
+    ],
+    [
+      {
+        $ref: '#/$defs/List',
+        type: ['array', 'null'],
+        items: { $ref: '#/$defs/A', nullable: true },
+      },
+      true,
+      '[["List","&",["A | null","[]"]],"|","null"]',
+    ],
+    [
+      { $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A', description: 'An A' } },
+      false,
+      'type(List).and(type(A.describe("An A")).array())',
+    ],
+    [
+      { $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' }, uniqueItems: true },
+      false,
+      'type(List).and(type(A).array().narrow((data: unknown[], ctx) => new Set(data).size === data.length))',
+    ],
+  ])('%o (in a scope: %s) → %s', (schema, isArktype, expected) => {
+    expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
   })
 })

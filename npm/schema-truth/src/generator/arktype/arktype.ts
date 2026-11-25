@@ -75,6 +75,29 @@ function combine(op: '&' | '|', inScope: boolean) {
       : `type(${acc}).${op === '&' ? 'and' : 'or'}(${s})`
 }
 
+/** The keywords, and their messages, that the array branch of {@link node} reads. */
+const ARRAY_KEYWORDS: ReadonlySet<string> = new Set([
+  'items',
+  'prefixItems',
+  'unevaluatedItems',
+  'minItems',
+  'maxItems',
+  'uniqueItems',
+  'contains',
+  'minContains',
+  'maxContains',
+  'x-items-message',
+  'x-prefixItems-message',
+  'x-unevaluatedItems-message',
+  'x-length-message',
+  'x-minItems-message',
+  'x-maxItems-message',
+  'x-uniqueItems-message',
+  'x-contains-message',
+  'x-minContains-message',
+  'x-maxContains-message',
+])
+
 /** `items` in consecutive groups of at most `size`. */
 function chunksOf<T>(items: readonly T[], size: number) {
   return Array.from({ length: Math.ceil(items.length / size) }, (_, i) =>
@@ -245,7 +268,7 @@ function node(
   rootName: string,
   isArktype: boolean,
   options: EmitOptions | undefined,
-) {
+): string {
   const codeExtOpts: ArktypeWrapOptions = {
     ...(options?.unsafeCodeExtensions === true && { unsafeCodeExtensions: true }),
     ...(isArktype && { scopeMode: true }),
@@ -308,12 +331,16 @@ function node(
       }
       return '"unknown"'
     }
-    const items = itemsSchemaOf(schema.items)
-    if (schema.type === 'array' && items?.$ref) {
-      // A scope names its aliases by quoted definitions, which have no `.array()`.
-      const item = ref(items)
-      const array = isPlainOperand(item, true) ? `"${item.slice(1, -1)}[]"` : `${item}.array()`
-      return arktypeWrap(array, schema)
+    // An array beside the `$ref` holds the value to both: the target, and the array its
+    // own keywords build. The array is read off the wire once, outside the intersection,
+    // since the target expects the array rather than its text.
+    if (normalizeTypes(schema.type).includes('array')) {
+      const arraySchema = Object.fromEntries(
+        Object.entries(schema).filter(([key]) => ARRAY_KEYWORDS.has(key)),
+      )
+      const { paramIn: _, ...withoutWire } = options ?? {}
+      const array = node({ ...arraySchema, type: 'array' }, rootName, isArktype, withoutWire)
+      return arktypeWrap(wireArray(intersectionStr([ref(schema), array], isArktype)), schema)
     }
     return arktypeWrap(ref(schema), schema)
   }
