@@ -1,5 +1,11 @@
 # oas-truth
 
+## 0.11.3
+
+### Patch Changes
+
+- [#147](https://github.com/nakita628/truth/pull/147) [`70f4015`](https://github.com/nakita628/truth/commit/70f4015ad932bdd86890e34aaf4633b61cec9ab8) Thanks [@nakita628](https://github.com/nakita628)! - Keep a discriminator right across component identifier collisions: an unmapped member renamed by a collision (`FooBar2`) takes its schema key as its implicit value, and `mapping` targets follow the rename. A `$ref` beside a discriminated `oneOf` inside a `$ref` cycle is localized like any other node, and an ArkType cyclic file imports `type` only when its code calls it.
+
 ## 0.11.2
 
 ### Patch Changes
