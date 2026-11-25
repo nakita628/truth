@@ -1342,18 +1342,48 @@ describe('valibot fixtures: wire-query runtime', () => {
 
   it('annotates each number read from text with the type and bounds the spec gives it', () => {
     // The metadata the generator emits, read back with `v.getMetadata`. A converter of the
-    // input side copies it where it reaches the pipe; it does not reach `ids`, whose outer
-    // pipe starts with a transform.
-    const { entries } = WireQuery.pipe[2]
+    // input side copies it where it reaches the pipe, ahead of the first transform.
+    const { entries } = WireQuery.pipe[3]
     expect(v.getMetadata(entries.page)).toStrictEqual({ default: 1 })
     expect(v.getMetadata(entries.page.pipe[0].wrapped)).toStrictEqual({
       type: 'integer',
       minimum: 1,
     })
-    expect(v.getMetadata(entries.ids.wrapped.pipe[2].item)).toStrictEqual({ type: 'integer' })
+    expect(v.getMetadata(entries.ids.wrapped.pipe[3].item)).toStrictEqual({ type: 'integer' })
     expect(v.getMetadata(entries.sort.wrapped)).toStrictEqual({ type: 'integer', enum: [1, -1] })
     expect(v.getMetadata(entries.offset.wrapped)).toStrictEqual({ type: 'number', minimum: 0 })
     expect(v.getMetadata(entries.email.wrapped)).toStrictEqual({})
+  })
+
+  it('documents every pipe that reads text through a transform with the spec schema (#77)', () => {
+    const { entries } = WireQuery.pipe[3]
+    // `page` has a default, so it is documented with it and is not required.
+    const document = v.getMetadata(WireQuery)
+    expect(document).toMatchObject({
+      type: 'object',
+      properties: {
+        page: { type: 'integer', minimum: 1, default: 1 },
+        ids: { type: 'array', items: { type: 'integer' } },
+      },
+    })
+    expect(document).not.toHaveProperty('required')
+    expect(v.getMetadata(entries.ids.wrapped)).toStrictEqual({
+      type: 'array',
+      items: { type: 'integer' },
+    })
+    expect(v.getMetadata(entries.active.wrapped)).toStrictEqual({ type: 'boolean', enum: [true] })
+    expect(v.getMetadata(entries.limit.wrapped)).toStrictEqual({ type: ['integer', 'null'] })
+    expect(v.getMetadata(entries.cursor.wrapped)).toStrictEqual({
+      type: 'integer',
+      format: 'uint64',
+    })
+  })
+
+  it('keeps the union message naming the string a wire member expects (#77)', () => {
+    const result = v.safeParse(WireQuery, { flag: 'abc' })
+    expect(result.issues?.map((issue) => issue.message)).toStrictEqual([
+      'Invalid type: Expected string but received "abc"',
+    ])
   })
 
   it('reports a bad array element at its index', () => {

@@ -4,6 +4,7 @@ export const Headers = v.partial(
   v.object({
     'x-ids': v.pipe(
       v.unknown(),
+      v.metadata({ type: 'array', items: { type: 'integer' } }),
       v.transform((input) => {
         if (typeof input !== 'string') return input
         const text = input

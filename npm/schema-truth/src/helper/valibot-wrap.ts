@@ -33,8 +33,171 @@ export type ValibotWrapOptions = CodeExtensionOptions & {
    * such a schema is also made nullable unless a `null` literal of its own matches first.
    */
   readonly nullText?: boolean
+  /**
+   * The expression reads wire text through a `v.transform`, where a JSON Schema converter
+   * of the input side (`@valibot/to-json-schema` with `typeMode: 'input'`) stops: the
+   * spec's own schema is put ahead of it as `v.metadata(...)`, so the document is complete.
+   */
+  readonly wireDocument?: boolean
   /** Definitions a `default` beside a `$ref` is reconciled against. */
   readonly definitions?: SchemaDefinitions
+}
+
+/** OpenAPI keywords a JSON Schema document has no use for. */
+const NON_JSON_SCHEMA_KEYS = new Set(['discriminator', 'xml', 'externalDocs', 'example'])
+
+/** The keywords whose value is a schema or a list of schemas. */
+const SCHEMA_VALUED_KEYS = new Set([
+  'items',
+  'additionalItems',
+  'contentSchema',
+  'prefixItems',
+  'additionalProperties',
+  'unevaluatedProperties',
+  'unevaluatedItems',
+  'propertyNames',
+  'contains',
+  'not',
+  'if',
+  'then',
+  'else',
+  'allOf',
+  'anyOf',
+  'oneOf',
+])
+
+/** The keywords whose value maps names to schemas. */
+const SCHEMA_MAP_KEYS = new Set([
+  'properties',
+  'dependencies',
+  'patternProperties',
+  'dependentSchemas',
+  '$defs',
+  'definitions',
+])
+
+/**
+ * The `v.string(...)` a pipe starts with, if it does. The document goes after it, so the
+ * pipe still expects a string (a union's message names what its members expect); the
+ * original pipe follows as a nested schema, where the converter stops before its regex.
+ */
+export function leadingStringSchema(expression: string) {
+  const head = 'v.pipe(v.string('
+  if (!expression.startsWith(head)) return undefined
+  let depth = 1
+  let quote: string | undefined = undefined
+  let isEscaped = false
+  for (let index = head.length; index < expression.length; index += 1) {
+    const char = expression[index]
+    if (quote !== undefined) {
+      if (isEscaped) isEscaped = false
+      else if (char === '\\') isEscaped = true
+      else if (char === quote) quote = undefined
+    } else if (char === '"' || char === "'" || char === '`') quote = char
+    else if (char === '(') depth += 1
+    else if (char === ')') {
+      depth -= 1
+      if (depth === 0) return expression.slice('v.pipe('.length, index + 1)
+    }
+  }
+  return undefined
+}
+
+/** An object's entries; none for anything else. */
+function entriesOf(value: unknown): [string, unknown][] {
+  return typeof value === 'object' && value !== null && !Array.isArray(value)
+    ? Object.entries(value)
+    : []
+}
+
+/**
+ * The spec's own schema of a wire node as a JSON Schema document: `x-` extensions and the
+ * OpenAPI-only keywords left out, OpenAPI 3.0's `nullable` written as a `null` type and
+ * `example` as `examples`. The root's `default` is left to `v.optional` unless
+ * `keepRootDefault` (the parameter readers come ahead of that `v.optional`), and a property
+ * with a default is not `required`. `undefined` when a `$ref`
+ * sits anywhere inside, since the document would point at a definition it does not hold.
+ */
+export function wireDocument(
+  schema: JSONSchema,
+  options?: { readonly keepRootDefault?: boolean },
+): { readonly [key: string]: unknown } | undefined {
+  const state = { hasRef: false }
+  const visit = (value: unknown, isSchema: boolean, isRoot = false): unknown => {
+    if (Array.isArray(value)) return value.map((item: unknown) => visit(item, isSchema))
+    if (typeof value !== 'object' || value === null) return value
+    const entries = entriesOf(value)
+    if (!isSchema) {
+      return Object.fromEntries(entries.map(([key, item]) => [key, visit(item, false)]))
+    }
+    const record = new Map(entries)
+    if (record.has('$ref')) state.hasRef = true
+    const out = new Map<string, unknown>()
+    for (const [key, item] of entries) {
+      if (key.startsWith('x-') || key === 'nullable' || NON_JSON_SCHEMA_KEYS.has(key)) continue
+      // The root's `default` is documented by `v.optional`; below it the converter never
+      // reaches the inner pipes, so the document carries it.
+      if (key === 'default' && isRoot && options?.keepRootDefault !== true) continue
+      out.set(
+        key,
+        SCHEMA_MAP_KEYS.has(key)
+          ? Object.fromEntries(entriesOf(item).map(([name, sub]) => [name, visit(sub, true)]))
+          : visit(item, SCHEMA_VALUED_KEYS.has(key)),
+      )
+    }
+    if (!record.has('examples') && record.has('example')) {
+      out.set('examples', [record.get('example')])
+    }
+    // A property with a default may be left out, as `v.optional` lets it.
+    const required: unknown = out.get('required')
+    if (Array.isArray(required)) {
+      const properties = new Map(entriesOf(record.get('properties')))
+      const kept = required.filter(
+        (name: unknown) =>
+          typeof name !== 'string' || !new Map(entriesOf(properties.get(name))).has('default'),
+      )
+      if (kept.length > 0) out.set('required', kept)
+      else out.delete('required')
+    }
+    const type: unknown = out.get('type')
+    const enumValues: unknown = out.get('enum')
+    if (record.get('nullable') === true) {
+      if (type !== undefined) {
+        const types: unknown[] = Array.isArray(type) ? type : [type]
+        if (!types.includes('null')) out.set('type', [...types, 'null'])
+      }
+      if (Array.isArray(enumValues) && !enumValues.includes(null)) {
+        const values: unknown[] = enumValues
+        out.set('enum', [...values, null])
+      }
+      if (out.has('const') && out.get('const') !== null) {
+        out.set('enum', [out.get('const'), null])
+        out.delete('const')
+      }
+    }
+    // A combinator's members still reject `null`, so the null type is added beside it.
+    const isNullableCombinator =
+      record.get('nullable') === true && ['oneOf', 'anyOf', 'allOf'].some((key) => out.has(key))
+    // OpenAPI 3.0's boolean exclusive bounds, in the numeric form of draft-07 and 2020-12.
+    for (const [exclusive, bound] of [
+      ['exclusiveMinimum', 'minimum'],
+      ['exclusiveMaximum', 'maximum'],
+    ] as const) {
+      const flag = out.get(exclusive)
+      if (typeof flag !== 'boolean') continue
+      out.delete(exclusive)
+      const boundValue = out.get(bound)
+      if (flag && typeof boundValue === 'number') {
+        out.delete(bound)
+        out.set(exclusive, boundValue)
+      }
+    }
+    return isNullableCombinator
+      ? { anyOf: [Object.fromEntries(out), { type: 'null' }] }
+      : Object.fromEntries(out)
+  }
+  const document = entriesOf(visit(schema, true, true))
+  return state.hasRef ? undefined : Object.fromEntries(document)
 }
 
 /** A default as the Valibot literal of the schema's input: a bigint for a 64-bit integer. */
@@ -71,9 +234,19 @@ export function valibotWrap(valibotStr: string, schema: JSONSchema, options?: Va
     (isNullable(schema) && options?.nullSchema !== true) ||
     (nullText && !isNullMatchedFirst(schema))
   const withNullable = nullable ? `v.nullable(${valibotStr})` : valibotStr
-  const withNullText = nullText
+  const withNullTextRead = nullText
     ? `v.pipe(v.unknown(),v.transform(${wireNullText('input')}),${withNullable})`
     : withNullable
+  const document = options?.wireDocument === true || nullText ? wireDocument(schema) : undefined
+  const leadingString = leadingStringSchema(withNullTextRead)
+  const withNullText =
+    document === undefined
+      ? withNullTextRead
+      : leadingString !== undefined
+        ? `v.pipe(${leadingString},v.metadata(${serializeJSValue(document)}),${withNullTextRead})`
+        : withNullTextRead.startsWith('v.pipe(v.unknown(),')
+          ? `v.pipe(v.unknown(),v.metadata(${serializeJSValue(document)}),${withNullTextRead.slice('v.pipe(v.unknown(),'.length)}`
+          : `v.pipe(v.unknown(),v.metadata(${serializeJSValue(document)}),${withNullTextRead})`
   const defaultResult =
     schema.default !== undefined
       ? coerceDefault(schema, schema.default, options?.definitions)
@@ -100,12 +273,12 @@ export function valibotWrap(valibotStr: string, schema: JSONSchema, options?: Va
   if (schema.externalDocs !== undefined) metaObj.externalDocs = schema.externalDocs
   if (schema.readOnly !== undefined) metaObj.readOnly = schema.readOnly
   if (schema.writeOnly !== undefined) metaObj.writeOnly = schema.writeOnly
-  // A wire number is documented as the number it is read into (`wireNumberMetadata`), so its
-  // default is documented as that number too, over the text `v.optional` holds.
+  // A wire value is documented as the value it is read into (a number, a boolean, a list of
+  // them...), so its default is documented as that value too, over the text `v.optional` holds.
   if (
     hasDefault &&
     options?.stringWire === true &&
-    typeof defaultResult.value === 'number' &&
+    typeof defaultResult.value !== 'string' &&
     defaultFormat === undefined
   ) {
     metaObj.default = defaultResult.value

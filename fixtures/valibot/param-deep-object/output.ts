@@ -2,6 +2,12 @@ import * as v from 'valibot'
 
 export const Filter = v.pipe(
   v.unknown(),
+  v.metadata({
+    title: 'Filter',
+    type: 'object',
+    properties: { age: { type: 'integer' }, name: { type: 'string' } },
+    required: ['age'],
+  }),
   v.transform((input) => {
     if (typeof input !== 'object' || input === null || Array.isArray(input)) return input
     const out = Object.entries(input).reduce<{ [k: string]: unknown }>((acc, [key, value]) => {

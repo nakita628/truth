@@ -100,13 +100,18 @@ describe('valibot wireNumberMetadata', () => {
     // The range of a fixed-width format is documented, narrowed by the spec's own bound.
     [
       ['integer', { type: 'integer', format: 'int32', minimum: 0 }],
-      "v.metadata({type:'integer',minimum:0,maximum:2147483647})",
+      'v.metadata({type:\'integer\',format:"int32",minimum:0,maximum:2147483647})',
     ],
     [
       ['number', { type: 'number', format: 'float' }],
-      "v.metadata({type:'number',minimum:-3.4028234663852886e+38,maximum:3.4028234663852886e+38})",
+      'v.metadata({type:\'number\',format:"float",minimum:-3.4028234663852886e+38,maximum:3.4028234663852886e+38})',
     ],
     [['integer', {}, [1, -1]], "v.metadata({type:'integer',enum:[1,-1]})"],
+    // A keyword the type does not allow is written as data, never as code.
+    [
+      ['number', { deprecated: 'yes' as never, multipleOf: '1)' as never }],
+      `v.metadata({type:'number',multipleOf:"1)",deprecated:"yes"})`,
+    ],
   ])('wireNumberMetadata(%o) → %s', (args, expected) => {
     expect(wireNumberMetadata(...args)).toBe(expected)
   })
