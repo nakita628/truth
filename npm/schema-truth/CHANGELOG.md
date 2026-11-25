@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.13.4
+
+### Patch Changes
+
+- [#137](https://github.com/nakita628/truth/pull/137) [`2c2760f`](https://github.com/nakita628/truth/commit/2c2760fda691e1157e6315526ab9004812ab7f43) Thanks [@nakita628](https://github.com/nakita628)! - Ignore an `unevaluatedProperties` beside `additionalProperties` in Zod, Valibot, Effect and ArkType, as JSON Schema 2020-12 does: `additionalProperties` evaluates every remaining key, so `unevaluatedProperties: false` no longer closes such an object.
+
 ## 0.13.3
 
 ### Patch Changes
