@@ -36,6 +36,7 @@ import { Formats as StringFormats } from '../string-formats/output.ts'
 import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts'
 import { Filter as ParamDeepObjectFilter } from '../param-deep-object/output.ts'
 import { Payload as ParamJsonContentPayload } from '../param-json-content/output.ts'
+import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
 
 const decode = <A, I>(schema: Schema.Codec<A, I>, value: unknown) =>
   Schema.decodeUnknownResult(schema)(value)
@@ -772,5 +773,15 @@ describe('unevaluated-branches runtime', () => {
     { c2: 1 },
   ])('rejects %j, which has a key nothing declares', (value) => {
     expect(() => Schema.decodeUnknownSync(UnevaluatedBranchesSchema)(value)).toThrow()
+  })
+})
+
+describe('unevaluated-shadowed runtime (#93)', () => {
+  it.each([{ typed: { a: 'x', b: 's' } }, { open: { a: 'x', b: 1 } }])('accepts %j, whose extra keys additionalProperties evaluates', (value) => {
+    expect(() => Schema.decodeUnknownSync(UnevaluatedShadowed)(value)).not.toThrow()
+  })
+
+  it.each([{ typed: { b: 1 } }])('rejects %j, which additionalProperties refuses', (value) => {
+    expect(() => Schema.decodeUnknownSync(UnevaluatedShadowed)(value)).toThrow()
   })
 })

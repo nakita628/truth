@@ -13,6 +13,7 @@ import {
   ownProperties,
   propertyEmitOptions,
   propertyNamesKeyCheck,
+  withoutShadowedUnevaluated,
 } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
@@ -49,11 +50,12 @@ function narrowPredicate(predicate: string, message?: string) {
  * wrapped form (`type({...}).narrow(...)`) regardless of `isArktype`.
  */
 export function object(
-  schema: JSONSchema,
+  input: JSONSchema,
   rootName: string,
   isArktype: boolean,
   options?: EmitOptions,
 ) {
+  const schema = withoutShadowedUnevaluated(input)
   if (hasCombinator(schema)) return arktype(schema, rootName, isArktype, options)
 
   const errorMessage = schema['x-error-message']

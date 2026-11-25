@@ -36,6 +36,7 @@ import { Formats as StringFormats } from '../string-formats/output.ts'
 import { Ids as ParamFormNoExplodeIds } from '../param-form-no-explode/output.ts'
 import { Filter as ParamDeepObjectFilter } from '../param-deep-object/output.ts'
 import { Payload as ParamJsonContentPayload } from '../param-json-content/output.ts'
+import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
 
 // valibot 1.3.x internals exposed in issue objects.
 const NAME_REGEX = /^[a-zA-Z]+$/
@@ -1521,5 +1522,15 @@ describe('valibot fixtures: unevaluated-branches runtime', () => {
     { c2: 1 },
   ])('rejects %j, which has a key nothing declares', (value) => {
     expect(v.safeParse(UnevaluatedBranchesSchema, value).success).toBe(false)
+  })
+})
+
+describe('valibot fixtures: unevaluated-shadowed runtime (#93)', () => {
+  it.each([{ typed: { a: 'x', b: 's' } }, { open: { a: 'x', b: 1 } }])('accepts %j, whose extra keys additionalProperties evaluates', (value) => {
+    expect(v.safeParse(UnevaluatedShadowed, value).success).toBe(true)
+  })
+
+  it.each([{ typed: { b: 1 } }])('rejects %j, which additionalProperties refuses', (value) => {
+    expect(v.safeParse(UnevaluatedShadowed, value).success).toBe(false)
   })
 })
