@@ -110,7 +110,8 @@ export function object(
   const checksKeys = undeclaredRequired.length > 0 || extraSchema !== undefined || closed
   if (!schema.properties && !checksKeys) {
     // v3.2: patternProperties without properties → unknown-typed Record + filter.
-    if (schema.patternProperties) {
+    // `propertyNames` holds every key, whatever else the object declares.
+    if (schema.patternProperties || schema.propertyNames) {
       const record = 'Schema.Record(Schema.String,Schema.Unknown)'
       const checks = [propertyNamesFilter(), ...patternPropertiesFilters()].filter((a) => a !== '')
       return checks.length > 0 ? `${record}.check(${checks.join(',')})` : record

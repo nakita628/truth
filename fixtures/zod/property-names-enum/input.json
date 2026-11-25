@@ -4,18 +4,56 @@
   "properties": {
     "none": {
       "type": "object",
-      "properties": { "a": { "type": "string" } },
-      "propertyNames": { "enum": [] }
+      "properties": {
+        "a": {
+          "type": "string"
+        }
+      },
+      "propertyNames": {
+        "enum": []
+      }
     },
     "mixed": {
       "type": "object",
-      "properties": { "a": { "type": "string" } },
-      "propertyNames": { "enum": ["a", 1] }
+      "properties": {
+        "a": {
+          "type": "string"
+        }
+      },
+      "propertyNames": {
+        "enum": [
+          "a",
+          1
+        ]
+      }
     },
     "record": {
       "type": "object",
-      "additionalProperties": { "type": "string" },
-      "propertyNames": { "enum": [] }
+      "additionalProperties": {
+        "type": "string"
+      },
+      "propertyNames": {
+        "enum": []
+      }
+    },
+    "bare": {
+      "type": "object",
+      "propertyNames": {
+        "enum": []
+      }
+    },
+    "pattern": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^a"
+      }
+    },
+    "open": {
+      "type": "object",
+      "additionalProperties": true,
+      "propertyNames": {
+        "pattern": "^a"
+      }
     }
   }
 }

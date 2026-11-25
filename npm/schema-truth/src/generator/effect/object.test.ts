@@ -76,6 +76,26 @@ describe('object', () => {
   })
 
   describe('propertyNames', () => {
+    it.each<[JSONSchema, string]>([
+      [
+        { type: 'object', propertyNames: { enum: [] } },
+        'Schema.Record(Schema.String,Schema.Unknown).check(Schema.makeFilter((input)=>Object.keys(input).length===0))',
+      ],
+      [
+        { type: 'object', propertyNames: { pattern: '^a' } },
+        'Schema.Record(Schema.String,Schema.Unknown).check(Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
+      ],
+      [
+        { type: 'object', additionalProperties: true, propertyNames: { pattern: '^a' } },
+        'Schema.Record(Schema.String,Schema.Unknown).check(Schema.makeFilter((input)=>Object.keys(input).every((key)=>new RegExp("^a").test(key))))',
+      ],
+    ])(
+      'checks the keys of an object with no properties or additionalProperties schema (#88): %o → %s',
+      (input, expected) => {
+        expect(object(input, 'Schema', false)).toBe(expected)
+      },
+    )
+
     it('emits pattern-based filter', () => {
       expect(
         object(

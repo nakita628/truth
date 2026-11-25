@@ -67,6 +67,26 @@ describe('object', () => {
   })
 
   describe('propertyNames', () => {
+    it.each<[JSONSchema, string]>([
+      [
+        { type: 'object', propertyNames: { enum: [] } },
+        'type({}).narrow((data) => Object.keys(data).length===0)',
+      ],
+      [
+        { type: 'object', propertyNames: { pattern: '^a' } },
+        'type({}).narrow((data) => Object.keys(data).every((key) => new RegExp("^a").test(key)))',
+      ],
+      [
+        { type: 'object', additionalProperties: true, propertyNames: { pattern: '^a' } },
+        'type({}).narrow((data) => Object.keys(data).every((key) => new RegExp("^a").test(key)))',
+      ],
+    ])(
+      'checks the keys of an object with no properties or additionalProperties schema (#88): %o → %s',
+      (input, expected) => {
+        expect(object(input, 'Schema', false)).toBe(expected)
+      },
+    )
+
     it('emits pattern-based narrow', () => {
       expect(
         object(

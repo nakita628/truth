@@ -16,6 +16,21 @@ export const Schema_ = Schema.Struct({
       Schema.makeFilter((input) => Object.keys(input).length === 0),
     ),
   ),
+  bare: Schema.optionalKey(
+    Schema.Record(Schema.String, Schema.Unknown).check(
+      Schema.makeFilter((input) => Object.keys(input).length === 0),
+    ),
+  ),
+  pattern: Schema.optionalKey(
+    Schema.Record(Schema.String, Schema.Unknown).check(
+      Schema.makeFilter((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
+    ),
+  ),
+  open: Schema.optionalKey(
+    Schema.Record(Schema.String, Schema.Unknown).check(
+      Schema.makeFilter((input) => Object.keys(input).every((key) => new RegExp('^a').test(key))),
+    ),
+  ),
 })
 
 export type Schema_ = typeof Schema_.Type

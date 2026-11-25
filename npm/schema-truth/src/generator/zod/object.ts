@@ -105,10 +105,12 @@ export function object(
       ? schema['x-additionalProperties-message']
       : schema['x-unevaluatedProperties-message']
   if (!schema.properties) {
-    if (schema.additionalProperties === true) return 'z.any()'
+    // `propertyNames` holds every key, whatever else the object declares.
+    if (schema.additionalProperties === true && schema.propertyNames === undefined) return 'z.any()'
     const checksKeys =
       undeclaredRequired.length > 0 ||
       schema.patternProperties !== undefined ||
+      schema.propertyNames !== undefined ||
       extraSchema !== undefined ||
       closed
     if (!checksKeys) return 'z.object({})'

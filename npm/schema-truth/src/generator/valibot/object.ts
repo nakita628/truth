@@ -125,7 +125,8 @@ export function object(
       : schema['x-unevaluatedProperties-message']
   const checksKeys = undeclaredRequired.length > 0 || extraSchema !== undefined || closed
   if (!schema.properties && !checksKeys) {
-    if (schema.patternProperties) {
+    // `propertyNames` holds every key, whatever else the object declares.
+    if (schema.patternProperties || schema.propertyNames) {
       const record = `v.record(v.string(),v.unknown())`
       const actions = [propertyNamesCheck(), ...patternPropertiesChecks()].filter((a) => a !== '')
       return actions.length > 0 ? `v.pipe(${record},${actions.join(',')})` : record

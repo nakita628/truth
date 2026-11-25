@@ -117,10 +117,14 @@ export function object(
     (key) => !Object.hasOwn(properties, key),
   )
   if (!schema.properties) {
-    if (schema.additionalProperties === true) return '"unknown"'
+    // `propertyNames` holds every key, whatever else the object declares.
+    if (schema.additionalProperties === true && schema.propertyNames === undefined) {
+      return '"unknown"'
+    }
     const checksKeys =
       undeclaredRequired.length > 0 ||
       schema.patternProperties !== undefined ||
+      schema.propertyNames !== undefined ||
       schema.additionalProperties === false ||
       schema.unevaluatedProperties !== undefined
     if (!checksKeys) return isArktype ? '{}' : 'type({})'
@@ -142,8 +146,10 @@ export function object(
       : `Object.keys(data).every((key) => ${isEvaluated})`
   // `"+": "reject"` refuses every undeclared key, a key a pattern allows included: with
   // patterns, the narrow below refuses the keys neither covers instead.
+  // `"delete"` drops the undeclared keys before a narrow reads them, so a `propertyNames`
+  // check keeps them (ArkType's default) to see every key.
   const additionalMode =
-    schema.additionalProperties === true
+    schema.additionalProperties === true && schema.propertyNames === undefined
       ? 'delete'
       : schema.additionalProperties === false && schema.patternProperties === undefined
         ? 'reject'
