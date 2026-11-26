@@ -209,6 +209,22 @@ describe('typebox propertyNames checks the keys (#134)', () => {
     ],
     [{ enum: ['a', { b: 1 }] }, 'Type.Object({},{propertyNames:Type.Literal("a")})'],
     [{ const: 1 }, 'Type.Object({},{propertyNames:Type.Never()})'],
+    [
+      { anyOf: [{ pattern: '^a' }, { const: 1 }] },
+      'Type.Object({},{propertyNames:Type.Union([Type.String({pattern:"^a"})])})',
+    ],
+    [
+      { anyOf: [{ pattern: '^a' }, false] } as unknown as JSONSchema,
+      'Type.Object({},{propertyNames:Type.Union([Type.String({pattern:"^a"})])})',
+    ],
+    [{ allOf: [{ pattern: '^a' }, { enum: [1] }] }, 'Type.Object({},{propertyNames:Type.Never()})'],
+    [{ not: null } as unknown as JSONSchema, 'Type.Object({},{propertyNames:Type.String()})'],
+    [{ not: true } as unknown as JSONSchema, 'Type.Object({},{propertyNames:Type.Never()})'],
+    [{ allOf: [{ maxLength: 3 }] }, 'Type.Object({},{propertyNames:Type.String({maxLength:3})})'],
+    [
+      { pattern: '^a', anyOf: [{ maxLength: 3 }, { minLength: 5 }] },
+      'Type.Object({},{propertyNames:Type.Intersect([Type.String({pattern:"^a"}),Type.Union([Type.String({maxLength:3}),Type.String({minLength:5})])])})',
+    ],
   ])('%o → %s', (propertyNames, expected) => {
     expect(typebox({ type: 'object', propertyNames } as JSONSchema)).toBe(expected)
   })
