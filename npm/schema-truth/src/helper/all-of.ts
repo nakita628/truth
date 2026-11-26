@@ -45,8 +45,10 @@ export function isKeywordOnlyMember(schema: JSONSchema) {
 export type ConstraintCheck = { readonly predicate: string; readonly message: string | undefined }
 
 /**
- * The checks that keep a keyword-only member's constraints without forcing a type, one per
- * keyword, each reporting its own message and falling back to `x-error-message` (#145).
+ * The checks that keep a keyword-only member's constraints without forcing a type: one for
+ * each message its keywords report (their own, else `x-error-message`), so a value that
+ * breaks `maximum` reports `x-maximum-message` (#145), and one that breaks two keywords
+ * reporting the same message reports it once.
  *
  * A number that fails `minimum` is rejected; a string is not a number, so `minimum` does
  * not apply to it. `param` is the value name the caller already uses. A member with no
@@ -117,7 +119,15 @@ export function constraintChecks(schema: JSONSchema, param: string): readonly Co
       ),
     )
   }
-  return checks.length === 0 ? [{ predicate: 'true', message: errorMessage }] : checks
+  if (checks.length === 0) return [{ predicate: 'true', message: errorMessage }]
+  const messages = [...new Set(checks.map((item) => item.message))]
+  return messages.map((message) => ({
+    predicate: checks
+      .filter((item) => item.message === message)
+      .map((item) => item.predicate)
+      .join(' && '),
+    message,
+  }))
 }
 
 type Bound = { readonly value: number; readonly exclusive: boolean }

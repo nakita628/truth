@@ -1007,3 +1007,9 @@ describe('allof-keyword-messages (#145)', () => {
     expect(messages(n)).toStrictEqual(expected)
   })
 })
+
+describe('allof-keyword-messages shared message (#145)', () => {
+  it('reports a message two keywords share once', () => {
+    expect(Messaged.safeParse({ s: 'b' }).error?.issues.map((i) => i.message)).toStrictEqual(['bad'])
+  })
+})
