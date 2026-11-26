@@ -185,9 +185,7 @@ function buildAdvancedOpts(
   isTypebox: boolean,
   options?: TypeboxOptions,
 ) {
-  const propertyNamesOpt = schema.propertyNames
-    ? `propertyNames:${typebox(schema.propertyNames, rootName, isTypebox, options)}`
-    : undefined
+  const propertyNamesOpt = propertyNamesOption(schema.propertyNames, rootName, isTypebox, options)
   const patternPropertiesOpt = schema.patternProperties
     ? `patternProperties:{${Object.entries(schema.patternProperties)
         .map(
@@ -232,4 +230,31 @@ function buildAdvancedOpts(
     requiredOpt,
     unevaluatedOpt,
   ]
+}
+
+/**
+ * The `propertyNames` option. Every key is a string, so a key schema with no type of its own
+ * (`{ pattern }`, `{ enum }`) is read as a string one; `false` and an empty `enum` allow no
+ * key, and `true` every key. The document is parsed JSON, so a boolean can sit where the
+ * type says a schema.
+ */
+function propertyNamesOption(
+  keySchema: JSONSchema | boolean | undefined,
+  rootName: string,
+  isTypebox: boolean,
+  options: TypeboxOptions | undefined,
+) {
+  if (keySchema === undefined || keySchema === true) return undefined
+  if (keySchema === false || (Array.isArray(keySchema.enum) && keySchema.enum.length === 0)) {
+    return 'propertyNames:Type.Never()'
+  }
+  const isUntyped =
+    keySchema.type === undefined && keySchema.$ref === undefined && !hasCombinator(keySchema)
+  const emitted = typebox(
+    isUntyped ? { ...keySchema, type: 'string' } : keySchema,
+    rootName,
+    isTypebox,
+    options,
+  )
+  return `propertyNames:${emitted}`
 }

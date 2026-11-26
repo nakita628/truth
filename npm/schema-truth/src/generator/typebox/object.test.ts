@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import type { JSONSchema } from '../../parser/index.js'
 import { object } from './object.js'
+import { typebox } from './typebox.js'
 
 describe('object', () => {
   it.concurrent.each<[JSONSchema, string]>([
@@ -178,5 +179,22 @@ describe('object', () => {
         'Type.Object({a:Type.String()},{minProperties:1,errorMessage:{minProperties:"too few",properties:"bad props"}})',
       )
     })
+  })
+})
+
+describe('typebox propertyNames checks the keys (#134)', () => {
+  it.each<[JSONSchema['propertyNames'] | boolean, string]>([
+    [{ pattern: '^a' }, 'Type.Object({},{propertyNames:Type.String({pattern:"^a"})})'],
+    [{ enum: [] }, 'Type.Object({},{propertyNames:Type.Never()})'],
+    [
+      { enum: ['x', 'y'] },
+      'Type.Object({},{propertyNames:Type.Union([Type.Literal("x"),Type.Literal("y")])})',
+    ],
+    [{ const: 'k' }, 'Type.Object({},{propertyNames:Type.Literal("k")})'],
+    [{ minLength: 2 }, 'Type.Object({},{propertyNames:Type.String({minLength:2})})'],
+    [false, 'Type.Object({},{propertyNames:Type.Never()})'],
+    [true, 'Type.Object({})'],
+  ])('%o → %s', (propertyNames, expected) => {
+    expect(typebox({ type: 'object', propertyNames } as JSONSchema)).toBe(expected)
   })
 })
