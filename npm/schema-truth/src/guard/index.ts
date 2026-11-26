@@ -9,7 +9,7 @@ import {
   STRING_KEYWORDS,
   STRING_WIRE_LOCATIONS,
 } from '../constants/index.js'
-import type { JSONSchema, JSONSchemaType, ParamIn } from '../parser/index.js'
+import type { JSONSchema, JSONSchemaType, JSONValue, ParamIn } from '../parser/index.js'
 
 // ── Values ───────────────────────────────────────────────────────────────
 
@@ -315,4 +315,14 @@ export function isArktypeDefinition(source: string) {
     (source.startsWith('{') && source.endsWith('}')) ||
     (source.startsWith('[') && source.endsWith(']'))
   )
+}
+
+/** Whether a value is one JSON can hold: a scalar, `null`, or an array or object of them. */
+export function isJSONValue(value: unknown): value is JSONValue {
+  if (value === null) return true
+  if (typeof value === 'string' || typeof value === 'number' || typeof value === 'boolean') {
+    return true
+  }
+  if (Array.isArray(value)) return value.every(isJSONValue)
+  return typeof value === 'object' && Object.values(value).every(isJSONValue)
 }

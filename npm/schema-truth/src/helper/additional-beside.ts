@@ -1,5 +1,8 @@
 import { ALL_CODE_EXTENSION_KEYS } from '../constants/index.js'
+import { isDefaultOnlyMember, isJSONValue } from '../guard/index.js'
 import type { JSONSchema } from '../parser/index.js'
+import { coerceDefault } from '../utils/index.js'
+import type { SchemaDefinitions } from './schema.js'
 import { withoutShadowedUnevaluated } from './unevaluated.js'
 
 /**
@@ -47,10 +50,16 @@ function isUnrestrictive(additionalProperties: JSONSchema['additionalProperties'
  * their own schemas is up to the node. A value that is not an object passes the member, as
  * `additionalProperties` reads objects only. An `unevaluatedProperties` that
  * `additionalProperties` shadows is left out, and the node's default, fallbacks, brand,
- * code extensions and metadata wrap the whole `allOf`. `undefined` when the node has no
+ * code extensions and metadata wrap the whole `allOf`. Its default (its own, or an `allOf`
+ * member that only carries one) is read against the node as written, before the split
+ * hides `additionalProperties` from it, and the wrapper keeps the node's `type` and
+ * `nullable` so the default it reads again stays as read. `undefined` when the node has no
  * such pair.
  */
-export function additionalBesideCombinator(schema: JSONSchema): JSONSchema | undefined {
+export function additionalBesideCombinator(
+  schema: JSONSchema,
+  definitions?: SchemaDefinitions,
+): JSONSchema | undefined {
   const { additionalProperties } = schema
   if (additionalProperties === undefined || isUnrestrictive(additionalProperties)) return undefined
   if (schema.allOf === undefined && schema.anyOf === undefined && schema.oneOf === undefined) {
@@ -60,13 +69,20 @@ export function additionalBesideCombinator(schema: JSONSchema): JSONSchema | und
     additionalProperties: _additional,
     unevaluatedProperties: _unevaluated,
     'x-unevaluatedProperties-message': _unevaluatedMessage,
+    'x-additionalProperties-message': additionalMessage,
     ...unwrapped
   } = withoutShadowedUnevaluated(schema)
-  const rest = Object.fromEntries(
-    Object.entries(unwrapped).filter(([key]) => !NODE_WRAPPER_KEYS.has(key)),
-  )
+  const written = schema.allOf?.find(isDefaultOnlyMember)?.default ?? schema.default
+  const read = written === undefined ? undefined : coerceDefault(schema, written, definitions)
+  const allOf = unwrapped.allOf?.filter((member) => !isDefaultOnlyMember(member))
+  const rest: JSONSchema = {
+    ...Object.fromEntries(
+      Object.entries(unwrapped).filter(([key]) => key !== 'allOf' && !NODE_WRAPPER_KEYS.has(key)),
+    ),
+    ...(allOf !== undefined && allOf.length > 0 && { allOf }),
+  }
   const wrappers = Object.fromEntries(
-    Object.entries(unwrapped).filter(([key]) => NODE_WRAPPER_KEYS.has(key)),
+    Object.entries(unwrapped).filter(([key]) => key !== 'default' && NODE_WRAPPER_KEYS.has(key)),
   )
   // An `unevaluatedProperties` beside an `allOf` of one bare object evaluates exactly the
   // keys named here; the generators check it on the input before an object strips a key.
@@ -79,9 +95,15 @@ export function additionalBesideCombinator(schema: JSONSchema): JSONSchema | und
       patternProperties: unconstrained(Object.keys(schema.patternProperties)),
     }),
     unevaluatedProperties: additionalProperties,
-    ...(unwrapped['x-additionalProperties-message'] !== undefined && {
-      'x-unevaluatedProperties-message': unwrapped['x-additionalProperties-message'],
+    ...(additionalMessage !== undefined && {
+      'x-unevaluatedProperties-message': additionalMessage,
     }),
   }
-  return { ...wrappers, allOf: [rest, { anyOf: [{ not: { type: 'object' } }, closed] }] }
+  return {
+    ...wrappers,
+    ...(read?.keep === true && isJSONValue(read.value) && { default: read.value }),
+    ...(schema.type !== undefined && { type: schema.type }),
+    ...(schema.nullable !== undefined && { nullable: schema.nullable }),
+    allOf: [rest, { anyOf: [{ not: { type: 'object' } }, closed] }],
+  }
 }

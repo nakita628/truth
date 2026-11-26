@@ -42,11 +42,11 @@ describe('additionalBesideCombinator (#138)', () => {
       'x-unevaluatedProperties-message': 'closed',
     }
     expect(additionalBesideCombinator(schema)).toStrictEqual({
+      type: 'object',
       allOf: [
         {
           type: 'object',
           allOf: [{ properties: { a: {} } }],
-          'x-additionalProperties-message': 'closed',
         },
         {
           anyOf: [
@@ -84,6 +84,39 @@ describe('additionalBesideCombinator (#138)', () => {
         },
       ],
     })
+  })
+
+  it.each<[string, JSONSchema, unknown]>([
+    [
+      'a null default on a nullable node',
+      {
+        type: ['object', 'null'],
+        allOf: [{ type: 'object' }],
+        additionalProperties: false,
+        default: null,
+      },
+      null,
+    ],
+    [
+      'a default an allOf member carries',
+      { allOf: [{ type: 'object' }, { default: {} }], additionalProperties: false },
+      {},
+    ],
+    [
+      'an undeclared key additionalProperties takes',
+      {
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        allOf: [{ type: 'object' }],
+        additionalProperties: { type: 'number' },
+        default: { a: 'x', n: 1 },
+      },
+      { a: 'x', n: 1 },
+    ],
+  ])('keeps %s on the whole node', (_, schema, value) => {
+    const split = additionalBesideCombinator(schema)
+    expect(split?.default).toStrictEqual(value)
+    expect(split?.allOf?.[0]?.allOf?.some((member) => member.default !== undefined)).not.toBe(true)
   })
 
   it.each<[string, JSONSchema]>([

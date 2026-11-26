@@ -201,7 +201,7 @@ function node(
   options: EmitOptions | undefined,
 ) {
   // `additionalProperties` beside a combinator holds the keys the node itself leaves.
-  const split = additionalBesideCombinator(schema)
+  const split = additionalBesideCombinator(schema, options?.definitions)
   if (split !== undefined) return node(split, rootName, isZod, options)
   const isStringWireParam = isStringWireLocation(options?.paramIn)
   const isWireCoerced = isStringWireParam && schema['x-coerce'] !== false
