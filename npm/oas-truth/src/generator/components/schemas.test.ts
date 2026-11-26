@@ -533,6 +533,38 @@ describe('makeSchemaDeclarations', () => {
     expect(makeAdapter('arktype').renderImport({ code: 'export const ASchema=BSchema' })).toBe('')
   })
 
+  it.each(['zod', 'valibot', 'effect'] as const)(
+    '%s: a renamed self-recursive schema refers to itself in its cyclic type (#149)',
+    (lib) => {
+      const code = makeSchemaDeclarations(
+        {
+          'foo-bar': { type: 'string' },
+          FooBar: {
+            type: 'object',
+            properties: {
+              child: { $ref: '#/components/schemas/FooBar' },
+              baz: { $ref: '#/components/schemas/Baz' },
+            },
+          },
+          Baz: { type: 'object', properties: { back: { $ref: '#/components/schemas/FooBar' } } },
+          FooBar2: { type: 'number' },
+        },
+        makeAdapter(lib),
+      )
+        .map((d) => d.code)
+        .join('\n')
+      // `FooBar` is renamed `FooBar2` beside `foo-bar`; its child is itself, not `FooBar22`.
+      const typeLine = code.split('\n').find((line) => line.startsWith('type FooBar2Type'))
+      expect(typeLine).toContain('"child"?:FooBar2Type')
+      expect(typeLine).not.toContain('FooBar22')
+      // A peer in the same cycle reads the renamed member as `FooBar2`, not `FooBar22`.
+      const peerLine = code.split('\n').find((line) => line.startsWith('type BazType'))
+      expect(peerLine).toContain('"back"?:')
+      expect(peerLine).toContain('FooBar2')
+      expect(peerLine).not.toContain('FooBar22')
+    },
+  )
+
   it('keeps the Zod-shaped helper when cyclicTypeStyle is literal', () => {
     expect(
       makeSchemaDeclarations(selfCycle, makeAdapter('valibot'), { cyclicTypeStyle: 'literal' })[0]

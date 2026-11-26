@@ -362,7 +362,10 @@ export function makeSchemaDeclarations(
   const style = options?.cyclicTypeStyle === 'literal' ? {} : (adapter.cyclicTypeStyle ?? {})
   const declarationRef = options?.ref === true
   return order.map((name) => {
-    const schema = mapSchema(prepared[name] ?? {}, (node) => rewriteCollisionRef(node, identifiers))
+    const original = prepared[name] ?? {}
+    // The cyclic type reads each `$ref` by its component key (a self reference against
+    // `name`, a peer through `identifiers`), so it takes the schema before the rename (#149).
+    const schema = mapSchema(original, (node) => rewriteCollisionRef(node, identifiers))
     const ident = identifiers.get(name) ?? toIdentifierPascalCase(name)
     const varName = `${ident}Schema`
     const group = cycles.get(name)
@@ -424,7 +427,7 @@ export function makeSchemaDeclarations(
     if (helper && usesHelper) taken.add(helper)
     const typeDef =
       helper && usesHelper
-        ? `${makeCyclicType(name, helper, schema, (ref) => infer(`${identifiers.get(ref) ?? toIdentifierPascalCase(ref)}Schema`), options?.readonly === true, style)}\n\n`
+        ? `${makeCyclicType(name, helper, original, (ref) => infer(`${identifiers.get(ref) ?? toIdentifierPascalCase(ref)}Schema`), options?.readonly === true, style)}\n\n`
         : ''
     const annotation = annotationText === undefined ? '' : `:${annotationText}`
     const typeExport =
