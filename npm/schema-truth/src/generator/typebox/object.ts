@@ -233,9 +233,9 @@ function buildAdvancedOpts(
 }
 
 /**
- * The `propertyNames` option. Every key is a string, so a key schema with no type of its own
- * (`{ pattern }`, `{ enum }`) is read as a string one; `false` and an empty `enum` allow no
- * key, and `true` every key. The document is parsed JSON, so a boolean can sit where the
+ * The `propertyNames` option. Every key is a string, so a key schema is read as a string
+ * one ({@link asKeySchema}); `false`, and an `enum` / `const` with no string value, allow no
+ * key, and `true` every key. The document is parsed JSON, so anything can sit where the
  * type says a schema.
  */
 function propertyNamesOption(
@@ -244,17 +244,44 @@ function propertyNamesOption(
   isTypebox: boolean,
   options: TypeboxOptions | undefined,
 ) {
-  if (keySchema === undefined || keySchema === true) return undefined
-  if (keySchema === false || (Array.isArray(keySchema.enum) && keySchema.enum.length === 0)) {
-    return 'propertyNames:Type.Never()'
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- parsed JSON: a null can sit where the type says a schema
+  if (typeof keySchema !== 'object' || keySchema === null) {
+    return keySchema === false ? 'propertyNames:Type.Never()' : undefined
   }
-  const isUntyped =
-    keySchema.type === undefined && keySchema.$ref === undefined && !hasCombinator(keySchema)
-  const emitted = typebox(
-    isUntyped ? { ...keySchema, type: 'string' } : keySchema,
-    rootName,
-    isTypebox,
-    options,
-  )
-  return `propertyNames:${emitted}`
+  const key = asKeySchema(keySchema)
+  if (key === false) return 'propertyNames:Type.Never()'
+  return `propertyNames:${typebox(key, rootName, isTypebox, options)}`
+}
+
+/**
+ * A key schema as a string one: no type of its own reads as `type: 'string'` (composition
+ * members and `not` too), `enum` / `const` keep only their string values (`false` when
+ * none is left), and beside an `allOf` the own keywords become one of its members. A `$ref`
+ * is left as it is.
+ */
+function asKeySchema(keySchema: JSONSchema): JSONSchema | false {
+  if (keySchema.$ref !== undefined) return keySchema
+  const strings = keySchema.enum?.filter((value) => typeof value === 'string')
+  if (strings?.length === 0) return false
+  if (keySchema.const !== undefined && typeof keySchema.const !== 'string') return false
+  const members = (list: readonly JSONSchema[] | undefined) =>
+    list?.map((member) => {
+      const read = asKeySchema(member)
+      return read === false ? { not: {} } : read
+    })
+  const anyOf = members(keySchema.anyOf)
+  const oneOf = members(keySchema.oneOf)
+  const allOf = members(keySchema.allOf)
+  const not = keySchema.not === undefined ? undefined : asKeySchema(keySchema.not)
+  const { allOf: _allOf, ...own } = keySchema
+  const read: JSONSchema = {
+    ...own,
+    ...(keySchema.type === undefined && { type: 'string' }),
+    ...(strings !== undefined && { enum: strings }),
+    ...(anyOf !== undefined && { anyOf }),
+    ...(oneOf !== undefined && { oneOf }),
+    ...(not !== undefined && { not: not === false ? {} : not }),
+  }
+  // `typebox()` reads an `allOf` alone, so the key schema's own keywords join it as a member.
+  return allOf === undefined ? read : { allOf: [read, ...allOf] }
 }

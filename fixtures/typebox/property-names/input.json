@@ -2,8 +2,37 @@
   "title": "Keys",
   "type": "object",
   "properties": {
-    "prefixed": { "type": "object", "propertyNames": { "pattern": "^a" } },
-    "listed": { "type": "object", "propertyNames": { "enum": ["x", "y"] } },
-    "none": { "type": "object", "propertyNames": false }
+    "prefixed": {
+      "type": "object",
+      "propertyNames": {
+        "pattern": "^a"
+      }
+    },
+    "listed": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "x",
+          "y"
+        ]
+      }
+    },
+    "none": {
+      "type": "object",
+      "propertyNames": false
+    },
+    "either": {
+      "type": "object",
+      "propertyNames": {
+        "anyOf": [
+          {
+            "pattern": "^a"
+          },
+          {
+            "pattern": "^b"
+          }
+        ]
+      }
+    }
   }
 }

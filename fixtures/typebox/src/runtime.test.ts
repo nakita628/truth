@@ -988,11 +988,11 @@ describe('default-emitted (#127)', () => {
 })
 
 describe('property-names (#134)', () => {
-  it.each([{ prefixed: { ab: 1 } }, { listed: { x: 1, y: 2 } }, { none: {} }])('accepts %j', (value) => {
+  it.each([{ prefixed: { ab: 1 } }, { listed: { x: 1, y: 2 } }, { none: {} }, { either: { a: 1, b: 2 } }])('accepts %j', (value) => {
     expect(Value.Check(Keys, value)).toBe(true)
   })
 
-  it.each([{ prefixed: { b: 1 } }, { listed: { z: 1 } }, { none: { a: 1 } }])('rejects %j', (value) => {
+  it.each([{ prefixed: { b: 1 } }, { listed: { z: 1 } }, { none: { a: 1 } }, { either: { c: 1 } }])('rejects %j', (value) => {
     expect(Value.Check(Keys, value)).toBe(false)
   })
 })

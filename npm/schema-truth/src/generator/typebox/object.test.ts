@@ -194,6 +194,21 @@ describe('typebox propertyNames checks the keys (#134)', () => {
     [{ minLength: 2 }, 'Type.Object({},{propertyNames:Type.String({minLength:2})})'],
     [false, 'Type.Object({},{propertyNames:Type.Never()})'],
     [true, 'Type.Object({})'],
+    [null as unknown as boolean, 'Type.Object({})'],
+    [
+      { pattern: '^a', allOf: [{ maxLength: 3 }] },
+      'Type.Object({},{propertyNames:Type.Intersect([Type.String({pattern:"^a"}),Type.String({maxLength:3})])})',
+    ],
+    [
+      { anyOf: [{ pattern: '^a' }, { pattern: '^b' }] },
+      'Type.Object({},{propertyNames:Type.Union([Type.String({pattern:"^a"}),Type.String({pattern:"^b"})])})',
+    ],
+    [
+      { pattern: '^a', not: { const: 'ab' } },
+      'Type.Object({},{propertyNames:Type.String({pattern:"^a"})})',
+    ],
+    [{ enum: ['a', { b: 1 }] }, 'Type.Object({},{propertyNames:Type.Literal("a")})'],
+    [{ const: 1 }, 'Type.Object({},{propertyNames:Type.Never()})'],
   ])('%o → %s', (propertyNames, expected) => {
     expect(typebox({ type: 'object', propertyNames } as JSONSchema)).toBe(expected)
   })
