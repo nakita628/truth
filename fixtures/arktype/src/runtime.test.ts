@@ -50,6 +50,7 @@ import { User as TitleUser } from '../title/output.ts'
 import { Account } from '../write-only-password/output.ts'
 import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
 import { OwnKeys as DependentOwnKeys } from '../dependent-own-keys/output.ts'
+import { KeyChecks } from '../object-key-keywords/output.ts'
 
 const issues = (result: unknown) => {
   if (!(result instanceof type.errors)) {
@@ -1157,5 +1158,16 @@ describe('dependent-own-keys (#94)', () => {
   // `{ req: {} }` is left out: ArkType reads an inherited `toString` as present (#140).
   it.each([{ dep: { "it's": 1 } }, { dep: { toString: 1 } }])('rejects %j, whose own key needs another', (value) => {
     expect(DependentOwnKeys(value)).toBeInstanceOf(type.errors)
+  })
+})
+
+describe('object-key-keywords (#131)', () => {
+  const passes = (value) => !(KeyChecks(value) instanceof type.errors)
+  it.each([{"counted": {"a": 1, "b": 2}}, {"loose": {"x": 1}}, {"dep": {"a": 1, "b": 2}}, {"dep": {"b": 2}}, {"open": {"x": 1}}])('accepts %j', (value) => {
+    expect(passes(value)).toBe(true)
+  })
+
+  it.each([{"counted": {"a": 1}}, {"loose": {"x": 1, "y": 2}}, {"dep": {"a": 1}}, {"open": "text"}, {"open": 5}])('rejects %j', (value) => {
+    expect(passes(value)).toBe(false)
   })
 })

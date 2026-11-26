@@ -3,6 +3,7 @@ import {
   hasConditional,
   isObjectPrototypeProperty,
   isStringWireLocation,
+  readsObjectKeys,
 } from '../../guard/index.js'
 import {
   effectPreprocess,
@@ -109,16 +110,20 @@ export function object(
     undeclaredRequired.length > 0 ||
     extraSchema !== undefined ||
     closed ||
-    schema.propertyNames !== undefined
-  if (!schema.properties && !checksKeys) {
-    // v3.2: patternProperties without properties → unknown-typed Record + filter.
+    schema.propertyNames !== undefined ||
+    schema.dependentSchemas !== undefined
+  // With no `properties`, an object no keyword reads the keys of is any object, open or not,
+  // and one only patterns read is a record they check.
+  const { patternProperties: _patterns, ...withoutPatterns } = schema
+  if (!schema.properties && !readsObjectKeys(withoutPatterns)) {
     if (schema.patternProperties) {
       const record = 'Schema.Record(Schema.String,Schema.Unknown)'
-      const checks = [propertyNamesFilter(), ...patternPropertiesFilters()].filter((a) => a !== '')
+      const checks = patternPropertiesFilters().filter((a) => a !== '')
       return checks.length > 0 ? `${record}.check(${checks.join(',')})` : record
     }
-    if (schema.additionalProperties === true) return 'Schema.Unknown'
-    return 'Schema.Struct({})'
+    return schema.additionalProperties === true
+      ? 'Schema.Record(Schema.String,Schema.Unknown)'
+      : 'Schema.Struct({})'
   }
 
   const required = new Set(schema.required)

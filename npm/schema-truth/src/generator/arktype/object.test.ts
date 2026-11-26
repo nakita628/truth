@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vite-plus/test'
 
 import type { JSONSchema } from '../../parser/index.js'
+import { arktype } from './arktype.js'
 import { object } from './object.js'
 
 describe('object', () => {
@@ -441,5 +442,31 @@ describe('object dependent / unevaluated / conditional keywords', () => {
     ])('reads no key it does not need: %j', (schema, expected) => {
       expect(object(schema, 'Schema', false)).toBe(expected)
     })
+  })
+})
+
+describe('an open object keeps its undeclared keys for a check that reads them (#131)', () => {
+  it('drops undeclared keys only when no keyword reads them', () => {
+    expect(
+      arktype({
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        additionalProperties: true,
+      }),
+    ).toBe('type({"a?":"string","+":"delete"})')
+    expect(
+      arktype({
+        type: 'object',
+        properties: { a: { type: 'string' } },
+        additionalProperties: true,
+        minProperties: 2,
+      }),
+    ).not.toContain('"+":"delete"')
+  })
+
+  it('reads minProperties on an object with no properties', () => {
+    expect(arktype({ type: 'object', minProperties: 2 })).toBe(
+      'type({}).narrow((data) => Object.keys(data).length >= 2)',
+    )
   })
 })

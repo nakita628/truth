@@ -3,6 +3,7 @@ import {
   hasConditional,
   isObjectPrototypeProperty,
   isStringWireLocation,
+  readsObjectKeys,
 } from '../../guard/index.js'
 import { propertyEmitOptions } from '../../helper/parameter.js'
 import {
@@ -106,16 +107,9 @@ export function object(input: JSONSchema, rootName: string, isZod: boolean, opti
     typeof schema.additionalProperties === 'object'
       ? schema['x-additionalProperties-message']
       : schema['x-unevaluatedProperties-message']
-  if (!schema.properties) {
-    // `propertyNames` holds every key, whatever else the object declares.
-    if (schema.additionalProperties === true && schema.propertyNames === undefined) return 'z.any()'
-    const checksKeys =
-      undeclaredRequired.length > 0 ||
-      schema.patternProperties !== undefined ||
-      schema.propertyNames !== undefined ||
-      extraSchema !== undefined ||
-      closed
-    if (!checksKeys) return 'z.object({})'
+  // With no `properties`, an object no keyword reads the keys of is any object, open or not.
+  if (!schema.properties && !readsObjectKeys(schema)) {
+    return schema.additionalProperties === true ? 'z.looseObject({})' : 'z.object({})'
   }
 
   // `z.object()` strips the keys it does not declare before a refine sees the value, so a

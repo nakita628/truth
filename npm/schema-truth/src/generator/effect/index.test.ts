@@ -868,7 +868,7 @@ type _Root = {readonly l?: _Loose}
 
 type _Loose = { [key: string]: unknown }
 
-const Loose: Schema.Schema<_Loose> = Schema.Unknown
+const Loose: Schema.Schema<_Loose> = Schema.Record(Schema.String,Schema.Unknown)
 
 export const Root: Schema.Schema<_Root> = Schema.Struct({l:Schema.optionalKey(Schema.suspend(() => Loose))})
 
@@ -984,7 +984,7 @@ export type Loose = typeof Loose.Type`
     })
     const expected = `import { Schema } from "effect"
 
-export const AnyObj = Schema.Unknown
+export const AnyObj = Schema.Record(Schema.String,Schema.Unknown)
 
 export type AnyObj = typeof AnyObj.Type`
     expect(result).toBe(expected)

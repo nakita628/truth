@@ -535,7 +535,7 @@ export type MaxOnly = typeof MaxOnly.infer`
     })
     const expected = `import { type } from "arktype"
 
-export const AnyObj = type("unknown")
+export const AnyObj = type({})
 
 export type AnyObj = typeof AnyObj.infer`
     expect(result).toBe(expected)
