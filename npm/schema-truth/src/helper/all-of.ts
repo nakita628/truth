@@ -62,11 +62,15 @@ export function constraintChecks(schema: JSONSchema, param: string): readonly Co
   })
   const checks: ConstraintCheck[] = []
   // Draft-04 spells an exclusive bound as `minimum` plus a boolean `exclusiveMinimum`; its
-  // message is the exclusive keyword's, as in every other place a bound is read.
+  // message is the exclusive keyword's, else the one written on the number's keyword.
   if (typeof schema.minimum === 'number') {
     checks.push(
       schema.exclusiveMinimum === true
-        ? check('number', `${param} > ${schema.minimum}`, schema['x-exclusiveMinimum-message'])
+        ? check(
+            'number',
+            `${param} > ${schema.minimum}`,
+            schema['x-exclusiveMinimum-message'] ?? schema['x-minimum-message'],
+          )
         : check('number', `${param} >= ${schema.minimum}`, schema['x-minimum-message']),
     )
   }
@@ -82,7 +86,11 @@ export function constraintChecks(schema: JSONSchema, param: string): readonly Co
   if (typeof schema.maximum === 'number') {
     checks.push(
       schema.exclusiveMaximum === true
-        ? check('number', `${param} < ${schema.maximum}`, schema['x-exclusiveMaximum-message'])
+        ? check(
+            'number',
+            `${param} < ${schema.maximum}`,
+            schema['x-exclusiveMaximum-message'] ?? schema['x-maximum-message'],
+          )
         : check('number', `${param} <= ${schema.maximum}`, schema['x-maximum-message']),
     )
   }
@@ -432,8 +440,8 @@ function collapse(parts: readonly JSONSchema[], kind: 'number' | 'string', isWir
   const groups: JSONSchema[] = []
   for (const part of parts) {
     const last = groups.at(-1)
-    // Leftovers become one check with one message, so parts reporting different messages
-    // stay apart.
+    // Leftovers are checked once per message they report, so parts reporting different
+    // messages stay apart.
     const absorbed =
       last === undefined || messagesOf(last) !== messagesOf(part)
         ? undefined

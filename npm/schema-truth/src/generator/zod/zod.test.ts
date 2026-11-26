@@ -2289,6 +2289,11 @@ describe('allOf keyword members', () => {
       "z.any().refine((val) => (typeof val !== 'string' || val.length >= 3) && (typeof val !== 'string' || /^a/.test(val)),{error:\"bad\"}).refine((val) => (typeof val !== 'string' || val.length <= 9),{error:\"long\"})",
     ],
     [
+      { allOf: [{ minimum: 5, exclusiveMinimum: true, 'x-minimum-message': 'low' }] },
+      undefined,
+      'z.any().refine((val) => (typeof val !== \'number\' || val > 5),{error:"low"})',
+    ],
+    [
       { allOf: [{ type: 'integer' }, { minimum: 5 }] },
       { paramIn: 'query' },
       "z.preprocess((val)=>typeof val==='string'&&/^-?(?:0|[1-9]\\d*)$/.test(val)?Number(val):val,z.number().int().min(5))",
