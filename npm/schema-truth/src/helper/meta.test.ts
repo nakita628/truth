@@ -312,3 +312,30 @@ describe('a 64-bit or bigint default', () => {
     },
   )
 })
+
+describe('typeboxDefaultOpt reads properties and items as emitted (#127)', () => {
+  it.each<[JSONSchema, readonly string[]]>([
+    [
+      {
+        type: 'object',
+        properties: { n: { type: ['integer', 'string'] } },
+        default: { n: 5 },
+      },
+      ['default:{"n":"5"}'],
+    ],
+    [
+      { type: 'array', items: { type: ['integer', 'string'] }, default: [5, 6] },
+      ['default:["5","6"]'],
+    ],
+    [
+      {
+        type: 'array',
+        items: { type: 'object', properties: { n: { type: ['integer', 'string'] } } },
+        default: [{ n: 5 }],
+      },
+      ['default:[{"n":"5"}]'],
+    ],
+  ])('%o → %o', (schema, expected) => {
+    expect(typeboxDefaultOpt(schema)).toStrictEqual(expected)
+  })
+})
