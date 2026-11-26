@@ -22,6 +22,16 @@ export const KeyChecks = v.partial(
         Object.values(input).every((value) => v.safeParse(v.string(), value).success),
       ),
     ),
+    letters: v.pipe(
+      v.partial(v.looseObject({})),
+      v.check((input) =>
+        Object.entries(input).every(
+          ([key, value]) =>
+            !new RegExp('^\\p{L}+$', 'u').test(key) || v.safeParse(v.string(), value).success,
+        ),
+      ),
+      v.check((input) => Object.keys(input).every((key) => new RegExp('^\\p{L}+$', 'u').test(key))),
+    ),
   }),
 )
 

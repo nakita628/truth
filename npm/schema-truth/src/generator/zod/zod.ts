@@ -34,6 +34,7 @@ import {
   wireNullText,
   wireNumericKind,
   zodWrap as _zodWrap,
+  regexConstructor,
 } from '../../helper/index.js'
 import type { CodeExtensionOptions } from '../../helper/index.js'
 import type { EmitOptions } from '../../options/index.js'
@@ -176,7 +177,7 @@ function objectKeysCheck(
   const patternChecks = patterns
     .map(
       ([pattern, propSchema]) =>
-        `if(new RegExp(${JSON.stringify(pattern)}).test(k)){const result=${zod(propSchema, rootName, isZod, options)}.safeParse(v);if(!result.success){${forwardKeyIssues(patternMessage)}}}`,
+        `if(${regexConstructor(pattern)}.test(k)){const result=${zod(propSchema, rootName, isZod, options)}.safeParse(v);if(!result.success){${forwardKeyIssues(patternMessage)}}}`,
     )
     .join('')
   const message = schema['x-unevaluatedProperties-message']

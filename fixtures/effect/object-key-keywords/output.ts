@@ -25,6 +25,20 @@ export const KeyChecks = Schema.Struct({
       ),
     ),
   ),
+  letters: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter((input) =>
+        Object.entries(input).every(
+          ([key, value]) =>
+            !new RegExp('^\\p{L}+$', 'u').test(key) ||
+            Schema.is(Schema.toEncoded(Schema.String))(value),
+        ),
+      ),
+      Schema.makeFilter((input) =>
+        Object.keys(input).every((key) => new RegExp('^\\p{L}+$', 'u').test(key)),
+      ),
+    ),
+  ),
 })
 
 export type KeyChecks = typeof KeyChecks.Type

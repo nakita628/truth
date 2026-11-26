@@ -80,7 +80,7 @@ export function isEvaluatedKeyExpression(
 ): string | undefined {
   const checks = [
     ...(evaluated.names.length > 0 ? [`${JSON.stringify(evaluated.names)}.includes(${key})`] : []),
-    ...evaluated.patterns.map((pattern) => `new RegExp(${JSON.stringify(pattern)}).test(${key})`),
+    ...evaluated.patterns.map((pattern) => `${regexConstructor(pattern)}.test(${key})`),
   ]
   return checks.length > 0 ? checks.join('||') : undefined
 }

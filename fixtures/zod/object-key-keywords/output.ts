@@ -19,6 +19,16 @@ export const KeyChecks = z.object({
     .refine((val) => Object.keys(val).length >= 1)
     .refine((val) => Object.values(val).every((value) => z.string().safeParse(value).success))
     .exactOptional(),
+  letters: z
+    .looseObject({})
+    .refine((val) =>
+      Object.entries(val).every(
+        ([key, value]) =>
+          !new RegExp('^\\p{L}+$', 'u').test(key) || z.string().safeParse(value).success,
+      ),
+    )
+    .refine((val) => Object.keys(val).every((key) => new RegExp('^\\p{L}+$', 'u').test(key)))
+    .exactOptional(),
 })
 
 export type KeyChecks = z.infer<typeof KeyChecks>

@@ -8,6 +8,13 @@ export const KeyChecks = type({
   'strings?': type({})
     .narrow((data) => Object.keys(data).length >= 1)
     .narrow((data) => Object.values(data).every((value) => type('string').allows(value))),
+  'letters?': type({})
+    .narrow((data) =>
+      Object.entries(data).every(
+        ([key, value]) => !new RegExp('^\\p{L}+$', 'u').test(key) || type('string').allows(value),
+      ),
+    )
+    .narrow((data) => Object.keys(data).every((key) => new RegExp('^\\p{L}+$', 'u').test(key))),
 })
 
 export type KeyChecks = typeof KeyChecks.infer
