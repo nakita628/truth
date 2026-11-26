@@ -1198,3 +1198,51 @@ describe('a prefixItems tuple follows JSON Schema 2020-12 (#106)', () => {
     )
   })
 })
+
+describe('the elements after a prefixItems tuple (#106 review)', () => {
+  it.each<[JSONSchema, boolean, string]>([
+    [
+      { type: 'array', prefixItems: [{ type: 'string' }], items: true, unevaluatedItems: false },
+      false,
+      'type([["string","?"],"...","unknown[]"])',
+    ],
+    [
+      {
+        type: 'array',
+        prefixItems: [{ type: 'string' }],
+        items: { type: 'number' },
+        'x-unevaluatedItems-message': 'no extras',
+      },
+      false,
+      'type([["string","?"],"...","number[]"])',
+    ],
+    [
+      { type: 'array', prefixItems: [{ type: 'string' }], unevaluatedItems: false, minItems: 2 },
+      false,
+      'type([["string","?"]]).narrow((data: unknown[], ctx) => data.length >= 2 || ctx.mustBe("must contain at least 2 items"))',
+    ],
+    [
+      {
+        type: 'array',
+        prefixItems: [{ $ref: '#/$defs/A' }],
+        contains: { const: 1 },
+        unevaluatedItems: { type: 'boolean' },
+      },
+      true,
+      '[[[["A","?"],"...","unknown[]"],":",(data: unknown[], ctx): boolean => data.some((item) => $.type("1").allows(item)) || ctx.mustBe("must contain at least one matching item")],":",(data: unknown[], ctx): boolean => data.slice(1).every((item) => $.type("1").allows(item) || $.type("boolean").allows(item)) || ctx.mustBe("an array with no unevaluated items")]',
+    ],
+  ])('%o (in a scope: %s) → %s', (schema, isArktype, expected) => {
+    expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
+  })
+
+  it('reaches a scoped wire array in a wire union through the scope', () => {
+    const schema: JSONSchema = {
+      anyOf: [{ type: 'integer' }, { type: 'array', items: { $ref: '#/$defs/A' } }],
+    }
+    const out = arktype(schema, 'Schema', true, { paramIn: 'query' })
+    expect(out).toContain('type("unknown").pipe((data, ctx): unknown => { for (const branch of [')
+    expect(out).toContain(
+      '$.type([["unknown","=>",(data)=>(data===undefined||Array.isArray(data)?data:[data])],"|>","A[]"])',
+    )
+  })
+})

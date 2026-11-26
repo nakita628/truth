@@ -54,6 +54,18 @@
       },
       "minItems": 2
     },
+    "marked": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Leaf"
+        }
+      ],
+      "contains": {
+        "const": 1
+      },
+      "unevaluatedItems": false
+    },
     "refList": {
       "$ref": "#/$defs/Leaves",
       "type": "array",

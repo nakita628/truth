@@ -1102,6 +1102,7 @@ describe('scope-arrays', () => {
     { closed: [] },
     { closed: [{ id: 'a' }] },
     { rest: [{ id: 'a' }, { ids: [] }] },
+    { marked: [{ id: 'a' }, 1] },
     { refList: [{ id: 'a' }] },
   ])('accepts %j', (value) => {
     expect(ScopeArraysNode(value)).not.toBeInstanceOf(type.errors)
@@ -1115,6 +1116,8 @@ describe('scope-arrays', () => {
     { closed: [{ id: 'a' }, { id: 'b' }] },
     { rest: [{ id: 'a' }] },
     { rest: [{ id: 'a' }, { ids: 'x' }] },
+    { marked: [{ id: 'a' }] },
+    { marked: [{ id: 'a' }, 1, 2, 'x'] },
     { refList: [{ id: 1 }] },
   ])('rejects %j', (value) => {
     expect(ScopeArraysNode(value)).toBeInstanceOf(type.errors)
