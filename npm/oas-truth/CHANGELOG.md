@@ -1,5 +1,11 @@
 # oas-truth
 
+## 0.13.0
+
+### Minor Changes
+
+- [#188](https://github.com/nakita628/truth/pull/188) [`55dc8e2`](https://github.com/nakita628/truth/commit/55dc8e282286931cf111fe4085629d1216cdfef4) Thanks [@nakita628](https://github.com/nakita628)! - ArkType: a non-cyclic split file now imports `type` only when its code calls it. A file that calls neither `type` nor `scope`, such as a `$ref` alias (`export const FooSchema=BarSchema`), gets no `arktype` import. It used to always import `type`, which failed `noUnusedLocals` (TS6133). Breaking for hosts: `SchemaDeclaration.importLine`, `schemaImportLine` and the ArkType adapter's `renderImport` can now return `''`. A host that writes split files should leave the line and its blank-line separator out when it is empty, and should not reuse one declaration's line for others.
+
 ## 0.12.1
 
 ### Patch Changes
