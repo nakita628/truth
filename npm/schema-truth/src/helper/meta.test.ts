@@ -339,3 +339,25 @@ describe('typeboxDefaultOpt reads properties and items as emitted (#127)', () =>
     expect(typeboxDefaultOpt(schema)).toStrictEqual(expected)
   })
 })
+
+describe('typeboxDefaultOpt reads a shared definition once (#127)', () => {
+  it('reads a chain of definitions linked twice over in linear time', () => {
+    const depth = 40
+    const definitions = Object.fromEntries(
+      Array.from({ length: depth }, (_, index) => [
+        `D${index}`,
+        index === depth - 1
+          ? { type: ['integer', 'string'] }
+          : {
+              type: 'object',
+              properties: {
+                a: { $ref: `#/$defs/D${index + 1}` },
+                b: { $ref: `#/$defs/D${index + 1}` },
+              },
+            },
+      ]),
+    ) as { readonly [name: string]: JSONSchema }
+    const schema: JSONSchema = { $ref: '#/$defs/D0', default: { a: { a: {} } } }
+    expect(typeboxDefaultOpt(schema, false, definitions)).toStrictEqual(['default:{"a":{"a":{}}}'])
+  })
+})

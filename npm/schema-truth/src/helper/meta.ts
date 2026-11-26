@@ -104,19 +104,28 @@ function typeboxEmitted(
   schema: JSONSchema,
   definitions?: SchemaDefinitions,
   reading: ReadonlySet<string> = new Set(),
+  // A definition reached along several paths is read once: properties and items are read
+  // too, so without it shared definitions would be expanded once per path.
+  read = new Map<string, JSONSchema>(),
 ): JSONSchema {
-  const emitted = (node: JSONSchema) => typeboxEmitted(node, definitions, reading)
+  const emitted = (node: JSONSchema) => typeboxEmitted(node, definitions, reading, read)
   const types = normalizeTypes(schema.type)
   if (schema.$ref !== undefined) {
     const { $ref, nullable } = schema
     const target = reading.has($ref) ? undefined : definitionOf($ref, definitions)
     if (target === undefined) return schema
+    const readKey = `${String(nullable)} ${$ref}`
+    const known = read.get(readKey)
+    if (known !== undefined) return known
     // The node is the target's; of the keywords beside it, `typebox()` emits only the wrap.
-    return typeboxEmitted(
+    const node = typeboxEmitted(
       nullable === undefined ? target : { ...target, nullable },
       definitions,
       new Set([...reading, $ref]),
+      read,
     )
+    read.set(readKey, node)
+    return node
   }
   const key =
     schema.oneOf !== undefined ? 'oneOf' : schema.anyOf !== undefined ? 'anyOf' : undefined
