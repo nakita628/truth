@@ -1,5 +1,11 @@
 # oas-truth
 
+## 0.12.0
+
+### Minor Changes
+
+- [#157](https://github.com/nakita628/truth/pull/157) [`cac694d`](https://github.com/nakita628/truth/commit/cac694d08aea6767b79e425c45e843d46d69a8d1) Thanks [@nakita628](https://github.com/nakita628)! - An inline schema (a media type, a parameter or header given by `schema`, or the content of a request body, response, callback or path item) now pins a discriminator's unmapped members to their own `const` / `enum` values, as `components.schemas` declarations already do. `makeSchemaReplacements` takes the document's `components.schemas` as a new `schemas` option for this.
+
 ## 0.11.4
 
 ### Patch Changes
