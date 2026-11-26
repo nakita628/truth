@@ -57,7 +57,7 @@ export function typeboxDefaultOpt(
 ) {
   if (schema.default === undefined) return []
   const emitted = typeboxEmitted(schema, definitions)
-  const result = coerceDefault(emitted, schema.default, definitions)
+  const result = coerceDefault(emitted, schema.default, emittedDefinitions(definitions))
   if (!result.keep) return []
   const value = stringWire ? wireDefaultText(schema, result.value) : result.value
   if (value === undefined) return []
@@ -98,34 +98,28 @@ const TYPEBOX_TYPE_ORDER = [
  * the `Type.BigInt` check to leave its default out. A `$ref`, which `typebox()` reads
  * first, is read as its target, nullable as the node is; a reference already being read
  * ends there, as a cycle does. An object's `properties` and an array's `items` are read as
- * they are emitted, at every depth.
+ * they are emitted; one that is a `$ref` is left for `coerceDefault` to resolve.
  */
 function typeboxEmitted(
   schema: JSONSchema,
   definitions?: SchemaDefinitions,
   reading: ReadonlySet<string> = new Set(),
-  // A definition reached along several paths is read once: properties and items are read
-  // too, so without it shared definitions would be expanded once per path.
-  read = new Map<string, JSONSchema>(),
 ): JSONSchema {
-  const emitted = (node: JSONSchema) => typeboxEmitted(node, definitions, reading, read)
+  const emitted = (node: JSONSchema) => typeboxEmitted(node, definitions, reading)
+  // A property or item that is a `$ref` stays one: `coerceDefault` resolves it to the
+  // emitted definition (`emittedDefinitions`), at whatever depth the default reaches.
+  const emittedChild = (node: JSONSchema) => (node.$ref === undefined ? emitted(node) : node)
   const types = normalizeTypes(schema.type)
   if (schema.$ref !== undefined) {
     const { $ref, nullable } = schema
     const target = reading.has($ref) ? undefined : definitionOf($ref, definitions)
     if (target === undefined) return schema
-    const readKey = `${String(nullable)} ${$ref}`
-    const known = read.get(readKey)
-    if (known !== undefined) return known
     // The node is the target's; of the keywords beside it, `typebox()` emits only the wrap.
-    const node = typeboxEmitted(
+    return typeboxEmitted(
       nullable === undefined ? target : { ...target, nullable },
       definitions,
       new Set([...reading, $ref]),
-      read,
     )
-    read.set(readKey, node)
-    return node
   }
   const key =
     schema.oneOf !== undefined ? 'oneOf' : schema.anyOf !== undefined ? 'anyOf' : undefined
@@ -145,7 +139,7 @@ function typeboxEmitted(
   if (schema.properties !== undefined) {
     // An object default's properties are read as they are emitted too.
     const properties = Object.fromEntries(
-      Object.entries(schema.properties).map(([name, property]) => [name, emitted(property)]),
+      Object.entries(schema.properties).map(([name, property]) => [name, emittedChild(property)]),
     )
     return { ...schema, type: types.includes('null') ? ['object', 'null'] : 'object', properties }
   }
@@ -155,7 +149,29 @@ function typeboxEmitted(
       ? schema
       : { ...schema, type: types.includes('null') ? [first, 'null'] : first }
   // So are an array default's items.
-  return isSchemaObject(node.items) ? { ...node, items: emitted(node.items) } : node
+  return isSchemaObject(node.items) ? { ...node, items: emittedChild(node.items) } : node
+}
+
+const emittedDefinitionsOf = new WeakMap<SchemaDefinitions, SchemaDefinitions>()
+
+/**
+ * Each definition as the TypeBox node it is emitted as ({@link typeboxEmitted}), read once
+ * per definitions map. `coerceDefault` resolves a `$ref` against these, so a default that
+ * reaches a definition through a property or an item, a recursive one included, is read
+ * by the emitted node at every depth, and a definition shared by several paths is read once.
+ */
+function emittedDefinitions(definitions: SchemaDefinitions | undefined) {
+  if (definitions === undefined) return undefined
+  const known = emittedDefinitionsOf.get(definitions)
+  if (known !== undefined) return known
+  const emitted = Object.fromEntries(
+    Object.entries(definitions).map(([name, definition]) => [
+      name,
+      typeboxEmitted(definition, definitions),
+    ]),
+  )
+  emittedDefinitionsOf.set(definitions, emitted)
+  return emitted
 }
 
 /**
