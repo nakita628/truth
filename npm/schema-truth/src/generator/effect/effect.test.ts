@@ -1452,7 +1452,7 @@ describe('allOf keyword members', () => {
     [
       { allOf: [{ minimum: 5 }] },
       undefined,
-      "Schema.Unknown.check(Schema.makeFilter((input) => (typeof input !== 'number' || (input >= 5))))",
+      "Schema.Unknown.check(Schema.makeFilter((input) => (typeof input !== 'number' || input >= 5)))",
     ],
     [
       { allOf: [{ type: 'integer' }, { minimum: 5 }] },

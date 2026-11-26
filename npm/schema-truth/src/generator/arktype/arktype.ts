@@ -22,8 +22,7 @@ import {
   enumWithoutWrappedNull,
   arktypePreprocess,
   arktypeWrap as _arktypeWrap,
-  constraintMessage,
-  constraintPredicate,
+  constraintChecks,
   foldAllOfMembers,
   hasParameterSerialization,
   impliedWireType,
@@ -166,10 +165,12 @@ function stringbool() {
 
 /** A keyword-only `allOf` member: the keywords apply when the value has their type. */
 function keywordConstraint(schema: JSONSchema) {
-  const body = constraintPredicate(schema, 'data')
-  const message = constraintMessage(schema)
-  if (message === undefined) return `type("unknown").narrow((data) => ${body})`
-  return `type("unknown").narrow((data, ctx) => (${body}) || ctx.mustBe(${JSON.stringify(message)}))`
+  const narrows = constraintChecks(schema, 'data').map(({ predicate, message }) =>
+    message === undefined
+      ? `.narrow((data) => ${predicate})`
+      : `.narrow((data, ctx) => ${predicate} || ctx.mustBe(${JSON.stringify(message)}))`,
+  )
+  return `type("unknown")${narrows.join('')}`
 }
 
 function formatConst(value: unknown, isBigint: boolean) {

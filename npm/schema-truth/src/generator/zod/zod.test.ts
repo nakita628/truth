@@ -2262,7 +2262,36 @@ describe('allOf keyword members', () => {
     [
       { allOf: [{ minimum: 5 }] },
       undefined,
-      "z.any().refine((val) => (typeof val !== 'number' || (val >= 5)))",
+      "z.any().refine((val) => (typeof val !== 'number' || val >= 5))",
+    ],
+    [
+      {
+        allOf: [
+          { minimum: 5, maximum: 9, 'x-minimum-message': 'low', 'x-maximum-message': 'high' },
+        ],
+      },
+      undefined,
+      'z.any().refine((val) => (typeof val !== \'number\' || val >= 5),{error:"low"}).refine((val) => (typeof val !== \'number\' || val <= 9),{error:"high"})',
+    ],
+    [
+      {
+        allOf: [
+          {
+            minLength: 3,
+            maxLength: 9,
+            pattern: '^a',
+            'x-maxLength-message': 'long',
+            'x-error-message': 'bad',
+          },
+        ],
+      },
+      undefined,
+      "z.any().refine((val) => (typeof val !== 'string' || val.length >= 3) && (typeof val !== 'string' || /^a/.test(val)),{error:\"bad\"}).refine((val) => (typeof val !== 'string' || val.length <= 9),{error:\"long\"})",
+    ],
+    [
+      { allOf: [{ minimum: 5, exclusiveMinimum: true, 'x-minimum-message': 'low' }] },
+      undefined,
+      'z.any().refine((val) => (typeof val !== \'number\' || val > 5),{error:"low"})',
     ],
     [
       { allOf: [{ type: 'integer' }, { minimum: 5 }] },

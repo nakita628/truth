@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import { Config as AdditionalPropsConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
+import { Messaged } from '../allof-keyword-messages/output.ts'
 import { Amount } from '../not-int64/output.ts'
 import { Filters } from '../object-default/output.ts'
 import { Headers } from '../param-header-array/output.ts'
@@ -811,5 +812,15 @@ describe('object-key-keywords (#131)', () => {
 
   it.each([{"counted": {"a": 1}}, {"loose": {"x": 1, "y": 2}}, {"dep": {"a": 1}}, {"open": "text"}, {"open": 5}, {"strings": {}}, {"strings": {"a": 1}}, {"letters": {"abc": 1}}, {"letters": {"1": "x"}}])('rejects %j', (value) => {
     expect(passes(value)).toBe(false)
+  })
+})
+
+describe('allof-keyword-messages (#145)', () => {
+  const message = (n: unknown) => {
+    const result = decode(Messaged, { n })
+    return Result.isFailure(result) ? result.failure.message : undefined
+  }
+  it.each([[10, 'high\n  at ["n"]'], [1, 'low\n  at ["n"]'], [7, undefined], ['x', undefined]])('%j reports %j', (n, expected) => {
+    expect(message(n)).toStrictEqual(expected)
   })
 })

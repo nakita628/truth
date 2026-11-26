@@ -12,8 +12,7 @@ import { bigintValueLiteral } from '../../helper/bigint.js'
 import {
   additionalBesideCombinator,
   enumWithoutWrappedNull,
-  constraintMessage,
-  constraintPredicate,
+  constraintChecks,
   deepEqualExpression,
   discriminatedMembers,
   evaluatedProperties,
@@ -144,8 +143,10 @@ export function zod(
 
 /** A keyword-only `allOf` member: the keywords apply when the value has their type. */
 function keywordConstraint(schema: JSONSchema) {
-  const body = constraintPredicate(schema, 'val')
-  return `z.any().refine((val) => ${body}${zodErrorPart(constraintMessage(schema))})`
+  const refines = constraintChecks(schema, 'val').map(
+    ({ predicate, message }) => `.refine((val) => ${predicate}${zodErrorPart(message)})`,
+  )
+  return `z.any()${refines.join('')}`
 }
 
 /** Push a key's issues (`result`, for the value `v` under key `k`) under that key. */

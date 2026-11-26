@@ -2,6 +2,7 @@ import * as v from 'valibot'
 import { describe, expect, it } from 'vite-plus/test'
 import { Config as AdditionalConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
+import { Messaged } from '../allof-keyword-messages/output.ts'
 import { Amount } from '../not-int64/output.ts'
 import { Filters } from '../object-default/output.ts'
 import { Headers } from '../param-header-array/output.ts'
@@ -1572,5 +1573,18 @@ describe('additional-beside-allof (#138)', () => {
 
   it.each([{"box": {"c": 1}}, {"box": {"a": "x", "c": 1}}, {"either": {"c": 1}}, {"filled": {"c": 1}}])('rejects %j', (value) => {
     expect(passes(value)).toBe(false)
+  })
+})
+
+describe('allof-keyword-messages (#145)', () => {
+  const messages = (n: unknown) => v.safeParse(Messaged, { n }).issues?.map((i) => i.message)
+  it.each([[10, ['high']], [1, ['low']], [7, undefined], ['x', undefined]])('%j reports %j', (n, expected) => {
+    expect(messages(n)).toStrictEqual(expected)
+  })
+})
+
+describe('allof-keyword-messages shared message (#145)', () => {
+  it('reports a message two keywords share once', () => {
+    expect(v.safeParse(Messaged, { s: 'b' }).issues?.map((i) => i.message)).toStrictEqual(['bad'])
   })
 })

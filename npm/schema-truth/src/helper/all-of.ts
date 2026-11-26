@@ -41,33 +41,101 @@ export function isKeywordOnlyMember(schema: JSONSchema) {
   return hasNumericKeyword(schema) || hasStringKeyword(schema)
 }
 
-/** The message a keyword-only member should report, keyword messages falling back together. */
-export function constraintMessage(schema: JSONSchema) {
-  return (
-    schema['x-error-message'] ??
-    schema['x-minimum-message'] ??
-    schema['x-maximum-message'] ??
-    schema['x-exclusiveMinimum-message'] ??
-    schema['x-exclusiveMaximum-message'] ??
-    schema['x-multipleOf-message'] ??
-    schema['x-minLength-message'] ??
-    schema['x-maxLength-message'] ??
-    schema['x-pattern-message']
-  )
-}
+/** One check of a keyword-only member: the predicate and the message it reports. */
+export type ConstraintCheck = { readonly predicate: string; readonly message: string | undefined }
 
 /**
- * The predicate that keeps a keyword-only member's constraints without forcing a type.
+ * The checks that keep a keyword-only member's constraints without forcing a type: one for
+ * each message its keywords report (their own, else `x-error-message`), so a value that
+ * breaks `maximum` reports `x-maximum-message` (#145), and one that breaks two keywords
+ * reporting the same message reports it once.
  *
  * A number that fails `minimum` is rejected; a string is not a number, so `minimum` does
- * not apply to it. `param` is the value name the caller already uses.
+ * not apply to it. `param` is the value name the caller already uses. A member with no
+ * check this can express gives one that always holds.
  */
-export function constraintPredicate(schema: JSONSchema, param: string) {
-  const parts = [numericGuard(schema, param), stringGuard(schema, param)].filter(
-    (part) => part !== '',
-  )
-  if (parts.length === 0) return 'true'
-  return parts.join(' && ')
+export function constraintChecks(schema: JSONSchema, param: string): readonly ConstraintCheck[] {
+  const errorMessage = schema['x-error-message']
+  const check = (type: 'number' | 'string', condition: string, message: string | undefined) => ({
+    predicate: `(typeof ${param} !== '${type}' || ${condition})`,
+    message: message ?? errorMessage,
+  })
+  const checks: ConstraintCheck[] = []
+  // Draft-04 spells an exclusive bound as `minimum` plus a boolean `exclusiveMinimum`; its
+  // message is the exclusive keyword's, else the one written on the number's keyword.
+  if (typeof schema.minimum === 'number') {
+    checks.push(
+      schema.exclusiveMinimum === true
+        ? check(
+            'number',
+            `${param} > ${schema.minimum}`,
+            schema['x-exclusiveMinimum-message'] ?? schema['x-minimum-message'],
+          )
+        : check('number', `${param} >= ${schema.minimum}`, schema['x-minimum-message']),
+    )
+  }
+  if (typeof schema.exclusiveMinimum === 'number') {
+    checks.push(
+      check(
+        'number',
+        `${param} > ${schema.exclusiveMinimum}`,
+        schema['x-exclusiveMinimum-message'],
+      ),
+    )
+  }
+  if (typeof schema.maximum === 'number') {
+    checks.push(
+      schema.exclusiveMaximum === true
+        ? check(
+            'number',
+            `${param} < ${schema.maximum}`,
+            schema['x-exclusiveMaximum-message'] ?? schema['x-maximum-message'],
+          )
+        : check('number', `${param} <= ${schema.maximum}`, schema['x-maximum-message']),
+    )
+  }
+  if (typeof schema.exclusiveMaximum === 'number') {
+    checks.push(
+      check(
+        'number',
+        `${param} < ${schema.exclusiveMaximum}`,
+        schema['x-exclusiveMaximum-message'],
+      ),
+    )
+  }
+  if (typeof schema.multipleOf === 'number') {
+    checks.push(
+      check('number', `${param} % ${schema.multipleOf} === 0`, schema['x-multipleOf-message']),
+    )
+  }
+  if (typeof schema.minLength === 'number') {
+    checks.push(
+      check('string', `${param}.length >= ${schema.minLength}`, schema['x-minLength-message']),
+    )
+  }
+  if (typeof schema.maxLength === 'number') {
+    checks.push(
+      check('string', `${param}.length <= ${schema.maxLength}`, schema['x-maxLength-message']),
+    )
+  }
+  if (typeof schema.pattern === 'string') {
+    checks.push(
+      check(
+        'string',
+        `${regexLiteral(schema.pattern)}.test(${param})`,
+        schema['x-pattern-message'],
+      ),
+    )
+  }
+  if (checks.length === 0) return [{ predicate: 'true', message: errorMessage }]
+  const messages = [...new Set(checks.map((item) => item.message))]
+  return messages.map((message) => ({
+    predicate: checks
+      .filter((item) => item.message === message)
+      .map((item) => item.predicate)
+      .join(' && '),
+    message,
+  }))
 }
 
 type Bound = { readonly value: number; readonly exclusive: boolean }
@@ -372,8 +440,8 @@ function collapse(parts: readonly JSONSchema[], kind: 'number' | 'string', isWir
   const groups: JSONSchema[] = []
   for (const part of parts) {
     const last = groups.at(-1)
-    // Leftovers become one check with one message, so parts reporting different messages
-    // stay apart.
+    // Leftovers are checked once per message they report, so parts reporting different
+    // messages stay apart.
     const absorbed =
       last === undefined || messagesOf(last) !== messagesOf(part)
         ? undefined
@@ -527,40 +595,4 @@ function greatestCommonDivisor(left: number, right: number) {
     b = next
   }
   return a
-}
-
-function numericGuard(schema: JSONSchema, param: string) {
-  const checks: string[] = []
-  if (typeof schema.minimum === 'number' && schema.exclusiveMinimum !== true) {
-    checks.push(`${param} >= ${schema.minimum}`)
-  }
-  if (schema.exclusiveMinimum === true && typeof schema.minimum === 'number') {
-    checks.push(`${param} > ${schema.minimum}`)
-  }
-  if (typeof schema.exclusiveMinimum === 'number') {
-    checks.push(`${param} > ${schema.exclusiveMinimum}`)
-  }
-  if (typeof schema.maximum === 'number' && schema.exclusiveMaximum !== true) {
-    checks.push(`${param} <= ${schema.maximum}`)
-  }
-  if (schema.exclusiveMaximum === true && typeof schema.maximum === 'number') {
-    checks.push(`${param} < ${schema.maximum}`)
-  }
-  if (typeof schema.exclusiveMaximum === 'number') {
-    checks.push(`${param} < ${schema.exclusiveMaximum}`)
-  }
-  if (typeof schema.multipleOf === 'number') checks.push(`${param} % ${schema.multipleOf} === 0`)
-  if (checks.length === 0) return ''
-  return `(typeof ${param} !== 'number' || (${checks.join(' && ')}))`
-}
-
-function stringGuard(schema: JSONSchema, param: string) {
-  const checks: string[] = []
-  if (typeof schema.minLength === 'number') checks.push(`${param}.length >= ${schema.minLength}`)
-  if (typeof schema.maxLength === 'number') checks.push(`${param}.length <= ${schema.maxLength}`)
-  if (typeof schema.pattern === 'string') {
-    checks.push(`${regexLiteral(schema.pattern)}.test(${param})`)
-  }
-  if (checks.length === 0) return ''
-  return `(typeof ${param} !== 'string' || (${checks.join(' && ')}))`
 }

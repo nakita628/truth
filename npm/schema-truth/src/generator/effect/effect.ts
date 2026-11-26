@@ -12,8 +12,7 @@ import {
 import { bigintValueLiteral } from '../../helper/bigint.js'
 import {
   enumWithoutWrappedNull,
-  constraintMessage,
-  constraintPredicate,
+  constraintChecks,
   effectPreprocess,
   effectWrap as _effectWrap,
   foldAllOfMembers,
@@ -193,8 +192,11 @@ export function effect(
 
 /** A keyword-only `allOf` member: the keywords apply when the value has their type. */
 function keywordConstraint(schema: JSONSchema) {
-  const body = constraintPredicate(schema, 'input')
-  return `Schema.Unknown.check(Schema.makeFilter((input) => ${body}${effectErrorPart(constraintMessage(schema))}))`
+  const filters = constraintChecks(schema, 'input').map(
+    ({ predicate, message }) =>
+      `Schema.makeFilter((input) => ${predicate}${effectErrorPart(message)})`,
+  )
+  return `Schema.Unknown.check(${filters.join(',')})`
 }
 
 function node(

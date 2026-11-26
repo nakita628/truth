@@ -13,8 +13,7 @@ import { bigintValueLiteral } from '../../helper/bigint.js'
 import {
   additionalBesideCombinator,
   enumWithoutWrappedNull,
-  constraintMessage,
-  constraintPredicate,
+  constraintChecks,
   deepEqualExpression,
   foldAllOfMembers,
   hasParameterSerialization,
@@ -216,8 +215,10 @@ export function valibot(
 
 /** A keyword-only `allOf` member: the keywords apply when the value has their type. */
 function keywordConstraint(schema: JSONSchema) {
-  const body = constraintPredicate(schema, 'input')
-  return `v.pipe(v.any(),v.check((input) => ${body}${valibotErrorPart(constraintMessage(schema))}))`
+  const checks = constraintChecks(schema, 'input').map(
+    ({ predicate, message }) => `v.check((input) => ${predicate}${valibotErrorPart(message)})`,
+  )
+  return `v.pipe(v.any(),${checks.join(',')})`
 }
 
 function node(
