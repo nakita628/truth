@@ -33,6 +33,27 @@
         "$ref": "#"
       }
     },
+    "closed": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Leaf"
+        }
+      ],
+      "items": false
+    },
+    "rest": {
+      "type": "array",
+      "prefixItems": [
+        {
+          "$ref": "#/$defs/Leaf"
+        }
+      ],
+      "items": {
+        "$ref": "#"
+      },
+      "minItems": 2
+    },
     "refList": {
       "$ref": "#/$defs/Leaves",
       "type": "array",

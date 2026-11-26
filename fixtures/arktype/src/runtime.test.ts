@@ -548,11 +548,12 @@ describe('prefix-items-unevaluated', () => {
     expect(result).toStrictEqual(['hello', true])
   })
 
-  it('invalid: too short', () => {
-    const result = Tuple(['x'])
-    expect(issues(result)).toStrictEqual([
-      { path: [], code: 'minLength', message: 'must be at least length 2 (was 1)' },
-    ])
+  it.each([[['x']], [[]]])('valid: %j, shorter than the prefix (#106)', (value) => {
+    expect(Tuple(value)).toStrictEqual(value)
+  })
+
+  it('invalid: an extra element that is not an integer', () => {
+    expect(Tuple(['x', true, 'y'])).toBeInstanceOf(type.errors)
   })
 
   it('invalid: wrong element types', () => {
@@ -1095,7 +1096,12 @@ describe('scope-arrays', () => {
     { ids: [{ id: 'a' }] },
     { children: [{ ids: [] }] },
     { pair: [{ id: 'a' }] },
+    { pair: [] },
+    { pair: [{ id: 'a' }, 1] },
     { path: [{ id: 'a' }, { children: [] }] },
+    { closed: [] },
+    { closed: [{ id: 'a' }] },
+    { rest: [{ id: 'a' }, { ids: [] }] },
     { refList: [{ id: 'a' }] },
   ])('accepts %j', (value) => {
     expect(ScopeArraysNode(value)).not.toBeInstanceOf(type.errors)
@@ -1106,6 +1112,9 @@ describe('scope-arrays', () => {
     { children: [{ ids: 'x' }] },
     { pair: [{ id: 1 }] },
     { path: [{ id: 'a' }, { ids: 'x' }] },
+    { closed: [{ id: 'a' }, { id: 'b' }] },
+    { rest: [{ id: 'a' }] },
+    { rest: [{ id: 'a' }, { ids: 'x' }] },
     { refList: [{ id: 1 }] },
   ])('rejects %j', (value) => {
     expect(ScopeArraysNode(value)).toBeInstanceOf(type.errors)

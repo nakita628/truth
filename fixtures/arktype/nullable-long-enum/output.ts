@@ -31,14 +31,14 @@ export const Schema = type({
     "'v0' | 'v1' | 'v2' | 'v3' | 'v4' | 'v5' | 'v6' | 'v7' | 'v8' | 'v9' | 'v10' | 'v11'",
   ).or('string.email | number.integer'),
   tupleRest: type([
-    'string',
+    ['string', '?'],
     '...',
     type
       .enumerated('v0', 'v1', 'v2', 'v3', 'v4', 'v5', 'v6', 'v7', 'v8', 'v9', 'v10', 'v11', null)
       .array(),
   ]),
   nullableTupleRest: type([
-    'string',
+    ['string', '?'],
     '...',
     type("'v0' | 'v1' | 'v2' | 'v3' | 'v4' | 'v5' | 'v6' | 'v7' | 'v8' | 'v9' | 'v10' | 'v11'")
       .or('null')

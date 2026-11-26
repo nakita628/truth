@@ -614,13 +614,13 @@ describe('arktype', () => {
           prefixItems: [{ type: 'string' }, { type: 'number' }],
           'x-prefixItems-message': 'bad tuple',
         }),
-      ).toBe('type(["string","number"]).describe("bad tuple")')
+      ).toBe('type([["string","?"],["number","?"],"...","unknown[]"]).describe("bad tuple")')
     })
 
     it('falls through to plain tuple when message is absent', () => {
       expect(
         arktype({ type: 'array', prefixItems: [{ type: 'string' }, { type: 'number' }] }),
-      ).toBe('type(["string","number"])')
+      ).toBe('type([["string","?"],["number","?"],"...","unknown[]"])')
     })
   })
 
@@ -734,7 +734,7 @@ describe('arktype', () => {
           unevaluatedItems: false,
           'x-unevaluatedItems-message': 'no extras',
         }),
-      ).toBe('type(["string","boolean"]).describe("no extras")')
+      ).toBe('type([["string","?"],["boolean","?"]]).describe("no extras")')
     })
 
     it('describes the tuple in definition syntax inside a scope', () => {
@@ -749,7 +749,7 @@ describe('arktype', () => {
           'Schema',
           true,
         ),
-      ).toBe('[["A"],"@","no extras"]')
+      ).toBe('[[["A","?"]],"@","no extras"]')
     })
 
     it('emits a variadic tuple when unevaluatedItems is a schema', () => {
@@ -759,7 +759,7 @@ describe('arktype', () => {
           prefixItems: [{ type: 'string' }, { type: 'boolean' }],
           unevaluatedItems: { type: 'integer' },
         }),
-      ).toBe('type(["string","boolean","...","number.integer[]"])')
+      ).toBe('type([["string","?"],["boolean","?"],"...","number.integer[]"])')
     })
   })
 
@@ -1073,7 +1073,7 @@ describe('an unevaluatedItems rest that is an expression stays an expression (#5
         prefixItems: [{ type: 'string' }],
         unevaluatedItems: { enum: [...Array.from({ length: 12 }, (_, i) => `v${i}`), null] },
       },
-      `type(["string","...",type.enumerated(${literals.join(',')},null).array()])`,
+      `type([["string","?"],"...",type.enumerated(${literals.join(',')},null).array()])`,
     ],
     [
       {
@@ -1084,7 +1084,7 @@ describe('an unevaluatedItems rest that is an expression stays an expression (#5
           enum: Array.from({ length: 12 }, (_, i) => `v${i}`),
         },
       },
-      `type(["string","...",type("${literals.join(' | ')}").or("null").array()])`,
+      `type([["string","?"],"...",type("${literals.join(' | ')}").or("null").array()])`,
     ],
   ])('arktype(%o) → %s', (input, expected) => {
     expect(arktype(input)).toBe(expected)
@@ -1111,7 +1111,7 @@ describe('a quoted union that gets `[]` or `&` is combined at runtime (#66)', ()
     [
       { type: 'array', prefixItems: [{ type: 'string' }], unevaluatedItems: { enum: ['a', 'b'] } },
       false,
-      `type(["string","...",["'a' | 'b'","[]"]])`,
+      `type([["string","?"],"...",["'a' | 'b'","[]"]])`,
     ],
     [
       {
@@ -1131,10 +1131,10 @@ describe('a quoted union that gets `[]` or `&` is combined at runtime (#66)', ()
 
 describe('an array inside a scope stays a definition the scope resolves (#72)', () => {
   it.each<[JSONSchema, string]>([
-    [{ type: 'array', prefixItems: [{ $ref: '#/$defs/A' }] }, '["A"]'],
+    [{ type: 'array', prefixItems: [{ $ref: '#/$defs/A' }] }, '[["A","?"],"...","unknown[]"]'],
     [
       { type: 'array', prefixItems: [{ $ref: '#/$defs/A' }], unevaluatedItems: { $ref: '#' } },
-      '["A","...","Schema[]"]',
+      '[["A","?"],"...","Schema[]"]',
     ],
     [{ $ref: '#/$defs/List', type: 'array', items: { $ref: '#/$defs/A' } }, '"A[]"'],
   ])('%o → %s', (schema, expected) => {
@@ -1143,7 +1143,58 @@ describe('an array inside a scope stays a definition the scope resolves (#72)', 
 
   it('wraps a tuple outside a scope in type(...)', () => {
     expect(arktype({ type: 'array', prefixItems: [{ type: 'string' }] }, 'Schema', false)).toBe(
-      'type(["string"])',
+      'type([["string","?"],"...","unknown[]"])',
+    )
+  })
+})
+
+describe('a prefixItems tuple follows JSON Schema 2020-12 (#106)', () => {
+  it.each<[JSONSchema, boolean, string]>([
+    [
+      { type: 'array', prefixItems: [{ $ref: '#/$defs/A' }], items: { type: 'number' } },
+      true,
+      '[["A","?"],"...","number[]"]',
+    ],
+    [{ type: 'array', prefixItems: [{ $ref: '#/$defs/A' }], items: false }, true, '[["A","?"]]'],
+    [
+      {
+        type: 'array',
+        prefixItems: [{ type: 'string' }],
+        items: { type: 'number' },
+        unevaluatedItems: false,
+      },
+      false,
+      'type([["string","?"],"...","number[]"])',
+    ],
+    [
+      {
+        type: 'array',
+        prefixItems: [{ $ref: '#/$defs/A' }],
+        unevaluatedItems: { type: 'boolean' },
+        minItems: 3,
+      },
+      true,
+      '[[["A","?"],"...","boolean[]"],"&","unknown[] >= 3"]',
+    ],
+    [
+      { type: 'array', prefixItems: [{ type: 'string' }], uniqueItems: true },
+      false,
+      'type([["string","?"],"...","unknown[]"]).narrow((data: unknown[], ctx) => new Set(data).size === data.length)',
+    ],
+  ])('%o (in a scope: %s) → %s', (schema, isArktype, expected) => {
+    expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
+  })
+
+  it('checks contains beside prefixItems', () => {
+    expect(
+      arktype({ type: 'array', prefixItems: [{ type: 'string' }], contains: { const: 1 } }),
+    ).toContain('data.some((item) =>')
+  })
+
+  it('reads a wire tuple through the scope', () => {
+    const schema: JSONSchema = { type: 'array', prefixItems: [{ $ref: '#/$defs/A' }] }
+    expect(arktype(schema, 'Schema', true, { paramIn: 'query' })).toBe(
+      '[["unknown","=>",(data)=>(data===undefined||Array.isArray(data)?data:[data])],"|>",[["A","?"],"...","unknown[]"]]',
     )
   })
 })

@@ -6,8 +6,10 @@ const types = scope({
   Node: {
     'ids?': 'Leaf[]',
     'children?': 'Node[]',
-    'pair?': ['Leaf'],
-    'path?': ['Leaf', '...', 'Node[]'],
+    'pair?': [['Leaf', '?'], '...', 'unknown[]'],
+    'path?': [['Leaf', '?'], '...', 'Node[]'],
+    'closed?': [['Leaf', '?']],
+    'rest?': [[['Leaf', '?'], '...', 'Node[]'], '&', 'unknown[] >= 2'],
     'refList?': 'Leaf[]',
   },
 }).export()
