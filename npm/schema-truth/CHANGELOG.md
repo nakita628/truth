@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.14.3
+
+### Patch Changes
+
+- [#165](https://github.com/nakita628/truth/pull/165) [`210b63d`](https://github.com/nakita628/truth/commit/210b63d8b51bcc3b2c4b55a2cdc1fcf04edc0f51) Thanks [@nakita628](https://github.com/nakita628)! - TypeBox: an object default's properties and an array default's items are now read against the node TypeBox emits for them, so a property or item of several types (`['integer', 'string']`, emitted as `Type.String`) gets the default `"5"` that `Value.Default` fills and the check accepts, rather than `5`.
+
 ## 0.14.2
 
 ### Patch Changes
