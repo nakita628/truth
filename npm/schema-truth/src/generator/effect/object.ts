@@ -105,7 +105,7 @@ export function object(
     typeof schema.additionalProperties === 'object'
       ? schema['x-additionalProperties-message']
       : schema['x-unevaluatedProperties-message']
-  // `propertyNames` holds every key, whatever else the object declares.
+  // The keywords whose check needs the undeclared keys kept (with `readsUndeclaredKeys`).
   const checksKeys =
     undeclaredRequired.length > 0 ||
     extraSchema !== undefined ||

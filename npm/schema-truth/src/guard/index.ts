@@ -214,7 +214,7 @@ export function hasConditional(schema: JSONSchema) {
  */
 export function readsObjectKeys(schema: JSONSchema) {
   return (
-    hasConditional(schema) ||
+    (schema.if !== undefined && (schema.then !== undefined || schema.else !== undefined)) ||
     (schema.required ?? []).some((key) => !Object.hasOwn(schema.properties ?? {}, key)) ||
     schema.patternProperties !== undefined ||
     schema.propertyNames !== undefined ||
@@ -224,7 +224,7 @@ export function readsObjectKeys(schema: JSONSchema) {
     schema.dependentSchemas !== undefined ||
     schema.additionalProperties === false ||
     typeof schema.additionalProperties === 'object' ||
-    schema.unevaluatedProperties !== undefined
+    (schema.unevaluatedProperties !== undefined && schema.unevaluatedProperties !== true)
   )
 }
 

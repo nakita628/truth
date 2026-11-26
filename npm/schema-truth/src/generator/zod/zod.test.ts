@@ -2343,3 +2343,16 @@ describe('zod const of an int64 beyond 1e21', () => {
     )
   })
 })
+
+describe('an object no keyword reads the keys of stays a plain object (#131)', () => {
+  it.each<[JSONSchema, string]>([
+    [{ type: 'object', else: { required: ['a'] } }, 'z.object({})'],
+    [{ type: 'object', unevaluatedProperties: true }, 'z.object({})'],
+    [
+      { type: 'object', minProperties: 1 },
+      'z.looseObject({}).refine((val)=>Object.keys(val).length>=1)',
+    ],
+  ])('%o → %s', (schema, expected) => {
+    expect(zod(schema)).toBe(expected)
+  })
+})
