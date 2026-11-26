@@ -130,15 +130,22 @@ function isMorph(source: string) {
   return source.includes('.pipe(') || source.includes('"=>"')
 }
 
+/** Whether an expression transforms its input: a morph, a `.to()` transform or a parsing keyword. */
+function readsInput(source: string) {
+  return isMorph(source) || source.includes('.to(') || source.includes('.parse')
+}
+
 /**
  * A union of wire members, each a morph over the text, tried in order: ArkType refuses
  * an unordered union of morphs with overlapping inputs, so the first branch that reads
  * the text wins, as `z.union()` reads it.
  */
 function wireUnion(schemas: readonly string[], message: string | undefined, inScope: boolean) {
-  // Inside a scope a definition branch is reached through the scope when the value is read;
-  // the global `type(...)` cannot resolve an alias in it.
-  const branches = schemas.map((s) => (inScope ? callbackType(s, true) : asRuntime(s))).join(',')
+  // Inside a scope a tuple or object definition branch (a wire array) is reached through the
+  // scope when the value is read; the global `type(...)` cannot resolve an alias in it.
+  const branches = schemas
+    .map((s) => (inScope && isArktypeDefinition(s) && !isQuoted(s) ? `$.type(${s})` : asRuntime(s)))
+    .join(',')
   const expected = JSON.stringify(message ?? 'one of the members')
   // A callback that reaches `$` spells out its return type: `$` is still being declared.
   const params = branches.includes('$.type(') ? '(data, ctx): unknown' : '(data, ctx)'
@@ -551,18 +558,29 @@ function node(
     // `unevaluatedItems` holds them only without it (§11.2).
     const isItemsRest = typeof schema.items === 'boolean' || isSchemaObject(schema.items)
     const restSchema = isItemsRest ? schema.items : schema.unevaluatedItems
-    // `contains` evaluates the elements it matches too, so beside it `unevaluatedItems`
-    // cannot close the tuple: the elements after the prefix are checked in a narrow.
-    const isUnevaluatedNarrowed =
+    // `contains` evaluates the elements it matches too, so beside it an `unevaluatedItems`
+    // schema or `false` holds the elements after the prefix to `contains` or to itself: a
+    // union rest, unless one side transforms its input, which ArkType cannot union with an
+    // overlapping type. Then the rest stays open and a narrow checks it.
+    const containsRestMembers =
       prefixItems.length > 0 &&
       !isItemsRest &&
-      restSchema !== undefined &&
-      schema.contains !== undefined
-    const base =
-      prefixItems.length > 0
-        ? prefixTuple(prefixItems, isUnevaluatedNarrowed ? undefined : restSchema)
-        : itemsArray()
-    const isClosedTuple = prefixItems.length > 0 && restSchema === false && !isUnevaluatedNarrowed
+      schema.contains !== undefined &&
+      (restSchema === false || isSchemaObject(restSchema))
+        ? [schema.contains, ...(isSchemaObject(restSchema) ? [restSchema] : [])]
+        : undefined
+    const isContainsRestNarrowed =
+      containsRestMembers?.some((s) => readsInput(arktype(s, rootName, isArktype, options))) ===
+      true
+    const restOfTuple =
+      containsRestMembers === undefined
+        ? restSchema
+        : isContainsRestNarrowed
+          ? undefined
+          : { anyOf: containsRestMembers }
+    const base = prefixItems.length > 0 ? prefixTuple(prefixItems, restOfTuple) : itemsArray()
+    const isClosedTuple =
+      prefixItems.length > 0 && restSchema === false && containsRestMembers === undefined
     const { minItems, maxItems } = schema
     const isFixedLength = hasFixedItemCount(schema)
     // Per-keyword array messages via .narrow() with ctx.mustBe.
@@ -642,7 +660,7 @@ function node(
       : undefined
     const unevalItemsMessage = schema['x-unevaluatedItems-message']
     const unevaluatedNarrows = (() => {
-      if (!isUnevaluatedNarrowed || containsRt === undefined) return []
+      if (!isContainsRestNarrowed || containsRt === undefined) return []
       const restRt = isSchemaObject(restSchema)
         ? ` || ${callbackType(arktype(restSchema, rootName, isArktype, options), isArktype)}.allows(item)`
         : ''

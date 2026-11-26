@@ -1229,10 +1229,49 @@ describe('the elements after a prefixItems tuple (#106 review)', () => {
         unevaluatedItems: { type: 'boolean' },
       },
       true,
-      '[[[["A","?"],"...","unknown[]"],":",(data: unknown[], ctx): boolean => data.some((item) => $.type("1").allows(item)) || ctx.mustBe("must contain at least one matching item")],":",(data: unknown[], ctx): boolean => data.slice(1).every((item) => $.type("1").allows(item) || $.type("boolean").allows(item)) || ctx.mustBe("an array with no unevaluated items")]',
+      '[[["A","?"],"...",["1 | boolean","[]"]],":",(data: unknown[], ctx): boolean => data.some((item) => $.type("1").allows(item)) || ctx.mustBe("must contain at least one matching item")]',
+    ],
+    [
+      {
+        type: 'array',
+        prefixItems: [{ type: 'string' }],
+        contains: { const: 1 },
+        unevaluatedItems: false,
+      },
+      false,
+      'type([["string","?"],"...","1[]"]).narrow((data: unknown[], ctx) => data.some((item) => type("1").allows(item)) || ctx.mustBe("must contain at least one matching item"))',
+    ],
+    [
+      {
+        type: 'array',
+        prefixItems: [{ type: 'string' }],
+        contains: { const: 1 },
+        unevaluatedItems: true,
+      },
+      false,
+      'type([["string","?"],"...","unknown[]"]).narrow((data: unknown[], ctx) => data.some((item) => type("1").allows(item)) || ctx.mustBe("must contain at least one matching item"))',
     ],
   ])('%o (in a scope: %s) → %s', (schema, isArktype, expected) => {
     expect(arktype(schema, 'Schema', isArktype)).toBe(expected)
+  })
+
+  it('checks a transforming rest beside contains in a narrow, which ArkType can union', () => {
+    const schema: JSONSchema = {
+      type: 'array',
+      prefixItems: [{ type: 'string' }],
+      contains: { const: 1 },
+      unevaluatedItems: { type: 'integer', format: 'int64' },
+    }
+    const out = arktype(schema, 'Schema')
+    expect(out.startsWith('type([["string","?"],"...","unknown[]"])')).toBe(true)
+    expect(out).toContain('data.slice(1).every((item) => type("1").allows(item) || ')
+  })
+
+  it('keeps a keyword-only wire union branch out of the scope', () => {
+    const schema: JSONSchema = { anyOf: [{ type: 'integer' }, { type: 'string' }] }
+    const out = arktype(schema, 'Schema', true, { paramIn: 'query' })
+    expect(out).toContain('type("unknown").pipe((data, ctx) => {')
+    expect(out).not.toContain('$.type(')
   })
 
   it('reaches a scoped wire array in a wire union through the scope', () => {
