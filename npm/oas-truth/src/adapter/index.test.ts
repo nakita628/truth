@@ -51,7 +51,7 @@ describe('renderImport', () => {
     expect(makeAdapter('effect').renderImport({ code })).toBe(expected)
   })
 
-  it.each(['zod', 'valibot', 'arktype', 'typebox'] as const)('%s ignores the code', (lib) => {
+  it.each(['zod', 'valibot', 'typebox'] as const)('%s ignores the code', (lib) => {
     const adapter = makeAdapter(lib)
     expect(adapter.renderImport({ code: 'Effect.succeed(1)' })).toBe(adapter.renderImport())
   })

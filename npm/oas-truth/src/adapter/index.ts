@@ -78,7 +78,8 @@ export type RenderImportOptions = {
    * The code the import line serves. Effect spreads its schema API over several modules
    * (`Effect.succeed` for a decoding default, `SchemaTransformation` for an int64 decode),
    * so its adapter imports each module this code names. Arktype reads it to leave out a
-   * `type` import a cyclic file never calls; the other libraries ignore it.
+   * `type` import the file never calls, and returns `''` when the file needs no import at
+   * all; the other libraries ignore it.
    */
   readonly code?: string
 }
@@ -341,14 +342,14 @@ function makeArktypeAdapter(): ComponentAdapter {
       }),
     ),
     renderImport(options) {
-      if (options?.cyclic !== true) return "import { type } from 'arktype'"
-      // A file of nothing but `scope({...}).export().Member` never calls `type`, and an
-      // unused import fails `noUnusedLocals` (TS6133).
-      // String literals (an enum value such as 'type.created') are no call.
-      const code = options.code?.replaceAll(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/gu, '""')
-      return code === undefined || /(?<![\w$.])type[(.]/u.test(code)
-        ? "import { type, scope } from 'arktype'"
-        : "import { scope } from 'arktype'"
+      // A file of nothing but `scope({...}).export().Member`, or of a `$ref` alias
+      // (`export const FooSchema=BarSchema`), never calls `type`, and an unused import fails
+      // `noUnusedLocals` (TS6133). String literals (an enum value such as 'type.created')
+      // are no call. A file that calls neither `type` nor `scope` needs no import: `''`.
+      const code = options?.code?.replaceAll(/"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*'/gu, '""')
+      const callsType = code === undefined || /(?<![\w$.])type[(.]/u.test(code)
+      if (options?.cyclic !== true) return callsType ? "import { type } from 'arktype'" : ''
+      return callsType ? "import { type, scope } from 'arktype'" : "import { scope } from 'arktype'"
     },
     renderTypeInfer(constName) {
       return `export type ${constName}=typeof ${constName}.infer`

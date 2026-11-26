@@ -55,7 +55,8 @@ export type SchemaDeclaration = {
    * The library import this declaration needs when written to its own file.
    * An Arktype cycle that is only `scope({...}).export().Member` gets
    * `import { scope } from 'arktype'`, and `type` too when its code calls it; a
-   * non-cyclic file stays `import { type } from 'arktype'`.
+   * non-cyclic file imports `type` only when it calls it, and is `''` (no import) when it
+   * calls neither, such as a `$ref` alias.
    */
   readonly importLine: string
   readonly code: string
@@ -461,5 +462,5 @@ export function makeSchemasCode(
   )
   const code = declarations.map((declaration) => declaration.code).join(';')
   const imports = schemaImportLine(adapter, options, cyclic, code)
-  return `${imports}\n\n${code}\n`
+  return imports === '' ? `${code}\n` : `${imports}\n\n${code}\n`
 }

@@ -518,6 +518,21 @@ describe('makeSchemaDeclarations', () => {
     ])
   })
 
+  it('gives a non-cyclic arktype $ref alias no import (#148)', () => {
+    const declarations = makeSchemaDeclarations(
+      { Tag: { type: 'string' }, Alias: { $ref: '#/components/schemas/Tag' } },
+      arktype,
+    )
+    expect(declarations.map((d) => [d.name, d.importLine, d.code])).toStrictEqual([
+      ['Tag', "import { type } from 'arktype'", 'export const TagSchema=type("string")'],
+      ['Alias', '', 'export const AliasSchema=TagSchema'],
+    ])
+  })
+
+  it('arktype: a file that calls neither type nor scope gets an empty import line', () => {
+    expect(makeAdapter('arktype').renderImport({ code: 'export const ASchema=BSchema' })).toBe('')
+  })
+
   it('keeps the Zod-shaped helper when cyclicTypeStyle is literal', () => {
     expect(
       makeSchemaDeclarations(selfCycle, makeAdapter('valibot'), { cyclicTypeStyle: 'literal' })[0]
