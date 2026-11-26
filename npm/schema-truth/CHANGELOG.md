@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.14.0
+
+### Minor Changes
+
+- [#153](https://github.com/nakita628/truth/pull/153) [`1eae6ce`](https://github.com/nakita628/truth/commit/1eae6cebf6ca3a45bb7791a0c331a2f7855d0d9d) Thanks [@nakita628](https://github.com/nakita628)! - ArkType: a `prefixItems` tuple now follows JSON Schema 2020-12. Its positions are optional, the elements after it are open unless `items` or `unevaluatedItems` holds them (`false` closes the tuple), and `minItems`, `maxItems`, `uniqueItems`, `contains` and `x-items-message` beside it apply. A wire parameter array or tuple inside a scope (without `null` or `style` serialization) now resolves the scope's aliases.
+
 ## 0.13.6
 
 ### Patch Changes
