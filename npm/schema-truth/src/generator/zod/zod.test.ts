@@ -2356,3 +2356,20 @@ describe('an object no keyword reads the keys of stays a plain object (#131)', (
     expect(zod(schema)).toBe(expected)
   })
 })
+
+describe('a record keeps the key keywords beside it (#131)', () => {
+  it('builds the object when minProperties sits beside an additionalProperties schema', () => {
+    const out = zod({ type: 'object', additionalProperties: { type: 'string' }, minProperties: 1 })
+    expect(out).toContain('Object.keys(val).length>=1')
+  })
+
+  it('keeps the record when only propertyNames sits beside it', () => {
+    expect(
+      zod({
+        type: 'object',
+        additionalProperties: { type: 'string' },
+        propertyNames: { minLength: 2 },
+      }),
+    ).toMatch(/^z\.record\(/)
+  })
+})

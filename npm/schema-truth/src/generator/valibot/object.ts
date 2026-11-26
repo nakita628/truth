@@ -4,6 +4,7 @@ import {
   isObjectPrototypeProperty,
   isStringWireLocation,
   readsObjectKeys,
+  readsRecordKeys,
 } from '../../guard/index.js'
 import {
   hasBranchKeys,
@@ -94,7 +95,7 @@ export function object(
   if (
     typeof schema.additionalProperties === 'object' &&
     schema.properties === undefined &&
-    schema.patternProperties === undefined
+    !readsRecordKeys(schema)
   ) {
     const record = `v.record(v.string(),${valibot(schema.additionalProperties, rootName, isValibot, options)})`
     const actions = [propertyNamesCheck()].filter((a) => a !== '')

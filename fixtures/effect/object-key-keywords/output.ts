@@ -17,6 +17,14 @@ export const KeyChecks = Schema.Struct({
     ),
   ),
   open: Schema.optionalKey(Schema.Record(Schema.String, Schema.Unknown)),
+  strings: Schema.optionalKey(
+    Schema.StructWithRest(Schema.Struct({}), [Schema.Record(Schema.String, Schema.Unknown)]).check(
+      Schema.makeFilter((input) => Object.keys(input).length >= 1),
+      Schema.makeFilter((input) =>
+        Object.values(input).every((value) => Schema.is(Schema.toEncoded(Schema.String))(value)),
+      ),
+    ),
+  ),
 })
 
 export type KeyChecks = typeof KeyChecks.Type

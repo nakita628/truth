@@ -4,6 +4,7 @@ import {
   isObjectPrototypeProperty,
   isStringWireLocation,
   readsObjectKeys,
+  readsRecordKeys,
 } from '../../guard/index.js'
 import { propertyEmitOptions } from '../../helper/parameter.js'
 import {
@@ -76,7 +77,7 @@ export function object(input: JSONSchema, rootName: string, isZod: boolean, opti
   if (
     typeof schema.additionalProperties === 'object' &&
     schema.properties === undefined &&
-    schema.patternProperties === undefined
+    !readsRecordKeys(schema)
   ) {
     const record = `z.record(z.string(),${zod(schema.additionalProperties, rootName, isZod, options)})`
     return `${record}${propertyNamesRefine}`

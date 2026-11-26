@@ -4,6 +4,7 @@ import {
   isObjectPrototypeProperty,
   isStringWireLocation,
   readsObjectKeys,
+  readsRecordKeys,
 } from '../../guard/index.js'
 import {
   arktypePreprocess,
@@ -95,7 +96,7 @@ export function object(
   if (
     typeof schema.additionalProperties === 'object' &&
     schema.properties === undefined &&
-    schema.patternProperties === undefined
+    !readsRecordKeys(schema)
   ) {
     const innerLiteral = `{"[string]":${arktype(schema.additionalProperties, rootName, isArktype, options)}}`
     const narrows = [propertyNamesNarrow()].filter((a) => a !== '')

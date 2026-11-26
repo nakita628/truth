@@ -14,6 +14,11 @@ export const KeyChecks = z.object({
     .refine((val) => !Object.hasOwn(val, 'a') || Object.hasOwn(val, 'b'))
     .exactOptional(),
   open: z.looseObject({}).exactOptional(),
+  strings: z
+    .looseObject({})
+    .refine((val) => Object.keys(val).length >= 1)
+    .refine((val) => Object.values(val).every((value) => z.string().safeParse(value).success))
+    .exactOptional(),
 })
 
 export type KeyChecks = z.infer<typeof KeyChecks>

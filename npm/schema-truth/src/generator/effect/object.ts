@@ -4,6 +4,7 @@ import {
   isObjectPrototypeProperty,
   isStringWireLocation,
   readsObjectKeys,
+  readsRecordKeys,
 } from '../../guard/index.js'
 import {
   effectPreprocess,
@@ -78,7 +79,7 @@ export function object(
   if (
     typeof schema.additionalProperties === 'object' &&
     schema.properties === undefined &&
-    schema.patternProperties === undefined
+    !readsRecordKeys(schema)
   ) {
     const record = `Schema.Record(Schema.String,${effect(schema.additionalProperties, rootName, isEffect, options)})`
     const checks = [propertyNamesFilter()].filter((a) => a !== '')

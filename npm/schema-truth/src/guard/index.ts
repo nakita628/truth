@@ -209,6 +209,16 @@ export function hasConditional(schema: JSONSchema) {
 }
 
 /**
+ * Whether a record (`additionalProperties` as a schema, no `properties`) has a keyword that
+ * reads its keys beyond the record itself and `propertyNames`, which the record checks: such
+ * a node goes through the full object builder instead (#131).
+ */
+export function readsRecordKeys(schema: JSONSchema) {
+  const { additionalProperties: _record, propertyNames: _names, ...rest } = schema
+  return readsObjectKeys(rest)
+}
+
+/**
  * Whether an object node has a keyword that reads its keys beyond `properties`: such a node
  * goes through the full object builder even with no `properties` (#131).
  */
