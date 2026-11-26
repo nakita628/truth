@@ -1,4 +1,5 @@
 import type { ComponentAdapter } from '../../adapter/index.js'
+import { pinInlineDiscriminatorValues } from '../../helper/discriminator.js'
 import type { Components } from '../../openapi/index.js'
 import { declarationFileName, isRecord, toIdentifierPascalCase } from '../../utils/index.js'
 import type { ComponentCodeOptions } from './declaration.js'
@@ -15,7 +16,9 @@ export function makeHeadersDeclarations(
     if (!('schema' in header) || !isRecord(header.schema)) return []
     const ident = toIdentifierPascalCase(name)
     const varName = `${ident}HeaderSchema`
-    const raw = adapter.toExpression(header.schema)
+    const raw = adapter.toExpression(
+      pinInlineDiscriminatorValues(header.schema, components.schemas),
+    )
     const expr = adapter.wrapSchema ? adapter.wrapSchema(raw, 'header') : raw
     const typeExport =
       options?.exportTypes === true ? `\n\n${adapter.renderTypeInfer(varName)}` : ''

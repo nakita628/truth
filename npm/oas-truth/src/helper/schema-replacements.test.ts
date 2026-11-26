@@ -234,3 +234,36 @@ describe('makeSchemaReplacements recursion', () => {
     expect(map.get(inline)).toBe('EXPR')
   })
 })
+
+describe('makeSchemaReplacements discriminator values (#109)', () => {
+  it('pins an inline discriminator member to its own values from `schemas`', () => {
+    const seen: unknown[] = []
+    const adapter = {
+      renderImport: () => '',
+      toExpression: (schema: unknown) => {
+        seen.push(schema)
+        return 'EXPR'
+      },
+      renderTypeInfer: () => '',
+    }
+    const inline = {
+      oneOf: [{ $ref: '#/components/schemas/Eq' }],
+      discriminator: { propertyName: 'type' },
+    }
+    const schemas = { Eq: { type: 'object', properties: { type: { const: 'eq' } } } } as const
+    const map = makeSchemaReplacements(
+      { content: { 'application/json': { schema: inline } } },
+      adapter,
+      {
+        schemas,
+      },
+    )
+    expect(map.get(inline)).toBe('EXPR')
+    expect(seen).toStrictEqual([
+      {
+        ...inline,
+        discriminator: { propertyName: 'type', mapping: { eq: '#/components/schemas/Eq' } },
+      },
+    ])
+  })
+})

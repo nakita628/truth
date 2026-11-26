@@ -1,4 +1,5 @@
 import type { ComponentAdapter } from '../../adapter/index.js'
+import { pinInlineDiscriminatorValues } from '../../helper/discriminator.js'
 import type { Components } from '../../openapi/index.js'
 import { declarationFileName, isRecord, toIdentifierPascalCase } from '../../utils/index.js'
 import type { ComponentCodeOptions } from './declaration.js'
@@ -16,7 +17,7 @@ export function makeMediaTypesDeclarations(
     if (!('schema' in media) || !isRecord(media.schema)) return []
     const ident = toIdentifierPascalCase(name)
     const varName = `${ident}MediaTypeSchema`
-    const raw = adapter.toExpression(media.schema)
+    const raw = adapter.toExpression(pinInlineDiscriminatorValues(media.schema, components.schemas))
     const expr = adapter.wrapSchema ? adapter.wrapSchema(raw, 'media-type') : raw
     const typeExport =
       options?.exportTypes === true ? `\n\n${adapter.renderTypeInfer(varName)}` : ''

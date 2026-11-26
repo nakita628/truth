@@ -21,6 +21,7 @@ export function makeResponsesDeclarations(
     const replacements = makeSchemaReplacements(response, adapter, {
       slot: 'response-content',
       ...(options?.identifiers && { identifiers: options.identifiers }),
+      ...(components.schemas && { schemas: components.schemas }),
     })
     return [
       {
