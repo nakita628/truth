@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.14.5
+
+### Patch Changes
+
+- [#172](https://github.com/nakita628/truth/pull/172) [`689e5ae`](https://github.com/nakita628/truth/commit/689e5aeab889b36532495ee66addbf3e06e72d52) Thanks [@nakita628](https://github.com/nakita628)! - TypeBox: `propertyNames` now checks the keys. A key schema with no type (`{ pattern }`, `{ minLength }`, members of an `anyOf` / `oneOf` / `allOf`) is read as a string schema instead of `Type.Any()`, an `enum` / `const` keeps only its string values, and `propertyNames: false` or a key enum with no string value emits `Type.Never()`.
+
 ## 0.14.4
 
 ### Patch Changes
