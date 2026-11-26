@@ -3,6 +3,8 @@ import {
   isArktypeDefinition,
   isObjectPrototypeProperty,
   isStringWireLocation,
+  readsObjectKeys,
+  readsRecordKeys,
 } from '../../guard/index.js'
 import {
   arktypePreprocess,
@@ -94,7 +96,7 @@ export function object(
   if (
     typeof schema.additionalProperties === 'object' &&
     schema.properties === undefined &&
-    schema.patternProperties === undefined
+    !readsRecordKeys(schema)
   ) {
     const innerLiteral = `{"[string]":${arktype(schema.additionalProperties, rootName, isArktype, options)}}`
     const narrows = [propertyNamesNarrow()].filter((a) => a !== '')
@@ -107,19 +109,8 @@ export function object(
   const undeclaredRequired = (schema.required ?? []).filter(
     (key) => !Object.hasOwn(properties, key),
   )
-  if (!schema.properties) {
-    // `propertyNames` holds every key, whatever else the object declares.
-    if (schema.additionalProperties === true && schema.propertyNames === undefined) {
-      return '"unknown"'
-    }
-    const checksKeys =
-      undeclaredRequired.length > 0 ||
-      schema.patternProperties !== undefined ||
-      schema.propertyNames !== undefined ||
-      schema.additionalProperties === false ||
-      schema.unevaluatedProperties !== undefined
-    if (!checksKeys) return isArktype ? '{}' : 'type({})'
-  }
+  // With no `properties`, an object no keyword reads the keys of is any object, open or not.
+  if (!schema.properties && !readsObjectKeys(schema)) return isArktype ? '{}' : 'type({})'
 
   // A key a declared property or a `patternProperties` pattern covers is evaluated, and for
   // `unevaluatedProperties` one an `if` / `then` / `else` or `dependentSchemas` branch that
@@ -144,10 +135,10 @@ export function object(
   )
   // `"+": "reject"` refuses every undeclared key, a key a pattern allows included: with
   // patterns, the narrow below refuses the keys neither covers instead.
-  // `"delete"` drops the undeclared keys before a narrow reads them, so a `propertyNames`
-  // check keeps them (ArkType's default) to see every key.
+  // `"delete"` drops the undeclared keys before a narrow reads them, so an object a keyword
+  // reads the keys of keeps them (ArkType's default) for the narrow to see every key.
   const additionalMode =
-    schema.additionalProperties === true && schema.propertyNames === undefined
+    schema.additionalProperties === true && !readsObjectKeys(schema)
       ? 'delete'
       : schema.additionalProperties === false && schema.patternProperties === undefined
         ? 'reject'

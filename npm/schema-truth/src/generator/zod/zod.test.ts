@@ -2343,3 +2343,33 @@ describe('zod const of an int64 beyond 1e21', () => {
     )
   })
 })
+
+describe('an object no keyword reads the keys of stays a plain object (#131)', () => {
+  it.each<[JSONSchema, string]>([
+    [{ type: 'object', else: { required: ['a'] } }, 'z.object({})'],
+    [{ type: 'object', unevaluatedProperties: true }, 'z.object({})'],
+    [
+      { type: 'object', minProperties: 1 },
+      'z.looseObject({}).refine((val)=>Object.keys(val).length>=1)',
+    ],
+  ])('%o → %s', (schema, expected) => {
+    expect(zod(schema)).toBe(expected)
+  })
+})
+
+describe('a record keeps the key keywords beside it (#131)', () => {
+  it('builds the object when minProperties sits beside an additionalProperties schema', () => {
+    const out = zod({ type: 'object', additionalProperties: { type: 'string' }, minProperties: 1 })
+    expect(out).toContain('Object.keys(val).length>=1')
+  })
+
+  it('keeps the record when only propertyNames sits beside it', () => {
+    expect(
+      zod({
+        type: 'object',
+        additionalProperties: { type: 'string' },
+        propertyNames: { minLength: 2 },
+      }),
+    ).toMatch(/^z\.record\(/)
+  })
+})

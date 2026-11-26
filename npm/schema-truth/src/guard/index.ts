@@ -208,6 +208,36 @@ export function hasConditional(schema: JSONSchema) {
   return schema.if !== undefined || schema.then !== undefined || schema.else !== undefined
 }
 
+/**
+ * Whether a record (`additionalProperties` as a schema, no `properties`) has a keyword that
+ * reads its keys beyond the record itself and `propertyNames`, which the record checks: such
+ * a node goes through the full object builder instead (#131).
+ */
+export function readsRecordKeys(schema: JSONSchema) {
+  const { additionalProperties: _record, propertyNames: _names, ...rest } = schema
+  return readsObjectKeys(rest)
+}
+
+/**
+ * Whether an object node has a keyword that reads its keys beyond `properties`: such a node
+ * goes through the full object builder even with no `properties` (#131).
+ */
+export function readsObjectKeys(schema: JSONSchema) {
+  return (
+    (schema.if !== undefined && (schema.then !== undefined || schema.else !== undefined)) ||
+    (schema.required ?? []).some((key) => !Object.hasOwn(schema.properties ?? {}, key)) ||
+    schema.patternProperties !== undefined ||
+    schema.propertyNames !== undefined ||
+    schema.minProperties !== undefined ||
+    schema.maxProperties !== undefined ||
+    schema.dependentRequired !== undefined ||
+    schema.dependentSchemas !== undefined ||
+    schema.additionalProperties === false ||
+    typeof schema.additionalProperties === 'object' ||
+    (schema.unevaluatedProperties !== undefined && schema.unevaluatedProperties !== true)
+  )
+}
+
 /** Whether `minLength` and `maxLength` pin a string to exactly one length. */
 export function hasFixedLength(schema: JSONSchema) {
   return (

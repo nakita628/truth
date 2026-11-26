@@ -38,6 +38,7 @@ import { User as SplitRefsUser } from '../split-refs/output.ts'
 import { User as TitleUser } from '../title/output.ts'
 import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
 import { OwnKeys as DependentOwnKeys } from '../dependent-own-keys/output.ts'
+import { KeyChecks } from '../object-key-keywords/output.ts'
 
 describe('zod fixtures: error-messages runtime', () => {
   it('valid input passes', () => {
@@ -973,5 +974,16 @@ describe('zod fixtures: dependent-own-keys runtime (#94)', () => {
 
   it.each([{ dep: { "it's": 1 } }, { dep: { toString: 1 } }, { req: {} }])('rejects %j, whose own key needs another', (value) => {
     expect(DependentOwnKeys.safeParse(value).success).toBe(false)
+  })
+})
+
+describe('object-key-keywords (#131)', () => {
+  const passes = (value) => KeyChecks.safeParse(value).success
+  it.each([{"counted": {"a": 1, "b": 2}}, {"loose": {"x": 1}}, {"dep": {"a": 1, "b": 2}}, {"dep": {"b": 2}}, {"open": {"x": 1}}, {"strings": {"a": "x"}}])('accepts %j', (value) => {
+    expect(passes(value)).toBe(true)
+  })
+
+  it.each([{"counted": {"a": 1}}, {"loose": {"x": 1, "y": 2}}, {"dep": {"a": 1}}, {"open": "text"}, {"open": 5}, {"strings": {}}, {"strings": {"a": 1}}])('rejects %j', (value) => {
+    expect(passes(value)).toBe(false)
   })
 })

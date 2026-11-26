@@ -1,0 +1,34 @@
+{
+  "title": "KeyChecks",
+  "type": "object",
+  "properties": {
+    "counted": {
+      "type": "object",
+      "minProperties": 2
+    },
+    "loose": {
+      "type": "object",
+      "additionalProperties": true,
+      "maxProperties": 1
+    },
+    "dep": {
+      "type": "object",
+      "dependentRequired": {
+        "a": [
+          "b"
+        ]
+      }
+    },
+    "open": {
+      "type": "object",
+      "additionalProperties": true
+    },
+    "strings": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "string"
+      },
+      "minProperties": 1
+    }
+  }
+}

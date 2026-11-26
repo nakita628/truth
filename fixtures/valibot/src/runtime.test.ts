@@ -38,6 +38,7 @@ import { Filter as ParamDeepObjectFilter } from '../param-deep-object/output.ts'
 import { Payload as ParamJsonContentPayload } from '../param-json-content/output.ts'
 import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
 import { OwnKeys as DependentOwnKeys } from '../dependent-own-keys/output.ts'
+import { KeyChecks } from '../object-key-keywords/output.ts'
 
 // valibot 1.3.x internals exposed in issue objects.
 const NAME_REGEX = /^[a-zA-Z]+$/
@@ -1548,5 +1549,16 @@ describe('valibot fixtures: dependent-own-keys runtime (#94)', () => {
 
   it.each([{ dep: { "it's": 1 } }, { dep: { toString: 1 } }, { req: {} }])('rejects %j, whose own key needs another', (value) => {
     expect(v.safeParse(DependentOwnKeys, value).success).toBe(false)
+  })
+})
+
+describe('object-key-keywords (#131)', () => {
+  const passes = (value) => v.safeParse(KeyChecks, value).success
+  it.each([{"counted": {"a": 1, "b": 2}}, {"loose": {"x": 1}}, {"dep": {"a": 1, "b": 2}}, {"dep": {"b": 2}}, {"open": {"x": 1}}, {"strings": {"a": "x"}}])('accepts %j', (value) => {
+    expect(passes(value)).toBe(true)
+  })
+
+  it.each([{"counted": {"a": 1}}, {"loose": {"x": 1, "y": 2}}, {"dep": {"a": 1}}, {"open": "text"}, {"open": 5}, {"strings": {}}, {"strings": {"a": 1}}])('rejects %j', (value) => {
+    expect(passes(value)).toBe(false)
   })
 })

@@ -782,7 +782,7 @@ export type EmptyOutput = v.InferOutput<typeof Empty>`
         l: { $ref: '#/definitions/Loose' },
       },
     })
-    const expected = `import * as v from 'valibot'\n\ntype _Root = {l?: _Loose}\n\ntype _Loose = { [key: string]: unknown }\n\nconst Loose: v.GenericSchema<unknown, _Loose> = v.any()\n\nexport const Root: v.GenericSchema<unknown, _Root> = v.partial(v.object({l:v.lazy(() => Loose)}))\n\nexport type RootOutput = v.InferOutput<typeof Root>`
+    const expected = `import * as v from 'valibot'\n\ntype _Root = {l?: _Loose}\n\ntype _Loose = { [key: string]: unknown }\n\nconst Loose: v.GenericSchema<unknown, _Loose> = v.looseObject({})\n\nexport const Root: v.GenericSchema<unknown, _Root> = v.partial(v.object({l:v.lazy(() => Loose)}))\n\nexport type RootOutput = v.InferOutput<typeof Root>`
     expect(result).toBe(expected)
   })
 

@@ -699,7 +699,7 @@ describe('effect', () => {
           type: 'object',
           additionalProperties: true,
         },
-        'Schema.Unknown',
+        'Schema.Record(Schema.String,Schema.Unknown)',
       ],
       [
         {
