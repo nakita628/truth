@@ -470,3 +470,22 @@ describe('an open object keeps its undeclared keys for a check that reads them (
     )
   })
 })
+
+describe('required key named like an Object.prototype member (#140)', () => {
+  it.concurrent.each<[JSONSchema, string]>([
+    [
+      { type: 'object', required: ['toString'] },
+      'type({toString:"unknown"}).narrow((data) => Object.hasOwn(data,"toString"))',
+    ],
+    [
+      { type: 'object', properties: { constructor: {} }, required: ['constructor'] },
+      'type({constructor:"unknown"}).narrow((data) => Object.hasOwn(data,"constructor"))',
+    ],
+    [
+      { type: 'object', properties: { a: { type: 'string' } }, required: ['a'] },
+      'type({a:"string"})',
+    ],
+  ])('object(%o) → %s', (input, expected) => {
+    expect(object(input, 'Schema', false)).toBe(expected)
+  })
+})

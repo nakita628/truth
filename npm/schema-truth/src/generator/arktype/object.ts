@@ -180,6 +180,17 @@ export function object(
     typeof schema.maxProperties === 'number'
       ? narrowPredicate(`Object.keys(data).length <= ${schema.maxProperties}`, maximumMessage)
       : ''
+  // ArkType reads a declared key through the prototype chain, so an absent key named like
+  // an `Object.prototype` member (`toString`, `constructor`) finds the inherited one and
+  // passes; such a required key is checked as an own key, as the other targets do (#140).
+  const inheritedRequired = [...required].filter(isObjectPrototypeProperty)
+  const inheritedRequiredNarrow =
+    inheritedRequired.length > 0
+      ? narrowPredicate(
+          inheritedRequired.map((key) => `Object.hasOwn(data,${JSON.stringify(key)})`).join(' && '),
+          errorMessage,
+        )
+      : ''
   const dependentRequiredNarrows: readonly string[] = schema.dependentRequired
     ? Object.entries(schema.dependentRequired)
         // An empty list always holds.
@@ -265,6 +276,7 @@ export function object(
   const narrows = [
     minPropertiesNarrow,
     maxPropertiesNarrow,
+    inheritedRequiredNarrow,
     propertyNamesNarrow(),
     ...patternPropertiesNarrows(),
     ...dependentRequiredNarrows,

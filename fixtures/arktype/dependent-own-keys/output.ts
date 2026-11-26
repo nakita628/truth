@@ -6,7 +6,7 @@ export const OwnKeys = type({
     .narrow(
       (data) => !Object.hasOwn(data, 'toString') || type({ x: 'number.integer' }).allows(data),
     ),
-  'req?': type({ toString: 'unknown' }),
+  'req?': type({ toString: 'unknown' }).narrow((data) => Object.hasOwn(data, 'toString')),
 })
 
 export type OwnKeys = typeof OwnKeys.infer
