@@ -5,6 +5,7 @@ import { Config as AdditionalConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
 import { Amount } from '../bigint-bounds/output.ts'
 import { Limits } from '../bigint-defaults/output.ts'
+import { Defaults } from '../default-emitted/output.ts'
 import { Sizes } from '../fixed-width-range/output.ts'
 import { Metadata } from '../pattern-hex/output.ts'
 import { Combined as AllofCombined } from '../allof/output.ts'
@@ -974,5 +975,13 @@ describe('fixed-width-range (#121)', () => {
     const step = Value.Create(Sizes.properties.step)
     expect(Value.Check(Sizes, { step })).toBe(true)
     expect(Value.Check(Sizes, { step: 2147483650 })).toBe(false)
+  })
+})
+
+describe('default-emitted (#127)', () => {
+  it('fills defaults the emitted properties and items accept', () => {
+    const value = Value.Default(Defaults, {})
+    expect(value).toStrictEqual({ box: { n: '5' }, list: ['5', '6'] })
+    expect(Value.Check(Defaults, value)).toBe(true)
   })
 })

@@ -312,3 +312,97 @@ describe('a 64-bit or bigint default', () => {
     },
   )
 })
+
+describe('typeboxDefaultOpt reads properties and items as emitted (#127)', () => {
+  it.each<[JSONSchema, readonly string[]]>([
+    [
+      {
+        type: 'object',
+        properties: { n: { type: ['integer', 'string'] } },
+        default: { n: 5 },
+      },
+      ['default:{"n":"5"}'],
+    ],
+    [
+      { type: 'array', items: { type: ['integer', 'string'] }, default: [5, 6] },
+      ['default:["5","6"]'],
+    ],
+    [
+      {
+        type: 'array',
+        items: { type: 'object', properties: { n: { type: ['integer', 'string'] } } },
+        default: [{ n: 5 }],
+      },
+      ['default:[{"n":"5"}]'],
+    ],
+  ])('%o → %o', (schema, expected) => {
+    expect(typeboxDefaultOpt(schema)).toStrictEqual(expected)
+  })
+})
+
+describe('typeboxDefaultOpt reads a shared definition once (#127)', () => {
+  it('reads a chain of definitions linked twice over in linear time', () => {
+    const depth = 40
+    const definitions = Object.fromEntries(
+      Array.from({ length: depth }, (_, index) => [
+        `D${index}`,
+        index === depth - 1
+          ? { type: ['integer', 'string'] }
+          : {
+              type: 'object',
+              properties: {
+                a: { $ref: `#/$defs/D${index + 1}` },
+                b: { $ref: `#/$defs/D${index + 1}` },
+              },
+            },
+      ]),
+    ) as { readonly [name: string]: JSONSchema }
+    const schema: JSONSchema = { $ref: '#/$defs/D0', default: { a: { a: {} } } }
+    expect(typeboxDefaultOpt(schema, false, definitions)).toStrictEqual(['default:{"a":{"a":{}}}'])
+  })
+})
+
+describe('typeboxDefaultOpt reads a definition as emitted wherever the default reaches it (#127)', () => {
+  const definitions: { readonly [name: string]: JSONSchema } = {
+    A: { type: 'object', properties: { b: { $ref: '#/$defs/B' } } },
+    B: {
+      type: 'object',
+      properties: { a: { $ref: '#/$defs/A' }, n: { type: ['integer', 'string'] } },
+    },
+    Node: {
+      type: 'object',
+      properties: {
+        v: { type: ['integer', 'string'] },
+        children: { type: 'array', items: { $ref: '#/$defs/Node' } },
+      },
+    },
+  }
+
+  it.each<[string, JSONSchema, readonly string[]]>([
+    [
+      'without a sibling read first',
+      {
+        type: 'object',
+        properties: { x: { $ref: '#/$defs/A' } },
+        default: { x: { b: { n: 5 } } },
+      },
+      ['default:{"x":{"b":{"n":"5"}}}'],
+    ],
+    [
+      'with a sibling that reads the other definition first',
+      {
+        type: 'object',
+        properties: { y: { $ref: '#/$defs/B' }, x: { $ref: '#/$defs/A' } },
+        default: { x: { b: { n: 5 } } },
+      },
+      ['default:{"x":{"b":{"n":"5"}}}'],
+    ],
+    [
+      'through a recursive definition',
+      { $ref: '#/$defs/Node', default: { v: 5, children: [{ v: 6 }] } },
+      ['default:{"v":"5","children":[{"v":"6"}]}'],
+    ],
+  ])('%s', (_, schema, expected) => {
+    expect(typeboxDefaultOpt(schema, false, definitions)).toStrictEqual(expected)
+  })
+})

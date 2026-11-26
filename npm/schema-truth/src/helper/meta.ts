@@ -1,4 +1,5 @@
 import { INTEGER_TEXT_PATTERN, NUMBER_RANGES } from '../constants/index.js'
+import { isSchemaObject } from '../guard/index.js'
 import type { JSONSchema } from '../parser/index.js'
 import { coerceDefault, definitionOf, makeSafeKey, normalizeTypes } from '../utils/index.js'
 import type { DefaultSchema } from '../utils/index.js'
@@ -56,7 +57,7 @@ export function typeboxDefaultOpt(
 ) {
   if (schema.default === undefined) return []
   const emitted = typeboxEmitted(schema, definitions)
-  const result = coerceDefault(emitted, schema.default, definitions)
+  const result = coerceDefault(emitted, schema.default, emittedDefinitions(definitions))
   if (!result.keep) return []
   const value = stringWire ? wireDefaultText(schema, result.value) : result.value
   if (value === undefined) return []
@@ -96,7 +97,8 @@ const TYPEBOX_TYPE_ORDER = [
  * by a member that takes it. A union of nothing but such members is left as it is, for
  * the `Type.BigInt` check to leave its default out. A `$ref`, which `typebox()` reads
  * first, is read as its target, nullable as the node is; a reference already being read
- * ends there, as a cycle does.
+ * ends there, as a cycle does. An object's `properties` and an array's `items` are read as
+ * they are emitted; one that is a `$ref` is left for `coerceDefault` to resolve.
  */
 function typeboxEmitted(
   schema: JSONSchema,
@@ -104,6 +106,9 @@ function typeboxEmitted(
   reading: ReadonlySet<string> = new Set(),
 ): JSONSchema {
   const emitted = (node: JSONSchema) => typeboxEmitted(node, definitions, reading)
+  // A property or item that is a `$ref` stays one: `coerceDefault` resolves it to the
+  // emitted definition (`emittedDefinitions`), at whatever depth the default reaches.
+  const emittedChild = (node: JSONSchema) => (node.$ref === undefined ? emitted(node) : node)
   const types = normalizeTypes(schema.type)
   if (schema.$ref !== undefined) {
     const { $ref, nullable } = schema
@@ -132,11 +137,41 @@ function typeboxEmitted(
   if (schema.allOf !== undefined) return { ...schema, allOf: schema.allOf.map(emitted) }
   if (schema.enum !== undefined || schema.const !== undefined) return schema
   if (schema.properties !== undefined) {
-    return { ...schema, type: types.includes('null') ? ['object', 'null'] : 'object' }
+    // An object default's properties are read as they are emitted too.
+    const properties = Object.fromEntries(
+      Object.entries(schema.properties).map(([name, property]) => [name, emittedChild(property)]),
+    )
+    return { ...schema, type: types.includes('null') ? ['object', 'null'] : 'object', properties }
   }
   const first = TYPEBOX_TYPE_ORDER.find((type) => types.includes(type))
-  if (first === undefined || types.filter((type) => type !== 'null').length < 2) return schema
-  return { ...schema, type: types.includes('null') ? [first, 'null'] : first }
+  const node: JSONSchema =
+    first === undefined || types.filter((type) => type !== 'null').length < 2
+      ? schema
+      : { ...schema, type: types.includes('null') ? [first, 'null'] : first }
+  // So are an array default's items.
+  return isSchemaObject(node.items) ? { ...node, items: emittedChild(node.items) } : node
+}
+
+const emittedDefinitionsOf = new WeakMap<SchemaDefinitions, SchemaDefinitions>()
+
+/**
+ * Each definition as the TypeBox node it is emitted as ({@link typeboxEmitted}), read once
+ * per definitions map. `coerceDefault` resolves a `$ref` against these, so a default that
+ * reaches a definition through a property or an item, a recursive one included, is read
+ * by the emitted node at every depth, and a definition shared by several paths is read once.
+ */
+function emittedDefinitions(definitions: SchemaDefinitions | undefined) {
+  if (definitions === undefined) return undefined
+  const known = emittedDefinitionsOf.get(definitions)
+  if (known !== undefined) return known
+  const emitted = Object.fromEntries(
+    Object.entries(definitions).map(([name, definition]) => [
+      name,
+      typeboxEmitted(definition, definitions),
+    ]),
+  )
+  emittedDefinitionsOf.set(definitions, emitted)
+  return emitted
 }
 
 /**
