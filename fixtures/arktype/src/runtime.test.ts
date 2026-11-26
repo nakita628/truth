@@ -52,6 +52,7 @@ import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.
 import { OwnKeys as DependentOwnKeys } from '../dependent-own-keys/output.ts'
 import { KeyChecks } from '../object-key-keywords/output.ts'
 import { Closed } from '../additional-beside-allof/output.ts'
+import { Inherited } from '../required-inherited-key/output.ts'
 
 const issues = (result: unknown) => {
   if (!(result instanceof type.errors)) {
@@ -1181,6 +1182,17 @@ describe('additional-beside-allof (#138)', () => {
   })
 
   it.each([{"box": {"c": 1}, "filled": {}}, {"box": {"a": "x", "c": 1}, "filled": {}}, {"either": {"c": 1}, "filled": {}}, {"filled": {"c": 1}}])('rejects %j', (value) => {
+    expect(passes(value)).toBe(false)
+  })
+})
+
+describe('required-inherited-key (#140)', () => {
+  const passes = (value: unknown) => !(Inherited(value) instanceof type.errors)
+  it('accepts the keys as own keys', () => {
+    expect(passes({ toString: 1, constructor: 2 })).toBe(true)
+  })
+
+  it.each([{}, { toString: 1 }, { constructor: 2 }])('rejects %j', (value) => {
     expect(passes(value)).toBe(false)
   })
 })
