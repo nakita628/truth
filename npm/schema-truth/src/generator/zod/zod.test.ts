@@ -2262,7 +2262,16 @@ describe('allOf keyword members', () => {
     [
       { allOf: [{ minimum: 5 }] },
       undefined,
-      "z.any().refine((val) => (typeof val !== 'number' || (val >= 5)))",
+      "z.any().refine((val) => (typeof val !== 'number' || val >= 5))",
+    ],
+    [
+      {
+        allOf: [
+          { minimum: 5, maximum: 9, 'x-minimum-message': 'low', 'x-maximum-message': 'high' },
+        ],
+      },
+      undefined,
+      'z.any().refine((val) => (typeof val !== \'number\' || val >= 5),{error:"low"}).refine((val) => (typeof val !== \'number\' || val <= 9),{error:"high"})',
     ],
     [
       { allOf: [{ type: 'integer' }, { minimum: 5 }] },

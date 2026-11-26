@@ -3,6 +3,7 @@ import * as z from 'zod'
 import { User as DefsUser } from '../$defs/output.ts'
 import { Config as AdditionalPropertiesConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
+import { Messaged } from '../allof-keyword-messages/output.ts'
 import { Limits } from '../bigint-defaults/output.ts'
 import { Amount } from '../not-int64/output.ts'
 import { Filters } from '../object-default/output.ts'
@@ -997,5 +998,12 @@ describe('additional-beside-allof (#138)', () => {
 
   it.each([{"box": {"c": 1}}, {"box": {"a": "x", "c": 1}}, {"either": {"c": 1}}, {"filled": {"c": 1}}])('rejects %j', (value) => {
     expect(passes(value)).toBe(false)
+  })
+})
+
+describe('allof-keyword-messages (#145)', () => {
+  const messages = (n: unknown) => Messaged.safeParse({ n }).error?.issues.map((i) => i.message)
+  it.each([[10, ['high']], [1, ['low']], [7, undefined], ['x', undefined]])('%j reports %j', (n, expected) => {
+    expect(messages(n)).toStrictEqual(expected)
   })
 })

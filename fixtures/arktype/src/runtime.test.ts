@@ -3,6 +3,7 @@ import { describe, expect, it } from 'vite-plus/test'
 import { User as DefsUser } from '../$defs/output.ts'
 import { Config as AdditionalConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
+import { Messaged } from '../allof-keyword-messages/output.ts'
 import { Amount } from '../not-int64/output.ts'
 import { Headers } from '../param-header-array/output.ts'
 import { Metadata } from '../pattern-hex/output.ts'
@@ -1194,5 +1195,21 @@ describe('required-inherited-key (#140)', () => {
 
   it.each([{}, { toString: 1 }, { constructor: 2 }])('rejects %j', (value) => {
     expect(passes(value)).toBe(false)
+  })
+})
+
+describe('allof-keyword-messages (#145)', () => {
+  const summary = (n: unknown) => {
+    const result = Messaged({ n })
+    return result instanceof type.errors ? result.summary : undefined
+  }
+  it.each([[10, 'high'], [1, 'low']])('%j reports %j', (n, expected) => {
+    expect(summary(n)).toContain(expected)
+  })
+  it.each([[10, 'low'], [1, 'high']])('%j does not report %j', (n, other) => {
+    expect(summary(n)).not.toContain(other)
+  })
+  it.each([7, 'x'])('accepts %j', (n) => {
+    expect(summary(n)).toBeUndefined()
   })
 })

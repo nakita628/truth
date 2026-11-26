@@ -974,7 +974,16 @@ describe('allOf keyword members', () => {
     [
       { allOf: [{ minimum: 5 }] },
       undefined,
-      'type("unknown").narrow((data) => (typeof data !== \'number\' || (data >= 5)))',
+      'type("unknown").narrow((data) => (typeof data !== \'number\' || data >= 5))',
+    ],
+    [
+      {
+        allOf: [
+          { minimum: 5, maximum: 9, 'x-minimum-message': 'low', 'x-maximum-message': 'high' },
+        ],
+      },
+      undefined,
+      'type("unknown").narrow((data, ctx) => (typeof data !== \'number\' || data >= 5) || ctx.mustBe("low")).narrow((data, ctx) => (typeof data !== \'number\' || data <= 9) || ctx.mustBe("high"))',
     ],
     [
       { allOf: [{ type: 'integer' }, { minimum: 5 }] },

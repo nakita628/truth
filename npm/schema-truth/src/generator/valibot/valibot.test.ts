@@ -1575,7 +1575,7 @@ describe('allOf keyword members', () => {
     [
       { allOf: [{ minimum: 5 }] },
       undefined,
-      "v.pipe(v.any(),v.check((input) => (typeof input !== 'number' || (input >= 5))))",
+      "v.pipe(v.any(),v.check((input) => (typeof input !== 'number' || input >= 5)))",
     ],
     [
       { allOf: [{ type: 'integer' }, { minimum: 5 }] },
