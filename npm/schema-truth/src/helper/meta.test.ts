@@ -27,6 +27,11 @@ describe('serializeJSValue', () => {
   ])('serializeJSValue(%o) → %s', (input, expected) => {
     expect(serializeJSValue(input)).toBe(expected)
   })
+
+  it('writes a __proto__ key as a computed key, which stays an own property (#116)', () => {
+    const code = serializeJSValue(JSON.parse('{"__proto__":{"a":1},"b":2}'))
+    expect(code).toBe('{["__proto__"]:{a:1},b:2}')
+  })
 })
 
 describe('zodWrap with metadata', () => {

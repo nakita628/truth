@@ -196,6 +196,7 @@ export function hasTypeboxDefault(
  * - Arrays: `[elem1,elem2,...]`
  * - Plain objects: `{key1:value1,...}` with bare identifiers when possible
  * - Undefined values inside objects are skipped
+ * - A `__proto__` key is written as a computed key, so it stays an own property
  */
 export function serializeJSValue(value: unknown): string {
   if (value === undefined) return 'undefined'
@@ -206,6 +207,10 @@ export function serializeJSValue(value: unknown): string {
   }
   const entries = Object.entries(value).filter(([, v]) => v !== undefined)
   if (entries.length === 0) return '{}'
-  const parts = entries.map(([k, v]) => `${makeSafeKey(k)}:${serializeJSValue(v)}`)
+  // A plain `__proto__:` (quoted or not) sets the literal's prototype; only a computed key
+  // makes it an own property.
+  const parts = entries.map(
+    ([k, v]) => `${k === '__proto__' ? '["__proto__"]' : makeSafeKey(k)}:${serializeJSValue(v)}`,
+  )
   return `{${parts.join(',')}}`
 }
