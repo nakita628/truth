@@ -185,9 +185,7 @@ function buildAdvancedOpts(
   isTypebox: boolean,
   options?: TypeboxOptions,
 ) {
-  const propertyNamesOpt = schema.propertyNames
-    ? `propertyNames:${typebox(schema.propertyNames, rootName, isTypebox, options)}`
-    : undefined
+  const propertyNamesOpt = propertyNamesOption(schema.propertyNames, rootName, isTypebox, options)
   const patternPropertiesOpt = schema.patternProperties
     ? `patternProperties:{${Object.entries(schema.patternProperties)
         .map(
@@ -232,4 +230,75 @@ function buildAdvancedOpts(
     requiredOpt,
     unevaluatedOpt,
   ]
+}
+
+/**
+ * The `propertyNames` option. Every key is a string, so a key schema is read as a string
+ * one ({@link asKeySchema}); `false`, and an `enum` / `const` with no string value, allow no
+ * key, and `true` every key. The document is parsed JSON, so anything can sit where the
+ * type says a schema.
+ */
+function propertyNamesOption(
+  keySchema: JSONSchema | boolean | undefined,
+  rootName: string,
+  isTypebox: boolean,
+  options: TypeboxOptions | undefined,
+) {
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- parsed JSON: a null can sit where the type says a schema
+  if (typeof keySchema !== 'object' || keySchema === null) {
+    return keySchema === false ? 'propertyNames:Type.Never()' : undefined
+  }
+  const key = asKeySchema(keySchema)
+  if (key === false) return 'propertyNames:Type.Never()'
+  return `propertyNames:${typebox(key, rootName, isTypebox, options)}`
+}
+
+/**
+ * A key schema as a string one: no type of its own reads as `type: 'string'` (composition
+ * members and `not` too), `enum` / `const` keep only their string values, and beside an
+ * `allOf` or a union the own keywords become one more `allOf` member. `false` (or a schema reduced to it)
+ * allows no key: it drops out of an `anyOf` / `oneOf`, makes an `allOf` allow none, and a
+ * `not` of it allows every key. A `$ref` is left as it is. The document is parsed JSON, so
+ * anything can sit where the type says a schema; a non-object reads as no constraint.
+ */
+function asKeySchema(keySchema: JSONSchema | boolean | undefined): JSONSchema | false {
+  if (keySchema === false) return false
+  // oxlint-disable-next-line typescript/no-unnecessary-condition -- parsed JSON: a null can sit where the type says a schema
+  if (typeof keySchema !== 'object' || keySchema === null) return { type: 'string' }
+  if (keySchema.$ref !== undefined) return keySchema
+  const strings = keySchema.enum?.filter((value) => typeof value === 'string')
+  if (strings?.length === 0) return false
+  if (keySchema.const !== undefined && typeof keySchema.const !== 'string') return false
+  const read = (list: readonly (JSONSchema | boolean)[] | undefined) => list?.map(asKeySchema)
+  const anyOf = read(keySchema.anyOf)?.filter((member) => member !== false)
+  const oneOf = read(keySchema.oneOf)?.filter((member) => member !== false)
+  const allOf = read(keySchema.allOf)
+  if (anyOf?.length === 0 || oneOf?.length === 0 || allOf?.includes(false) === true) return false
+  const not = parsedSchema(keySchema.not)
+  // `not: true` allows no key; `not: false` (or a `not` that allows none) allows every key.
+  if (not === true) return false
+  const negated = not === undefined ? undefined : asKeySchema(not)
+  const { allOf: _allOf, anyOf: _anyOf, oneOf: _oneOf, not: _not, ...own } = keySchema
+  const union: JSONSchema | undefined =
+    anyOf !== undefined ? { anyOf } : oneOf !== undefined ? { oneOf } : undefined
+  const ownRead: JSONSchema = {
+    ...own,
+    ...(keySchema.type === undefined && { type: 'string' }),
+    ...(strings !== undefined && { enum: strings }),
+    ...(negated !== undefined && negated !== false && { not: negated }),
+  }
+  // `typebox()` reads an `allOf` or a union alone, so the key schema's own keywords join
+  // them as one more member, left out when they are only the string type read here.
+  const hasOwn = Object.keys(own).length > 0 || ownRead.not !== undefined
+  const members = [
+    ...(hasOwn || (union === undefined && allOf === undefined) ? [ownRead] : []),
+    ...(union === undefined ? [] : [union]),
+    ...(allOf ?? []).filter((member) => member !== false),
+  ]
+  return members.length === 1 && members[0] !== undefined ? members[0] : { allOf: members }
+}
+
+/** A subschema as parsed JSON can hold it: a boolean where the type says a schema. */
+function parsedSchema(value: JSONSchema | boolean | undefined) {
+  return value
 }

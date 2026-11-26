@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vite-plus/test'
 
 import type { JSONSchema } from '../../parser/index.js'
 import { object } from './object.js'
+import { typebox } from './typebox.js'
 
 describe('object', () => {
   it.concurrent.each<[JSONSchema, string]>([
@@ -178,5 +179,53 @@ describe('object', () => {
         'Type.Object({a:Type.String()},{minProperties:1,errorMessage:{minProperties:"too few",properties:"bad props"}})',
       )
     })
+  })
+})
+
+describe('typebox propertyNames checks the keys (#134)', () => {
+  it.each<[JSONSchema['propertyNames'] | boolean, string]>([
+    [{ pattern: '^a' }, 'Type.Object({},{propertyNames:Type.String({pattern:"^a"})})'],
+    [{ enum: [] }, 'Type.Object({},{propertyNames:Type.Never()})'],
+    [
+      { enum: ['x', 'y'] },
+      'Type.Object({},{propertyNames:Type.Union([Type.Literal("x"),Type.Literal("y")])})',
+    ],
+    [{ const: 'k' }, 'Type.Object({},{propertyNames:Type.Literal("k")})'],
+    [{ minLength: 2 }, 'Type.Object({},{propertyNames:Type.String({minLength:2})})'],
+    [false, 'Type.Object({},{propertyNames:Type.Never()})'],
+    [true, 'Type.Object({})'],
+    [null as unknown as boolean, 'Type.Object({})'],
+    [
+      { pattern: '^a', allOf: [{ maxLength: 3 }] },
+      'Type.Object({},{propertyNames:Type.Intersect([Type.String({pattern:"^a"}),Type.String({maxLength:3})])})',
+    ],
+    [
+      { anyOf: [{ pattern: '^a' }, { pattern: '^b' }] },
+      'Type.Object({},{propertyNames:Type.Union([Type.String({pattern:"^a"}),Type.String({pattern:"^b"})])})',
+    ],
+    [
+      { pattern: '^a', not: { const: 'ab' } },
+      'Type.Object({},{propertyNames:Type.String({pattern:"^a"})})',
+    ],
+    [{ enum: ['a', { b: 1 }] }, 'Type.Object({},{propertyNames:Type.Literal("a")})'],
+    [{ const: 1 }, 'Type.Object({},{propertyNames:Type.Never()})'],
+    [
+      { anyOf: [{ pattern: '^a' }, { const: 1 }] },
+      'Type.Object({},{propertyNames:Type.Union([Type.String({pattern:"^a"})])})',
+    ],
+    [
+      { anyOf: [{ pattern: '^a' }, false] } as unknown as JSONSchema,
+      'Type.Object({},{propertyNames:Type.Union([Type.String({pattern:"^a"})])})',
+    ],
+    [{ allOf: [{ pattern: '^a' }, { enum: [1] }] }, 'Type.Object({},{propertyNames:Type.Never()})'],
+    [{ not: null } as unknown as JSONSchema, 'Type.Object({},{propertyNames:Type.String()})'],
+    [{ not: true } as unknown as JSONSchema, 'Type.Object({},{propertyNames:Type.Never()})'],
+    [{ allOf: [{ maxLength: 3 }] }, 'Type.Object({},{propertyNames:Type.String({maxLength:3})})'],
+    [
+      { pattern: '^a', anyOf: [{ maxLength: 3 }, { minLength: 5 }] },
+      'Type.Object({},{propertyNames:Type.Intersect([Type.String({pattern:"^a"}),Type.Union([Type.String({maxLength:3}),Type.String({minLength:5})])])})',
+    ],
+  ])('%o → %s', (propertyNames, expected) => {
+    expect(typebox({ type: 'object', propertyNames } as JSONSchema)).toBe(expected)
   })
 })

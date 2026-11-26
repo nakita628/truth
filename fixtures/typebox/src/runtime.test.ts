@@ -5,6 +5,7 @@ import { Config as AdditionalConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
 import { Amount } from '../bigint-bounds/output.ts'
 import { Limits } from '../bigint-defaults/output.ts'
+import { Keys } from '../property-names/output.ts'
 import { Defaults } from '../default-emitted/output.ts'
 import { Sizes } from '../fixed-width-range/output.ts'
 import { Metadata } from '../pattern-hex/output.ts'
@@ -983,5 +984,15 @@ describe('default-emitted (#127)', () => {
     const value = Value.Default(Defaults, {})
     expect(value).toStrictEqual({ box: { n: '5' }, list: ['5', '6'] })
     expect(Value.Check(Defaults, value)).toBe(true)
+  })
+})
+
+describe('property-names (#134)', () => {
+  it.each([{ prefixed: { ab: 1 } }, { listed: { x: 1, y: 2 } }, { none: {} }, { either: { a: 1, b: 2 } }])('accepts %j', (value) => {
+    expect(Value.Check(Keys, value)).toBe(true)
+  })
+
+  it.each([{ prefixed: { b: 1 } }, { listed: { z: 1 } }, { none: { a: 1 } }, { either: { c: 1 } }])('rejects %j', (value) => {
+    expect(Value.Check(Keys, value)).toBe(false)
   })
 })
