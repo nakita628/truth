@@ -963,4 +963,10 @@ describe('fixed-width-range (#121)', () => {
   ])('rejects %j, outside the format range', (value) => {
     expect(Value.Check(Sizes, value)).toBe(false)
   })
+
+  it('creates a value within the format beside a looser exclusive bound', () => {
+    const floor = Value.Create(Sizes.properties.floor)
+    expect(Value.Check(Sizes, { floor })).toBe(true)
+    expect(Value.Check(Sizes, { floor: -2147483649 })).toBe(false)
+  })
 })

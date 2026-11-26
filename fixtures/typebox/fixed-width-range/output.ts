@@ -6,6 +6,7 @@ export const Sizes = Type.Object({
   ratio: Type.Optional(
     Type.Number({ minimum: -3.4028234663852886e38, maximum: 3.4028234663852886e38 }),
   ),
+  floor: Type.Optional(Type.Integer({ minimum: -2147483648, maximum: 2147483647 })),
 })
 
 export type Sizes = Static<typeof Sizes>

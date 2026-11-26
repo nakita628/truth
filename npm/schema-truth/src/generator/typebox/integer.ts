@@ -43,18 +43,25 @@ export function integer(schema: JSONSchema, ref?: string) {
   // common case). Per-keyword messages flip us into object form, with
   // `x-error-message` joining as the catch-all under the ajv-errors `_`
   // convention.
+  // A fixed-width format holds the value to its range too, as every other target does. Where
+  // its bound is the tighter one, it is the only bound on that side: TypeBox's \`Value.Create\`
+  // reads an \`exclusiveMinimum\` ahead of \`minimum\`, and a keyword's message would report the
+  // format's range, which falls to \`x-error-message\` as on the string wire.
+  const formatBounds = fixedWidthBounds(schema, 'integer')
+  const isLowerFromFormat = formatBounds.minimum !== undefined
+  const isUpperFromFormat = formatBounds.maximum !== undefined
   const perKeywordEntries: string[] = []
   if (requiredMessage) perKeywordEntries.push(`required:${JSON.stringify(requiredMessage)}`)
-  if (minMessage && minimumKeyword === 'minimum') {
+  if (minMessage && minimumKeyword === 'minimum' && !isLowerFromFormat) {
     perKeywordEntries.push(`minimum:${JSON.stringify(minMessage)}`)
   }
-  if (maxMessage && maximumKeyword === 'maximum') {
+  if (maxMessage && maximumKeyword === 'maximum' && !isUpperFromFormat) {
     perKeywordEntries.push(`maximum:${JSON.stringify(maxMessage)}`)
   }
-  if (exclusiveMinimumMessage) {
+  if (exclusiveMinimumMessage && !isLowerFromFormat) {
     perKeywordEntries.push(`exclusiveMinimum:${JSON.stringify(exclusiveMinimumMessage)}`)
   }
-  if (exclusiveMaximumMessage) {
+  if (exclusiveMaximumMessage && !isUpperFromFormat) {
     perKeywordEntries.push(`exclusiveMaximum:${JSON.stringify(exclusiveMaximumMessage)}`)
   }
   if (multipleOfMessage) perKeywordEntries.push(`multipleOf:${JSON.stringify(multipleOfMessage)}`)
@@ -88,30 +95,24 @@ export function integer(schema: JSONSchema, ref?: string) {
     return 'Type.BigInt()'
   }
 
-  // A fixed-width format holds the value to its range too, as every other target does.
-  const formatBounds = fixedWidthBounds(schema, 'integer')
   const opts = [
     ...typeboxRefOpt(ref),
-    schema.minimum !== undefined
-      ? `${minimumKeyword}:${minimumKeyword === 'minimum' ? (formatBounds.minimum ?? schema.minimum) : schema.minimum}`
-      : undefined,
-    formatBounds.minimum !== undefined &&
-    (schema.minimum === undefined || minimumKeyword !== 'minimum')
-      ? `minimum:${formatBounds.minimum}`
-      : undefined,
-    typeof schema.exclusiveMinimum === 'number'
-      ? `exclusiveMinimum:${schema.exclusiveMinimum}`
-      : undefined,
-    schema.maximum !== undefined
-      ? `${maximumKeyword}:${maximumKeyword === 'maximum' ? (formatBounds.maximum ?? schema.maximum) : schema.maximum}`
-      : undefined,
-    formatBounds.maximum !== undefined &&
-    (schema.maximum === undefined || maximumKeyword !== 'maximum')
-      ? `maximum:${formatBounds.maximum}`
-      : undefined,
-    typeof schema.exclusiveMaximum === 'number'
-      ? `exclusiveMaximum:${schema.exclusiveMaximum}`
-      : undefined,
+    ...(isLowerFromFormat
+      ? [`minimum:${formatBounds.minimum}`]
+      : [
+          schema.minimum !== undefined ? `${minimumKeyword}:${schema.minimum}` : undefined,
+          typeof schema.exclusiveMinimum === 'number'
+            ? `exclusiveMinimum:${schema.exclusiveMinimum}`
+            : undefined,
+        ]),
+    ...(isUpperFromFormat
+      ? [`maximum:${formatBounds.maximum}`]
+      : [
+          schema.maximum !== undefined ? `${maximumKeyword}:${schema.maximum}` : undefined,
+          typeof schema.exclusiveMaximum === 'number'
+            ? `exclusiveMaximum:${schema.exclusiveMaximum}`
+            : undefined,
+        ]),
     schema.multipleOf !== undefined ? `multipleOf:${schema.multipleOf}` : undefined,
     errorMessageField,
     ...metaOpts,

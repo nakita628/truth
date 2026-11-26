@@ -210,12 +210,30 @@ describe('typebox integer: the range of a fixed-width format (#121)', () => {
       'Type.Integer({minimum:1,maximum:2147483647})',
     ],
     [
+      { type: 'integer', format: 'int32', exclusiveMinimum: -1e12 },
+      'Type.Integer({minimum:-2147483648,maximum:2147483647})',
+    ],
+    [
+      {
+        type: 'integer',
+        format: 'int32',
+        minimum: -1e12,
+        'x-minimum-message': 'at least -1e12',
+        'x-error-message': 'an int32',
+      },
+      'Type.Integer({minimum:-2147483648,maximum:2147483647,errorMessage:"an int32"})',
+    ],
+    [
+      { type: 'integer', format: 'int32', minimum: 0, 'x-minimum-message': 'at least 0' },
+      'Type.Integer({minimum:0,maximum:2147483647,errorMessage:{minimum:"at least 0"}})',
+    ],
+    [
       { type: 'integer', format: 'uint32', exclusiveMinimum: 5, maximum: 10 },
       'Type.Integer({exclusiveMinimum:5,maximum:10})',
     ],
     [
       { type: 'integer', format: 'int32', minimum: -1e12, exclusiveMinimum: true },
-      'Type.Integer({exclusiveMinimum:-1000000000000,minimum:-2147483648,maximum:2147483647})',
+      'Type.Integer({minimum:-2147483648,maximum:2147483647})',
     ],
   ])('%o → %s', (schema, expected) => {
     expect(integer(schema)).toBe(expected)
