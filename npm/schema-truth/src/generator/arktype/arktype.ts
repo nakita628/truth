@@ -115,9 +115,24 @@ function asRuntime(source: string) {
   return isQuoted(source) ? `type(${source})` : source
 }
 
+/**
+ * A tuple's rest as an array. A rest that is an expression rather than a quoted
+ * definition — a long union written as `type.enumerated(...)` or an `.or` chain — becomes
+ * an array value.
+ */
+function restArray(rest: string) {
+  if (isPlainOperand(rest, true)) return `"${rest.slice(1, -1)}[]"`
+  return isArktypeDefinition(rest) ? `[${rest},"[]"]` : `${rest}.array()`
+}
+
 /** Whether an expression reads its input through a morph: ArkType cannot union two of them. */
 function isMorph(source: string) {
-  return source.includes('.pipe(')
+  return source.includes('.pipe(') || source.includes('"=>"')
+}
+
+/** Whether an expression transforms its input: a morph, a `.to()` transform or a parsing keyword. */
+function readsInput(source: string) {
+  return isMorph(source) || source.includes('.to(') || source.includes('.parse')
 }
 
 /**
@@ -125,10 +140,16 @@ function isMorph(source: string) {
  * an unordered union of morphs with overlapping inputs, so the first branch that reads
  * the text wins, as `z.union()` reads it.
  */
-function wireUnion(schemas: readonly string[], message: string | undefined) {
-  const branches = schemas.map(asRuntime).join(',')
+function wireUnion(schemas: readonly string[], message: string | undefined, inScope: boolean) {
+  // Inside a scope a tuple or object definition branch (a wire array) is reached through the
+  // scope when the value is read; the global `type(...)` cannot resolve an alias in it.
+  const branches = schemas
+    .map((s) => (inScope && isArktypeDefinition(s) && !isQuoted(s) ? `$.type(${s})` : asRuntime(s)))
+    .join(',')
   const expected = JSON.stringify(message ?? 'one of the members')
-  return `type("unknown").pipe((data, ctx) => { for (const branch of [${branches}]) { const out = branch(data); if (!(out instanceof type.errors)) return out } return ctx.error(${expected}) })`
+  // A callback that reaches `$` spells out its return type: `$` is still being declared.
+  const params = branches.includes('$.type(') ? '(data, ctx): unknown' : '(data, ctx)'
+  return `type("unknown").pipe(${params} => { for (const branch of [${branches}]) { const out = branch(data); if (!(out instanceof type.errors)) return out } return ctx.error(${expected}) })`
 }
 
 /** `morph` validated against `inner` after it, unless `inner` is the bare keyword the morph already reads. */
@@ -258,8 +279,14 @@ function node(
   const readonly = (v: string) => (options?.readonly ? `${v}.readonly()` : v)
   const isStringWireParam = isStringWireLocation(options?.paramIn)
   const isWireCoerced = isStringWireParam && schema['x-coerce'] !== false
+  // Inside a scope a definition is piped to in definition syntax, which the scope resolves;
+  // `.to()` on the global `type(...)` cannot resolve an alias.
   const wireArray = (v: string) =>
-    isStringWireParam ? arktypePreprocess([wireArrayOnce('data')], v) : v
+    !isStringWireParam
+      ? v
+      : isArktype && isArktypeDefinition(v)
+        ? `[["unknown","=>",${wireArrayOnce('data')}],"|>",${v}]`
+        : arktypePreprocess([wireArrayOnce('data')], v)
   // What reads a literal's input into the literal's type: on the wire the text is coerced,
   // and a 64-bit integer is a bigint wherever it comes from.
   const literalInput = (values: readonly unknown[]) => {
@@ -282,7 +309,7 @@ function node(
   }
   const unionOf = (schemas: string[], message: string | undefined) =>
     isWireCoerced && schemas.some(isMorph)
-      ? wireUnion(schemas, message)
+      ? wireUnion(schemas, message, isArktype)
       : describeWithMessage(unionStr(schemas, isArktype), message)
 
   if (schema.$ref) {
@@ -486,50 +513,74 @@ function node(
     if (expression !== undefined) return arktypeWrap(expression, schema)
   }
 
-  if (types.includes('array')) {
-    if (schema.prefixItems !== undefined && schema.prefixItems.length > 0) {
-      const items = schema.prefixItems.map((s) => arktype(s, rootName, isArktype, options))
-      // JSON Schema 2020-12 §11.3: unevaluatedItems applies to elements beyond
-      // prefixItems. ArkType tuples reject extras by default; `unevaluatedItems`
-      // as a schema is represented as a trailing variadic `...rest[]`.
-      const unevaluatedItems = schema.unevaluatedItems
-      // Inside a scope the tuple stays a definition, so the scope resolves an alias in it;
-      // the global `type(...)` cannot.
-      const tuple = (definition: string) => (isArktype ? definition : `type(${definition})`)
-      const tupleExpr = isSchemaObject(unevaluatedItems)
-        ? (() => {
-            const rest = arktype(unevaluatedItems, rootName, isArktype, options)
-            // A rest that is an expression rather than a quoted definition — a long union
-            // written as `type.enumerated(...)` or an `.or` chain — becomes an array value.
-            const restArray = isPlainOperand(rest, true)
-              ? `"${rest.slice(1, -1)}[]"`
-              : isArktypeDefinition(rest)
-                ? `[${rest},"[]"]`
-                : `${rest}.array()`
-            return tuple(`[${items.join(',')},"...",${restArray}]`)
-          })()
-        : tuple(`[${items.join(',')}]`)
-      const baseTuple = arktypeWrap(
-        wireArray(describeWithMessage(tupleExpr, schema['x-prefixItems-message'])),
-        schema,
-      )
-      const unevalItemsMessage = schema['x-unevaluatedItems-message']
-      // An empty message is no message.
-      return unevaluatedItems === false && unevalItemsMessage
-        ? describeWithMessage(baseTuple, unevalItemsMessage)
-        : baseTuple
-    }
+  /**
+   * JSON Schema 2020-12 §10.3.1.1: `prefixItems` checks the leading elements only as far as
+   * the array goes, so every position is optional (`[def, "?"]`). The elements after it are
+   * held to `restSchema`, and are open without it; `false` closes the tuple.
+   */
+  const prefixTuple = (
+    prefixItems: readonly JSONSchema[],
+    restSchema: JSONSchema | boolean | undefined,
+  ) => {
+    const positions = prefixItems.map((s) => `[${arktype(s, rootName, isArktype, options)},"?"]`)
+    const rest = isSchemaObject(restSchema)
+      ? [`"..."`, restArray(arktype(restSchema, rootName, isArktype, options))]
+      : restSchema === false
+        ? []
+        : [`"..."`, `"unknown[]"`]
+    const definition = `[${[...positions, ...rest].join(',')}]`
+    // Inside a scope the tuple stays a definition, so the scope resolves an alias in it;
+    // the global `type(...)` cannot.
+    return describeWithMessage(
+      isArktype ? definition : `type(${definition})`,
+      schema['x-prefixItems-message'],
+    )
+  }
+  /** An array of the `items` schema, or of `unknown` without one. */
+  const itemsArray = () => {
     const itemSchema = itemsSchemaOf(schema.items)
     const items = itemSchema ? arktype(itemSchema, rootName, isArktype, options) : '"unknown"'
     // An item that is an expression rather than a definition — a morph on the wire, a
     // narrowed object — makes the array one too, and its constraints chain onto it. Inside
     // a scope a definition that may name a scope alias stays a tuple expression, which the
     // scope resolves; the global `type(...)` cannot.
-    const base = isPlainOperand(items, true)
+    return isPlainOperand(items, true)
       ? `"${items.slice(1, -1)}[]"`
       : isArktype && isArktypeDefinition(items)
         ? `[${items},"[]"]`
         : `type(${items}).array()`
+  }
+
+  if (types.includes('array')) {
+    // The element list: a `prefixItems` tuple, or an array of the `items` schema.
+    const prefixItems = schema.prefixItems ?? []
+    // `items` evaluates every element after the prefix (`true` leaves them open), so
+    // `unevaluatedItems` holds them only without it (§11.2).
+    const isItemsRest = typeof schema.items === 'boolean' || isSchemaObject(schema.items)
+    const restSchema = isItemsRest ? schema.items : schema.unevaluatedItems
+    // `contains` evaluates the elements it matches too, so beside it an `unevaluatedItems`
+    // schema or `false` holds the elements after the prefix to `contains` or to itself: a
+    // union rest, unless one side transforms its input, which ArkType cannot union with an
+    // overlapping type. Then the rest stays open and a narrow checks it.
+    const containsRestMembers =
+      prefixItems.length > 0 &&
+      !isItemsRest &&
+      schema.contains !== undefined &&
+      (restSchema === false || isSchemaObject(restSchema))
+        ? [schema.contains, ...(isSchemaObject(restSchema) ? [restSchema] : [])]
+        : undefined
+    const isContainsRestNarrowed =
+      containsRestMembers?.some((s) => readsInput(arktype(s, rootName, isArktype, options))) ===
+      true
+    const restOfTuple =
+      containsRestMembers === undefined
+        ? restSchema
+        : isContainsRestNarrowed
+          ? undefined
+          : { anyOf: containsRestMembers }
+    const base = prefixItems.length > 0 ? prefixTuple(prefixItems, restOfTuple) : itemsArray()
+    const isClosedTuple =
+      prefixItems.length > 0 && restSchema === false && containsRestMembers === undefined
     const { minItems, maxItems } = schema
     const isFixedLength = hasFixedItemCount(schema)
     // Per-keyword array messages via .narrow() with ctx.mustBe.
@@ -551,6 +602,11 @@ function node(
       minContainsMessage,
       maxContainsMessage,
     ].some(Boolean)
+    // ArkType refuses an unsatisfiable intersection when the module loads, so a closed tuple
+    // shorter than `minItems` checks the length in a narrow, which rejects every value.
+    const isLengthNarrowed =
+      hasArrayMessage ||
+      (isClosedTuple && typeof minItems === 'number' && minItems > prefixItems.length)
     // `and` / `narrow` on a definition that may name a scope-local alias must
     // stay in definition syntax; the global `type(...)` cannot resolve it.
     const andWith = (a: string, b: string) =>
@@ -561,14 +617,14 @@ function node(
         : `${isArktypeDefinition(a) ? `type(${a})` : a}.narrow(${narrowing})`
 
     const lengthExpr = isFixedLength
-      ? hasArrayMessage
+      ? isLengthNarrowed
         ? narrowWith(
             base,
             `(data: unknown[], ctx) => data.length === ${minItems} || ctx.mustBe(${JSON.stringify(fixedItemsMessage ?? `must contain exactly ${minItems} items`)})`,
           )
         : andWith(base, `"unknown[] == ${minItems}"`)
       : typeof minItems === 'number' && typeof maxItems === 'number'
-        ? hasArrayMessage
+        ? isLengthNarrowed
           ? narrowWith(
               narrowWith(
                 base,
@@ -578,14 +634,14 @@ function node(
             )
           : andWith(base, `"${minItems} <= unknown[] <= ${maxItems}"`)
         : typeof minItems === 'number'
-          ? hasArrayMessage
+          ? isLengthNarrowed
             ? narrowWith(
                 base,
                 `(data: unknown[], ctx) => data.length >= ${minItems} || ctx.mustBe(${JSON.stringify(minItemsMessage ?? `must contain at least ${minItems} items`)})`,
               )
             : andWith(base, `"unknown[] >= ${minItems}"`)
           : typeof maxItems === 'number'
-            ? hasArrayMessage
+            ? isLengthNarrowed
               ? narrowWith(
                   base,
                   `(data: unknown[], ctx) => data.length <= ${maxItems} || ctx.mustBe(${JSON.stringify(maxItemsMessage ?? `must contain at most ${maxItems} items`)})`,
@@ -599,12 +655,25 @@ function node(
             `(data: unknown[], ctx) => new Set(data).size === data.length${uniqueItemsMessage ? ` || ctx.mustBe(${JSON.stringify(uniqueItemsMessage)})` : ''}`,
           )
         : lengthExpr
+    const containsRt = schema.contains
+      ? callbackType(arktype(schema.contains, rootName, isArktype, options), isArktype)
+      : undefined
+    const unevalItemsMessage = schema['x-unevaluatedItems-message']
+    const unevaluatedNarrows = (() => {
+      if (!isContainsRestNarrowed || containsRt === undefined) return []
+      const restRt = isSchemaObject(restSchema)
+        ? ` || ${callbackType(arktype(restSchema, rootName, isArktype, options), isArktype)}.allows(item)`
+        : ''
+      const msg = unevalItemsMessage ?? 'an array with no unevaluated items'
+      return [
+        callbackReturn(
+          '(data: unknown[], ctx)',
+          `data.slice(${prefixItems.length}).every((item) => ${containsRt}.allows(item)${restRt}) || ctx.mustBe(${JSON.stringify(msg)})`,
+        ),
+      ]
+    })()
     const containsNarrows = (() => {
-      if (!schema.contains) return []
-      const containsRt = callbackType(
-        arktype(schema.contains, rootName, isArktype, options),
-        isArktype,
-      )
+      if (containsRt === undefined) return []
       const minC = schema.minContains
       const maxC = schema.maxContains
       if (minC === undefined && maxC === undefined) {
@@ -633,9 +702,9 @@ function node(
           : undefined
       return [minNarrow, maxNarrow].filter((v): v is string => v !== undefined)
     })()
-    // unevaluatedItems is handled in the prefixItems branch; with `items` alone,
+    // unevaluatedItems is read by the prefixItems tuple; with `items` alone,
     // JSON Schema 2020-12 §11.3 makes the keyword redundant.
-    const arrayExpr = containsNarrows.reduce(
+    const arrayExpr = [...containsNarrows, ...unevaluatedNarrows].reduce(
       // Inside a scope a definition keeps its narrows in definition syntax, which the
       // scope resolves.
       (acc, narrow) =>
@@ -644,7 +713,15 @@ function node(
           : `${asRuntime(acc)}.narrow(${narrow})`,
       uniqueExpr,
     )
-    return arktypeWrap(wireArray(describeWithMessage(arrayExpr, schema['x-items-message'])), schema)
+    const wrapped = arktypeWrap(
+      wireArray(describeWithMessage(arrayExpr, schema['x-items-message'])),
+      schema,
+    )
+    // A tuple closed by `unevaluatedItems: false` reports its own message. An empty message
+    // is no message.
+    return isClosedTuple && !isItemsRest && unevalItemsMessage
+      ? describeWithMessage(wrapped, unevalItemsMessage)
+      : wrapped
   }
 
   if (types.includes('object')) {

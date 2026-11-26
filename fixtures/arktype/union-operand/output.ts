@@ -3,7 +3,7 @@ import { type } from 'arktype'
 export const Schema = type({
   'tags?': type("'a' | 'b'").array(),
   'names?': type('string | null').array(),
-  'tuple?': type(['string', '...', ["'a' | 'b'", '[]']]),
+  'tuple?': type([['string', '?'], '...', ["'a' | 'b'", '[]']]),
   'both?': type('string | number').and('string | number'),
   'longNullable?': type(
     type(

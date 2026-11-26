@@ -1,16 +1,27 @@
 import { scope } from 'arktype'
 
-const types = scope({
+const $ = scope({
   Leaf: { id: 'string' },
   Leaves: 'Leaf[]',
   Node: {
     'ids?': 'Leaf[]',
     'children?': 'Node[]',
-    'pair?': ['Leaf'],
-    'path?': ['Leaf', '...', 'Node[]'],
+    'pair?': [['Leaf', '?'], '...', 'unknown[]'],
+    'path?': [['Leaf', '?'], '...', 'Node[]'],
+    'closed?': [['Leaf', '?']],
+    'rest?': [[['Leaf', '?'], '...', 'Node[]'], '&', 'unknown[] >= 2'],
+    'marked?': [
+      [['Leaf', '?'], '...', '1[]'],
+      ':',
+      (data: unknown[], ctx): boolean =>
+        data.some((item) => $.type('1').allows(item)) ||
+        ctx.mustBe('must contain at least one matching item'),
+    ],
     'refList?': 'Leaf[]',
   },
-}).export()
+})
+
+const types = $.export()
 
 export const Node = types.Node
 
