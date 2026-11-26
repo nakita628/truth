@@ -77,3 +77,19 @@ describe('typebox number', () => {
     })
   })
 })
+
+describe('typebox number: the range of a fixed-width format (#121)', () => {
+  it.each<[JSONSchema, string]>([
+    [
+      { type: 'number', format: 'float' },
+      'Type.Number({minimum:-3.4028234663852886e38,maximum:3.4028234663852886e38})',
+    ],
+    [
+      { type: 'number', format: 'float32', minimum: 0, maximum: 1e40 },
+      'Type.Number({minimum:0,maximum:3.4028234663852886e38})',
+    ],
+    [{ type: 'number', format: 'double' }, 'Type.Number()'],
+  ])('%o → %s', (schema, expected) => {
+    expect(number(schema)).toBe(expected)
+  })
+})

@@ -5,6 +5,7 @@ import { Config as AdditionalConfig } from '../additional-properties/output.ts'
 import { Bounded } from '../allof-keyword/output.ts'
 import { Amount } from '../bigint-bounds/output.ts'
 import { Limits } from '../bigint-defaults/output.ts'
+import { Sizes } from '../fixed-width-range/output.ts'
 import { Metadata } from '../pattern-hex/output.ts'
 import { Combined as AllofCombined } from '../allof/output.ts'
 import { StringOrNumber as AnyofStringOrNumber } from '../anyof/output.ts'
@@ -942,5 +943,36 @@ describe('wire-number', () => {
   ])('rejects %s=%s, outside the range of its format', (key, text) => {
     expect(Value.Check(WireNumberQuery, { [key]: text })).toBe(false)
     expect(() => Value.Decode(WireNumberQuery, { [key]: text })).toThrow()
+  })
+})
+
+describe('fixed-width-range (#121)', () => {
+  it.each([{ count: -2147483648 }, { count: 2147483647 }, { total: 4294967295 }, { ratio: 1.5 }])(
+    'accepts %j, within the format range',
+    (value) => {
+      expect(Value.Check(Sizes, value)).toBe(true)
+    },
+  )
+
+  it.each([
+    { count: 3000000000 },
+    { count: -2147483649 },
+    { total: 0 },
+    { total: 4294967296 },
+    { ratio: 1e39 },
+  ])('rejects %j, outside the format range', (value) => {
+    expect(Value.Check(Sizes, value)).toBe(false)
+  })
+
+  it('creates a value within the format beside a looser exclusive bound', () => {
+    const floor = Value.Create(Sizes.properties.floor)
+    expect(Value.Check(Sizes, { floor })).toBe(true)
+    expect(Value.Check(Sizes, { floor: -2147483649 })).toBe(false)
+  })
+
+  it('creates a multiple of multipleOf within the format', () => {
+    const step = Value.Create(Sizes.properties.step)
+    expect(Value.Check(Sizes, { step })).toBe(true)
+    expect(Value.Check(Sizes, { step: 2147483650 })).toBe(false)
   })
 })

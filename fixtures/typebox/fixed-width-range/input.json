@@ -1,0 +1,29 @@
+{
+  "title": "Sizes",
+  "type": "object",
+  "properties": {
+    "count": {
+      "type": "integer",
+      "format": "int32"
+    },
+    "total": {
+      "type": "integer",
+      "format": "uint32",
+      "minimum": 1
+    },
+    "ratio": {
+      "type": "number",
+      "format": "float"
+    },
+    "floor": {
+      "type": "integer",
+      "format": "int32",
+      "exclusiveMinimum": -1000000000000
+    },
+    "step": {
+      "type": "integer",
+      "format": "int32",
+      "multipleOf": 10
+    }
+  }
+}
