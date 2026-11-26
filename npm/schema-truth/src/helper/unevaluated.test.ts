@@ -358,8 +358,8 @@ describe('evaluated-key checks read \\p{…} with the u flag (#135)', () => {
     expect(out).not.toContain('new RegExp("^\\\\p{L}+$")')
   })
 
-  it('arktype reads a string pattern with a message as it does without one', () => {
+  it('arktype builds a string pattern with a message as the key patterns are', () => {
     const out = arktype({ type: 'string', pattern: '^\\p{L}+$', 'x-pattern-message': 'letters' })
-    expect(out).toContain('/^\\p{L}+$/u.test(data)')
+    expect(out).toContain('new RegExp("^\\\\p{L}+$","u").test(data)')
   })
 })
