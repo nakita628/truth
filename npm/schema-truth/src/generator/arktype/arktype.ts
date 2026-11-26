@@ -18,6 +18,7 @@ import {
 } from '../../guard/index.js'
 import { bigintValueLiteral } from '../../helper/bigint.js'
 import {
+  additionalBesideCombinator,
   enumWithoutWrappedNull,
   arktypePreprocess,
   arktypeWrap as _arktypeWrap,
@@ -267,6 +268,9 @@ function node(
   isArktype: boolean,
   options: EmitOptions | undefined,
 ) {
+  // `additionalProperties` beside a combinator holds the keys the node itself leaves.
+  const split = additionalBesideCombinator(schema)
+  if (split !== undefined) return node(split, rootName, isArktype, options)
   const codeExtOpts: ArktypeWrapOptions = {
     ...(options?.unsafeCodeExtensions === true && { unsafeCodeExtensions: true }),
     ...(isArktype && { scopeMode: true }),

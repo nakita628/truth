@@ -39,6 +39,7 @@ import { Payload as ParamJsonContentPayload } from '../param-json-content/output
 import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
 import { OwnKeys as DependentOwnKeys } from '../dependent-own-keys/output.ts'
 import { KeyChecks } from '../object-key-keywords/output.ts'
+import { Closed } from '../additional-beside-allof/output.ts'
 
 // valibot 1.3.x internals exposed in issue objects.
 const NAME_REGEX = /^[a-zA-Z]+$/
@@ -1559,6 +1560,17 @@ describe('object-key-keywords (#131)', () => {
   })
 
   it.each([{"counted": {"a": 1}}, {"loose": {"x": 1, "y": 2}}, {"dep": {"a": 1}}, {"open": "text"}, {"open": 5}, {"strings": {}}, {"strings": {"a": 1}}, {"letters": {"abc": 1}}, {"letters": {"1": "x"}}])('rejects %j', (value) => {
+    expect(passes(value)).toBe(false)
+  })
+})
+
+describe('additional-beside-allof (#138)', () => {
+  const passes = (value) => v.safeParse(Closed, value).success
+  it.each([{"box": {}}, {"box": {"a": "x", "b": "y"}}])('accepts %j', (value) => {
+    expect(passes(value)).toBe(true)
+  })
+
+  it.each([{"box": {"c": 1}}, {"box": {"a": "x", "c": 1}}])('rejects %j', (value) => {
     expect(passes(value)).toBe(false)
   })
 })
