@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.14.4
+
+### Patch Changes
+
+- [#169](https://github.com/nakita628/truth/pull/169) [`dfd5988`](https://github.com/nakita628/truth/commit/dfd5988c35e81d31212a1ba3d870d459c44d9818) Thanks [@nakita628](https://github.com/nakita628)! - Zod, Valibot, Effect and ArkType: an object with no `properties` (a record from an `additionalProperties` schema included) keeps `minProperties`, `maxProperties`, `dependentRequired`, `dependentSchemas` and `if` / `then` / `else` instead of dropping them. `{ type: 'object', additionalProperties: true }` is now an open object (`z.looseObject({})`, `v.looseObject({})`, `Schema.Record(Schema.String, Schema.Unknown)`, `type({})`) rather than any value; like every Zod and Valibot object, it drops the keys those libraries strip (`__proto__`, and in Valibot `constructor` and `prototype`), which key counts then do not see ([#130](https://github.com/nakita628/truth/issues/130)). ArkType keeps undeclared keys whenever a check reads them, and Effect keeps them for `dependentSchemas`, as the other targets do. TypeBox and Yup are unchanged.
+
 ## 0.14.3
 
 ### Patch Changes
