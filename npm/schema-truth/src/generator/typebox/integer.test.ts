@@ -239,3 +239,11 @@ describe('typebox integer: the range of a fixed-width format (#121)', () => {
     expect(integer(schema)).toBe(expected)
   })
 })
+
+describe('typebox integer: a fixed-width range beside multipleOf (#121)', () => {
+  it('puts each format bound on the nearest multiple inside the range', () => {
+    expect(integer({ type: 'integer', format: 'int32', multipleOf: 10 })).toBe(
+      'Type.Integer({minimum:-2147483640,maximum:2147483640,multipleOf:10})',
+    )
+  })
+})

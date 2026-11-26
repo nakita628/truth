@@ -44,9 +44,9 @@ export function integer(schema: JSONSchema, ref?: string) {
   // `x-error-message` joining as the catch-all under the ajv-errors `_`
   // convention.
   // A fixed-width format holds the value to its range too, as every other target does. Where
-  // its bound is the tighter one, it is the only bound on that side: TypeBox's \`Value.Create\`
-  // reads an \`exclusiveMinimum\` ahead of \`minimum\`, and a keyword's message would report the
-  // format's range, which falls to \`x-error-message\` as on the string wire.
+  // its bound is the tighter one, it is the only bound on that side: TypeBox's `Value.Create`
+  // reads an `exclusiveMinimum` ahead of `minimum`, and a keyword's message would report the
+  // format's range, which falls to `x-error-message` as on the string wire.
   const formatBounds = fixedWidthBounds(schema, 'integer')
   const isLowerFromFormat = formatBounds.minimum !== undefined
   const isUpperFromFormat = formatBounds.maximum !== undefined

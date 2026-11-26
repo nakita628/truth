@@ -19,6 +19,11 @@
       "type": "integer",
       "format": "int32",
       "exclusiveMinimum": -1000000000000
+    },
+    "step": {
+      "type": "integer",
+      "format": "int32",
+      "multipleOf": 10
     }
   }
 }

@@ -969,4 +969,10 @@ describe('fixed-width-range (#121)', () => {
     expect(Value.Check(Sizes, { floor })).toBe(true)
     expect(Value.Check(Sizes, { floor: -2147483649 })).toBe(false)
   })
+
+  it('creates a multiple of multipleOf within the format', () => {
+    const step = Value.Create(Sizes.properties.step)
+    expect(Value.Check(Sizes, { step })).toBe(true)
+    expect(Value.Check(Sizes, { step: 2147483650 })).toBe(false)
+  })
 })

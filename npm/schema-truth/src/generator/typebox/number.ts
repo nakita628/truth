@@ -26,9 +26,9 @@ export function number(schema: JSONSchema, ref?: string) {
   // present, with `x-error-message` joining as the catch-all under the
   // ajv-errors `_` convention. See typebox/integer.ts for the same pattern.
   // A fixed-width format holds the value to its range too, as every other target does. Where
-  // its bound is the tighter one, it is the only bound on that side: TypeBox's \`Value.Create\`
-  // reads an \`exclusiveMinimum\` ahead of \`minimum\`, and a keyword's message would report the
-  // format's range, which falls to \`x-error-message\` as on the string wire.
+  // its bound is the tighter one, it is the only bound on that side: TypeBox's `Value.Create`
+  // reads an `exclusiveMinimum` ahead of `minimum`, and a keyword's message would report the
+  // format's range, which falls to `x-error-message` as on the string wire.
   const formatBounds = fixedWidthBounds(schema, 'number')
   const isLowerFromFormat = formatBounds.minimum !== undefined
   const isUpperFromFormat = formatBounds.maximum !== undefined
@@ -110,12 +110,16 @@ export function fixedWidthBounds(schema: JSONSchema, kind: 'integer' | 'number')
     ...(maximum === undefined ? [] : [maximum]),
     ...(typeof exclusiveMaximum === 'number' ? [exclusiveMaximum] : []),
   ]
+  // TypeBox's `Value.Create` starts at `minimum` and never reads `multipleOf`, so beside a
+  // divisor each bound is the nearest multiple inside the range.
+  const { multipleOf } = schema
+  const step = typeof multipleOf === 'number' && multipleOf > 0 ? multipleOf : undefined
+  const low =
+    step === undefined ? range.minimum : String(Math.ceil(Number(range.minimum) / step) * step)
+  const high =
+    step === undefined ? range.maximum : String(Math.floor(Number(range.maximum) / step) * step)
   return {
-    minimum: lowerBounds.some((bound) => bound >= Number(range.minimum))
-      ? undefined
-      : range.minimum,
-    maximum: upperBounds.some((bound) => bound <= Number(range.maximum))
-      ? undefined
-      : range.maximum,
+    minimum: lowerBounds.some((bound) => bound >= Number(range.minimum)) ? undefined : low,
+    maximum: upperBounds.some((bound) => bound <= Number(range.maximum)) ? undefined : high,
   }
 }
