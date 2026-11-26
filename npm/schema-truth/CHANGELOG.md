@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.14.6
+
+### Patch Changes
+
+- [#174](https://github.com/nakita628/truth/pull/174) [`f31166c`](https://github.com/nakita628/truth/commit/f31166cc48b58d837e85d474eb10392d8b5741db) Thanks [@nakita628](https://github.com/nakita628)! - Zod, Valibot, Effect and ArkType: `patternProperties` patterns and the evaluated-key checks for `additionalProperties` / `unevaluatedProperties` are now built like the string `pattern` keyword, so `\p{…}` and braced hex escapes get the `u` flag and match. So is ArkType's string `pattern` with an `x-pattern-message`. ArkType's index-signature keys beside an `allOf` are unchanged.
+
 ## 0.14.5
 
 ### Patch Changes
