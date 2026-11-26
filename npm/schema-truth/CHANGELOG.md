@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.15.2
+
+### Patch Changes
+
+- [#185](https://github.com/nakita628/truth/pull/185) [`8f15291`](https://github.com/nakita628/truth/commit/8f152913dc5c83d8f51f93cb5d3e06f0de2e477c) Thanks [@nakita628](https://github.com/nakita628)! - Zod, Valibot, Effect and ArkType: a keyword-only `allOf` member that no sibling absorbs is now checked once per distinct message its keywords report (each keyword's own, else `x-error-message`), so keywords sharing a message are reported once. `{ minimum: 5, maximum: 9, 'x-minimum-message': 'low', 'x-maximum-message': 'high' }` now reports "high" for 10, where it used to report "low" for any failure.
+
 ## 0.15.1
 
 ### Patch Changes
