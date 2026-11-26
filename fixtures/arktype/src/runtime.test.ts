@@ -1175,11 +1175,12 @@ describe('object-key-keywords (#131)', () => {
 
 describe('additional-beside-allof (#138)', () => {
   const passes = (value) => !(Closed(value) instanceof type.errors)
-  it.each([{"box": {}}, {"box": {"a": "x", "b": "y"}}])('accepts %j', (value) => {
+  // ArkType carries no default, so the defaulted key stays required.
+  it.each([{"box": {}, "filled": {}}, {"box": {"a": "x", "b": "y"}, "filled": {}}, {"either": "x", "filled": {}}, {"either": {"a": 1}, "filled": {}}])('accepts %j', (value) => {
     expect(passes(value)).toBe(true)
   })
 
-  it.each([{"box": {"c": 1}}, {"box": {"a": "x", "c": 1}}])('rejects %j', (value) => {
+  it.each([{"box": {"c": 1}, "filled": {}}, {"box": {"a": "x", "c": 1}, "filled": {}}, {"either": {"c": 1}, "filled": {}}, {"filled": {"c": 1}}])('rejects %j', (value) => {
     expect(passes(value)).toBe(false)
   })
 })

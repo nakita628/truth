@@ -1566,11 +1566,11 @@ describe('object-key-keywords (#131)', () => {
 
 describe('additional-beside-allof (#138)', () => {
   const passes = (value) => v.safeParse(Closed, value).success
-  it.each([{"box": {}}, {"box": {"a": "x", "b": "y"}}])('accepts %j', (value) => {
+  it.each([{"box": {}}, {"box": {"a": "x", "b": "y"}}, {"either": "x"}, {"either": {"a": 1}}, {}])('accepts %j', (value) => {
     expect(passes(value)).toBe(true)
   })
 
-  it.each([{"box": {"c": 1}}, {"box": {"a": "x", "c": 1}}])('rejects %j', (value) => {
+  it.each([{"box": {"c": 1}}, {"box": {"a": "x", "c": 1}}, {"either": {"c": 1}}, {"filled": {"c": 1}}])('rejects %j', (value) => {
     expect(passes(value)).toBe(false)
   })
 })

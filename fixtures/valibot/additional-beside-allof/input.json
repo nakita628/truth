@@ -26,6 +26,37 @@
         "b": {}
       },
       "additionalProperties": false
+    },
+    "either": {
+      "anyOf": [
+        {
+          "type": "string"
+        },
+        {
+          "type": "object",
+          "properties": {
+            "a": {
+              "type": "number"
+            }
+          }
+        }
+      ],
+      "properties": {
+        "a": {}
+      },
+      "additionalProperties": false
+    },
+    "filled": {
+      "allOf": [
+        {
+          "type": "object"
+        }
+      ],
+      "default": {},
+      "additionalProperties": false
     }
-  }
+  },
+  "required": [
+    "filled"
+  ]
 }
