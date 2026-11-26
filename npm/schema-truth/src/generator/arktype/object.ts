@@ -17,6 +17,7 @@ import {
   propertyNamesKeyCheck,
   withoutShadowedUnevaluated,
 } from '../../helper/index.js'
+import { regexConstructor } from '../../helper/regex.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { makeSafeKey } from '../../utils/index.js'
@@ -84,7 +85,7 @@ export function object(
       ? Object.entries(schema.patternProperties).map(([pattern, propSchema]) => {
           const s = callbackType(arktype(propSchema, rootName, isArktype, options), isArktype)
           return narrowPredicate(
-            `Object.entries(data).every(([key, value]) => !new RegExp(${JSON.stringify(pattern)}).test(key) || ${s}.allows(value))`,
+            `Object.entries(data).every(([key, value]) => !${regexConstructor(pattern)}.test(key) || ${s}.allows(value))`,
             patternPropsMessage,
           )
         })

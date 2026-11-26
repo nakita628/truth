@@ -40,6 +40,7 @@ import {
   discriminatedMembers,
 } from '../../helper/index.js'
 import type { EffectWrapOptions } from '../../helper/index.js'
+import { regexConstructor } from '../../helper/regex.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { effectError, effectErrorPart, makeSafeKey, normalizeTypes } from '../../utils/index.js'
@@ -155,7 +156,7 @@ function objectKeysCheck(
   const filters = [
     ...patterns.map(
       ([pattern, propSchema]) =>
-        `Schema.makeFilter((input)=>typeof input!=='object'||input===null||Array.isArray(input)||Object.entries(input).every(([k,v])=>!new RegExp(${JSON.stringify(pattern)}).test(k)||${accepts(propSchema)})${effectErrorPart(schema['x-patternProperties-message'])})`,
+        `Schema.makeFilter((input)=>typeof input!=='object'||input===null||Array.isArray(input)||Object.entries(input).every(([k,v])=>!${regexConstructor(pattern)}.test(k)||${accepts(propSchema)})${effectErrorPart(schema['x-patternProperties-message'])})`,
     ),
     ...(evaluated === undefined
       ? []

@@ -15,6 +15,7 @@ import {
   propertyNamesKeyCheck,
   withoutShadowedUnevaluated,
 } from '../../helper/index.js'
+import { regexConstructor } from '../../helper/regex.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import { effectError, effectErrorPart, makeSafeKey } from '../../utils/index.js'
@@ -69,7 +70,7 @@ export function object(
     schema.patternProperties
       ? Object.entries(schema.patternProperties).map(([pattern, propSchema]) => {
           const s = effect(propSchema, rootName, isEffect, options)
-          return `Schema.makeFilter((input)=>Object.entries(input).every(([key,value])=>!new RegExp(${JSON.stringify(pattern)}).test(key)||Schema.is(Schema.toEncoded(${s}))(value))${patternErrorArg})`
+          return `Schema.makeFilter((input)=>Object.entries(input).every(([key,value])=>!${regexConstructor(pattern)}.test(key)||Schema.is(Schema.toEncoded(${s}))(value))${patternErrorArg})`
         })
       : []
 

@@ -1,6 +1,6 @@
 import { hasFixedLength, isQuoted } from '../../guard/index.js'
 import { formatPattern } from '../../helper/format.js'
-import { regexLiteral } from '../../helper/regex.js'
+import { regexLiteral, regexConstructor } from '../../helper/regex.js'
 import type { JSONSchema } from '../../parser/index.js'
 
 /** The formats ArkType checks with a keyword of its own, keyed by the lower-cased format. */
@@ -94,7 +94,7 @@ export function string(schema: JSONSchema) {
   const narrows: string[] = []
   if (schema.pattern && patternMessage) {
     narrows.push(
-      `.narrow((data, ctx) => new RegExp(${JSON.stringify(schema.pattern)}).test(data) || ctx.mustBe(${JSON.stringify(patternMessage)}))`,
+      `.narrow((data, ctx) => ${regexConstructor(schema.pattern)}.test(data) || ctx.mustBe(${JSON.stringify(patternMessage)}))`,
     )
   }
   if (hasFixedLength(schema)) {

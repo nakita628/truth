@@ -29,6 +29,15 @@
         "type": "string"
       },
       "minProperties": 1
+    },
+    "letters": {
+      "type": "object",
+      "patternProperties": {
+        "^\\p{L}+$": {
+          "type": "string"
+        }
+      },
+      "additionalProperties": false
     }
   }
 }

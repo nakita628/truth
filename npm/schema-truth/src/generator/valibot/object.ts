@@ -18,6 +18,7 @@ import {
   requiredKeysCheck,
   withoutShadowedUnevaluated,
 } from '../../helper/index.js'
+import { regexConstructor } from '../../helper/regex.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import {
@@ -85,7 +86,7 @@ export function object(
     schema.patternProperties
       ? Object.entries(schema.patternProperties).map(([pattern, propSchema]) => {
           const s = valibot(propSchema, rootName, isValibot, options)
-          return `v.check((input)=>Object.entries(input).every(([key,value])=>!new RegExp(${JSON.stringify(pattern)}).test(key)||v.safeParse(${s},value).success)${patternErrorArg})`
+          return `v.check((input)=>Object.entries(input).every(([key,value])=>!${regexConstructor(pattern)}.test(key)||v.safeParse(${s},value).success)${patternErrorArg})`
         })
       : []
 

@@ -1,5 +1,9 @@
 import { describe, expect, it } from 'vite-plus/test'
 
+import { arktype } from '../generator/arktype/arktype.js'
+import { effect } from '../generator/effect/effect.js'
+import { valibot } from '../generator/valibot/valibot.js'
+import { zod } from '../generator/zod/zod.js'
 import type { JSONSchema } from '../parser/index.js'
 import {
   evaluatedProperties,
@@ -318,5 +322,22 @@ describe('ownKeyCheck / requiredKeysCheck (#94)', () => {
     [['a', '__proto__'], ['__proto__'], 'Object.hasOwn(val,"a")&&("__proto__" in val)'],
   ])('requiredKeysCheck(val, %j, %j) → %s', (required, stripped, expected) => {
     expect(requiredKeysCheck('val', required, stripped)).toBe(expected)
+  })
+})
+
+describe('key patterns read \\p{…} with the u flag (#135)', () => {
+  it.each([
+    ['zod', zod],
+    ['valibot', valibot],
+    ['effect', effect],
+    ['arktype', arktype],
+  ] as const)('%s', (_, generate) => {
+    const out = generate({
+      type: 'object',
+      patternProperties: { '^\\p{L}+$': { type: 'string' } },
+      additionalProperties: false,
+    })
+    expect(out).toContain('new RegExp("^\\\\p{L}+$","u")')
+    expect(out).not.toContain('new RegExp("^\\\\p{L}+$")')
   })
 })

@@ -7,6 +7,7 @@ import {
   readsRecordKeys,
 } from '../../guard/index.js'
 import { propertyEmitOptions } from '../../helper/parameter.js'
+import { regexConstructor } from '../../helper/regex.js'
 import {
   hasBranchKeys,
   evaluatedObjectKeysCheck,
@@ -176,7 +177,7 @@ export function object(input: JSONSchema, rootName: string, isZod: boolean, opti
     ? Object.entries(schema.patternProperties)
         .map(([pattern, propSchema]) => {
           const z = zod(propSchema, rootName, isZod, options)
-          return `.refine((val)=>Object.entries(val).every(([key,value])=>!new RegExp(${JSON.stringify(pattern)}).test(key)||${z}.safeParse(value).success)${patternErrorArg})`
+          return `.refine((val)=>Object.entries(val).every(([key,value])=>!${regexConstructor(pattern)}.test(key)||${z}.safeParse(value).success)${patternErrorArg})`
         })
         .join('')
     : ''

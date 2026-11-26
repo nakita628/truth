@@ -46,6 +46,7 @@ import {
   leadingStringSchema,
 } from '../../helper/index.js'
 import type { ValibotWrapOptions } from '../../helper/index.js'
+import { regexConstructor } from '../../helper/regex.js'
 import type { EmitOptions } from '../../options/index.js'
 import type { JSONSchema } from '../../parser/index.js'
 import {
@@ -156,7 +157,7 @@ function objectKeysCheck(
   const patternChecks = patterns
     .map(
       ([pattern, propSchema]) =>
-        `if(new RegExp(${JSON.stringify(pattern)}).test(k)){const result=v.safeParse(${valibot(propSchema, rootName, isValibot, options)},val);if(!result.success){${forwardKeyIssues(patternMessage)}}}`,
+        `if(${regexConstructor(pattern)}.test(k)){const result=v.safeParse(${valibot(propSchema, rootName, isValibot, options)},val);if(!result.success){${forwardKeyIssues(patternMessage)}}}`,
     )
     .join('')
   const message = schema['x-unevaluatedProperties-message']

@@ -1554,11 +1554,11 @@ describe('valibot fixtures: dependent-own-keys runtime (#94)', () => {
 
 describe('object-key-keywords (#131)', () => {
   const passes = (value) => v.safeParse(KeyChecks, value).success
-  it.each([{"counted": {"a": 1, "b": 2}}, {"loose": {"x": 1}}, {"dep": {"a": 1, "b": 2}}, {"dep": {"b": 2}}, {"open": {"x": 1}}, {"strings": {"a": "x"}}])('accepts %j', (value) => {
+  it.each([{"counted": {"a": 1, "b": 2}}, {"loose": {"x": 1}}, {"dep": {"a": 1, "b": 2}}, {"dep": {"b": 2}}, {"open": {"x": 1}}, {"strings": {"a": "x"}}, {"letters": {"abc": "x"}}])('accepts %j', (value) => {
     expect(passes(value)).toBe(true)
   })
 
-  it.each([{"counted": {"a": 1}}, {"loose": {"x": 1, "y": 2}}, {"dep": {"a": 1}}, {"open": "text"}, {"open": 5}, {"strings": {}}, {"strings": {"a": 1}}])('rejects %j', (value) => {
+  it.each([{"counted": {"a": 1}}, {"loose": {"x": 1, "y": 2}}, {"dep": {"a": 1}}, {"open": "text"}, {"open": 5}, {"strings": {}}, {"strings": {"a": 1}}, {"letters": {"abc": 1}}, {"letters": {"1": "x"}}])('rejects %j', (value) => {
     expect(passes(value)).toBe(false)
   })
 })
