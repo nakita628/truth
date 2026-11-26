@@ -90,9 +90,13 @@ import { makeAdapter, makeSchemaDeclarations, makeSchemaIdentifiers } from 'oas-
 
 const identifiers = makeSchemaIdentifiers(schemas)
 const declarations = makeSchemaDeclarations(schemas, makeAdapter('arktype'))
-// a cyclic file: import { type, scope } from 'arktype'
-// a non-cyclic file: import { type } from 'arktype'
-const source = `${declarations[0]?.importLine}\n\n${declarations[0]?.code}`
+// a cyclic file: import { type, scope } from 'arktype' (or just scope when it never calls type)
+// a non-cyclic file: import { type } from 'arktype', or '' when it calls neither (a $ref alias)
+const declaration = declarations[0]
+const source =
+  declaration?.importLine === ''
+    ? declaration.code
+    : `${declaration?.importLine}\n\n${declaration?.code}`
 ```
 
 ## Discriminator values

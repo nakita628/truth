@@ -29,5 +29,5 @@ export function joinDeclarations(
   const text = options?.trailingNewline === true ? `${body}\n` : body
   const importLine =
     typeof options?.importLine === 'function' ? options.importLine(body) : options?.importLine
-  return importLine === undefined ? text : `${importLine}\n\n${text}`
+  return importLine === undefined || importLine === '' ? text : `${importLine}\n\n${text}`
 }
