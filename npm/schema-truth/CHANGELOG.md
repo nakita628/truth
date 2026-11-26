@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.15.1
+
+### Patch Changes
+
+- [#181](https://github.com/nakita628/truth/pull/181) [`8eca4c5`](https://github.com/nakita628/truth/commit/8eca4c56a9bec85470a5ae5a7ee4a99490331fd9) Thanks [@nakita628](https://github.com/nakita628)! - ArkType: a required key named like an `Object.prototype` member (`toString`, `constructor`, …) is now checked as an own key, so `{ type: 'object', required: ['toString'] }` refuses `{}` as Zod, Valibot and Effect do. It used to pass, because ArkType found the inherited member.
+
 ## 0.15.0
 
 ### Minor Changes
