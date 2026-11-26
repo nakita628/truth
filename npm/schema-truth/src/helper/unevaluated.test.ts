@@ -341,3 +341,25 @@ describe('key patterns read \\p{…} with the u flag (#135)', () => {
     expect(out).not.toContain('new RegExp("^\\\\p{L}+$")')
   })
 })
+
+describe('evaluated-key checks read \\p{…} with the u flag (#135)', () => {
+  it.each([
+    ['zod', zod],
+    ['valibot', valibot],
+    ['effect', effect],
+  ] as const)('%s with unevaluatedProperties: false', (_, generate) => {
+    const out = generate({
+      type: 'object',
+      allOf: [{ type: 'object' }],
+      patternProperties: { '^\\p{L}+$': { type: 'number' } },
+      unevaluatedProperties: false,
+    })
+    expect(out).toContain('new RegExp("^\\\\p{L}+$","u")')
+    expect(out).not.toContain('new RegExp("^\\\\p{L}+$")')
+  })
+
+  it('arktype reads a string pattern with a message as it does without one', () => {
+    const out = arktype({ type: 'string', pattern: '^\\p{L}+$', 'x-pattern-message': 'letters' })
+    expect(out).toContain('/^\\p{L}+$/u.test(data)')
+  })
+})

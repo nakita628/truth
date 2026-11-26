@@ -2,10 +2,7 @@ import { type } from 'arktype'
 
 export const User = type({
   name: type('string')
-    .narrow(
-      (data, ctx) =>
-        new RegExp('^[a-zA-Z]+$').test(data) || ctx.mustBe('Only alphabetic characters'),
-    )
+    .narrow((data, ctx) => /^[a-zA-Z]+$/.test(data) || ctx.mustBe('Only alphabetic characters'))
     .narrow((data, ctx) => [...data].length >= 3 || ctx.mustBe('Name too short'))
     .narrow((data, ctx) => [...data].length <= 20 || ctx.mustBe('Name too long'))
     .describe('Invalid name'),
