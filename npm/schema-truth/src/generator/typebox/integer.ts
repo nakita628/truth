@@ -1,6 +1,7 @@
 import { bigintBounds } from '../../helper/bigint.js'
 import { typeboxDefaultOpt, typeboxMetaOpts, typeboxRefOpt } from '../../helper/meta.js'
 import type { JSONSchema } from '../../parser/index.js'
+import { fixedWidthBounds } from './number.js'
 
 // `Type.BigInt` takes its bounds as numbers, which keeps the schema serializable where a
 // bigint literal makes `JSON.stringify` throw. It carries no `default` (`typeboxDefaultOpt`):
@@ -87,13 +88,27 @@ export function integer(schema: JSONSchema, ref?: string) {
     return 'Type.BigInt()'
   }
 
+  // A fixed-width format holds the value to its range too, as every other target does.
+  const formatBounds = fixedWidthBounds(schema, 'integer')
   const opts = [
     ...typeboxRefOpt(ref),
-    schema.minimum !== undefined ? `${minimumKeyword}:${schema.minimum}` : undefined,
+    schema.minimum !== undefined
+      ? `${minimumKeyword}:${minimumKeyword === 'minimum' ? (formatBounds.minimum ?? schema.minimum) : schema.minimum}`
+      : undefined,
+    formatBounds.minimum !== undefined &&
+    (schema.minimum === undefined || minimumKeyword !== 'minimum')
+      ? `minimum:${formatBounds.minimum}`
+      : undefined,
     typeof schema.exclusiveMinimum === 'number'
       ? `exclusiveMinimum:${schema.exclusiveMinimum}`
       : undefined,
-    schema.maximum !== undefined ? `${maximumKeyword}:${schema.maximum}` : undefined,
+    schema.maximum !== undefined
+      ? `${maximumKeyword}:${maximumKeyword === 'maximum' ? (formatBounds.maximum ?? schema.maximum) : schema.maximum}`
+      : undefined,
+    formatBounds.maximum !== undefined &&
+    (schema.maximum === undefined || maximumKeyword !== 'maximum')
+      ? `maximum:${formatBounds.maximum}`
+      : undefined,
     typeof schema.exclusiveMaximum === 'number'
       ? `exclusiveMaximum:${schema.exclusiveMaximum}`
       : undefined,

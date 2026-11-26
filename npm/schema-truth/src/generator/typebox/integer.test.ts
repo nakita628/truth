@@ -197,3 +197,27 @@ describe('typebox integer: bigint bounds and divisors a bigint can take', () => 
     expect(integer(schema)).toBe(expected)
   })
 })
+
+describe('typebox integer: the range of a fixed-width format (#121)', () => {
+  it.each<[JSONSchema, string]>([
+    [
+      { type: 'integer', format: 'int32' },
+      'Type.Integer({minimum:-2147483648,maximum:2147483647})',
+    ],
+    [{ type: 'integer', format: 'uint32' }, 'Type.Integer({minimum:0,maximum:4294967295})'],
+    [
+      { type: 'integer', format: 'int32', minimum: 1, maximum: 9_999_999_999 },
+      'Type.Integer({minimum:1,maximum:2147483647})',
+    ],
+    [
+      { type: 'integer', format: 'uint32', exclusiveMinimum: 5, maximum: 10 },
+      'Type.Integer({exclusiveMinimum:5,maximum:10})',
+    ],
+    [
+      { type: 'integer', format: 'int32', minimum: -1e12, exclusiveMinimum: true },
+      'Type.Integer({exclusiveMinimum:-1000000000000,minimum:-2147483648,maximum:2147483647})',
+    ],
+  ])('%o → %s', (schema, expected) => {
+    expect(integer(schema)).toBe(expected)
+  })
+})

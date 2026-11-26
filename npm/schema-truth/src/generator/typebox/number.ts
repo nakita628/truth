@@ -1,3 +1,4 @@
+import { NUMBER_RANGES } from '../../constants/index.js'
 import { typeboxDefaultOpt, typeboxMetaOpts, typeboxRefOpt } from '../../helper/meta.js'
 import type { JSONSchema } from '../../parser/index.js'
 
@@ -48,13 +49,27 @@ export function number(schema: JSONSchema, ref?: string) {
           errorMessage ? `,_:${JSON.stringify(errorMessage)}` : ''
         }}`
 
+  // A fixed-width format holds the value to its range too, as every other target does.
+  const formatBounds = fixedWidthBounds(schema, 'number')
   const opts = [
     ...typeboxRefOpt(ref),
-    schema.minimum !== undefined ? `${minimumKeyword}:${schema.minimum}` : undefined,
+    schema.minimum !== undefined
+      ? `${minimumKeyword}:${minimumKeyword === 'minimum' ? (formatBounds.minimum ?? schema.minimum) : schema.minimum}`
+      : undefined,
+    formatBounds.minimum !== undefined &&
+    (schema.minimum === undefined || minimumKeyword !== 'minimum')
+      ? `minimum:${formatBounds.minimum}`
+      : undefined,
     typeof schema.exclusiveMinimum === 'number'
       ? `exclusiveMinimum:${schema.exclusiveMinimum}`
       : undefined,
-    schema.maximum !== undefined ? `${maximumKeyword}:${schema.maximum}` : undefined,
+    schema.maximum !== undefined
+      ? `${maximumKeyword}:${maximumKeyword === 'maximum' ? (formatBounds.maximum ?? schema.maximum) : schema.maximum}`
+      : undefined,
+    formatBounds.maximum !== undefined &&
+    (schema.maximum === undefined || maximumKeyword !== 'maximum')
+      ? `maximum:${formatBounds.maximum}`
+      : undefined,
     typeof schema.exclusiveMaximum === 'number'
       ? `exclusiveMaximum:${schema.exclusiveMaximum}`
       : undefined,
@@ -68,4 +83,38 @@ export function number(schema: JSONSchema, ref?: string) {
     return `Type.Number({${opts.join(',')}})`
   }
   return 'Type.Number()'
+}
+
+/**
+ * The bounds a fixed-width format (`int32` / `uint32` for an integer, `float` / `float32`
+ * for a number) adds to a node, as the literals to emit: each is left out when the node's
+ * own bound on that side is already as tight, so the tighter of the two applies.
+ */
+export function fixedWidthBounds(schema: JSONSchema, kind: 'integer' | 'number') {
+  const { format, minimum, maximum, exclusiveMinimum, exclusiveMaximum } = schema
+  const range =
+    kind === 'integer'
+      ? format === 'int32' || format === 'uint32'
+        ? NUMBER_RANGES[format]
+        : undefined
+      : format === 'float' || format === 'float32'
+        ? NUMBER_RANGES.float32
+        : undefined
+  if (range === undefined) return {}
+  const lowerBounds = [
+    ...(minimum === undefined ? [] : [minimum]),
+    ...(typeof exclusiveMinimum === 'number' ? [exclusiveMinimum] : []),
+  ]
+  const upperBounds = [
+    ...(maximum === undefined ? [] : [maximum]),
+    ...(typeof exclusiveMaximum === 'number' ? [exclusiveMaximum] : []),
+  ]
+  return {
+    minimum: lowerBounds.some((bound) => bound >= Number(range.minimum))
+      ? undefined
+      : range.minimum,
+    maximum: upperBounds.some((bound) => bound <= Number(range.maximum))
+      ? undefined
+      : range.maximum,
+  }
 }

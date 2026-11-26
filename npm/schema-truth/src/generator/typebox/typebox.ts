@@ -36,7 +36,7 @@ import type { JSONSchema, ParamIn } from '../../parser/index.js'
 import { makeSafeKey, normalizeTypes, resolveOpenAPIRef } from '../../utils/index.js'
 import { _enum } from './enum.js'
 import { integer } from './integer.js'
-import { number } from './number.js'
+import { fixedWidthBounds, number } from './number.js'
 import { object } from './object.js'
 import { string } from './string.js'
 
@@ -279,33 +279,14 @@ function numericRange(kind: 'integer' | 'number'): NumericBound {
  * Its messages are the `x-error-message`, since it is the format's range, not a keyword's.
  */
 function formatRange(schema: JSONSchema, kind: 'integer' | 'number'): readonly NumericBound[] {
-  const { format, minimum, maximum, exclusiveMinimum, exclusiveMaximum } = schema
-  const range =
-    kind === 'integer'
-      ? format === 'int32' || format === 'uint32'
-        ? NUMBER_RANGES[format]
-        : undefined
-      : format === 'float' || format === 'float32'
-        ? NUMBER_RANGES.float32
-        : undefined
-  if (range === undefined) return []
-  const low = Number(range.minimum)
-  const high = Number(range.maximum)
-  const lowerBounds = [
-    ...(minimum === undefined ? [] : [minimum]),
-    ...(typeof exclusiveMinimum === 'number' ? [exclusiveMinimum] : []),
-  ]
-  const upperBounds = [
-    ...(maximum === undefined ? [] : [maximum]),
-    ...(typeof exclusiveMaximum === 'number' ? [exclusiveMaximum] : []),
-  ]
+  const { minimum, maximum } = fixedWidthBounds(schema, kind)
   return [
-    ...(lowerBounds.some((bound) => bound >= low)
+    ...(minimum === undefined
       ? []
-      : [[`Number(value)>=${range.minimum}`, 'error', `must be >= ${range.minimum}`] as const]),
-    ...(upperBounds.some((bound) => bound <= high)
+      : [[`Number(value)>=${minimum}`, 'error', `must be >= ${minimum}`] as const]),
+    ...(maximum === undefined
       ? []
-      : [[`Number(value)<=${range.maximum}`, 'error', `must be <= ${range.maximum}`] as const]),
+      : [[`Number(value)<=${maximum}`, 'error', `must be <= ${maximum}`] as const]),
   ]
 }
 
