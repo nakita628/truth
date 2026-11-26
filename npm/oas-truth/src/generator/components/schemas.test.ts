@@ -533,6 +533,30 @@ describe('makeSchemaDeclarations', () => {
     expect(makeAdapter('arktype').renderImport({ code: 'export const ASchema=BSchema' })).toBe('')
   })
 
+  it.each(['zod', 'valibot', 'effect'] as const)(
+    '%s: a renamed self-recursive schema refers to itself in its cyclic type (#149)',
+    (lib) => {
+      const code = makeSchemaDeclarations(
+        {
+          'foo-bar': { type: 'string' },
+          FooBar: {
+            type: 'object',
+            properties: { child: { $ref: '#/components/schemas/FooBar' } },
+          },
+          FooBar2: { type: 'number' },
+        },
+        makeAdapter(lib),
+      )
+        .map((d) => d.code)
+        .join('\n')
+      // `FooBar` is renamed `FooBar2` beside `foo-bar`; its child is itself, not `FooBar22`.
+      const typeLine = code.split('\n').find((line) => line.startsWith('type FooBar2Type'))
+      expect(typeLine).toBeDefined()
+      expect(typeLine).not.toContain('FooBar2Schema')
+      expect(typeLine).not.toContain('FooBar22')
+    },
+  )
+
   it('keeps the Zod-shaped helper when cyclicTypeStyle is literal', () => {
     expect(
       makeSchemaDeclarations(selfCycle, makeAdapter('valibot'), { cyclicTypeStyle: 'literal' })[0]
