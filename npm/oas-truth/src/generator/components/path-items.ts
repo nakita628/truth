@@ -20,6 +20,7 @@ export function makePathItemsDeclarations(
     const replacements = makeSchemaReplacements(pathItem, adapter, {
       slot: 'response-content',
       ...(options?.identifiers && { identifiers: options.identifiers }),
+      ...(components.schemas && { schemas: components.schemas }),
     })
     return {
       name,

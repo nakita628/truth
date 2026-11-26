@@ -93,3 +93,37 @@ describe('makeHeadersDeclarations', () => {
     expect(makeHeadersDeclarations({}, zod)).toStrictEqual([])
   })
 })
+
+// An inline discriminator over members that hold their own values (#109).
+const filterSchemas = {
+  ComparisonFilter: {
+    type: 'object',
+    properties: { type: { type: 'string', enum: ['eq', 'ne'] }, key: { type: 'string' } },
+    required: ['type', 'key'],
+  },
+  CompoundFilter: {
+    type: 'object',
+    properties: { type: { type: 'string', enum: ['and', 'or'] } },
+    required: ['type'],
+  },
+}
+const filter = {
+  oneOf: [
+    { $ref: '#/components/schemas/ComparisonFilter' },
+    { $ref: '#/components/schemas/CompoundFilter' },
+  ],
+  discriminator: { propertyName: 'type' },
+}
+const ownValues = 'z.intersection(ComparisonFilterSchema,z.object({type:z.enum(["eq","ne"])}))'
+
+describe("an inline discriminator takes its members' own values (#109)", () => {
+  it('pins them from components.schemas', () => {
+    const components = {
+      schemas: filterSchemas,
+      headers: { Filter: { schema: filter } },
+    } as unknown as Components
+    const code = makeHeadersCode(components, zod)
+    expect(code).toContain(ownValues)
+    expect(code).not.toContain('"ComparisonFilter"')
+  })
+})

@@ -21,6 +21,7 @@ export function makeCallbacksDeclarations(
     const replacements = makeSchemaReplacements(callback, adapter, {
       slot: 'response-content',
       ...(options?.identifiers && { identifiers: options.identifiers }),
+      ...(components.schemas && { schemas: components.schemas }),
     })
     return [
       {

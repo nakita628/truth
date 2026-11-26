@@ -20,6 +20,7 @@ export function makeRequestBodiesDeclarations(
     const replacements = makeSchemaReplacements(body, adapter, {
       slot: 'request-content',
       ...(options?.identifiers && { identifiers: options.identifiers }),
+      ...(components.schemas && { schemas: components.schemas }),
     })
     return {
       name,

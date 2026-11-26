@@ -1,6 +1,7 @@
 import type { ComponentAdapter, SchemaSlot } from '../adapter/index.js'
 import type { Schema } from '../openapi/index.js'
 import { isRecord, makeSchemaVarName } from '../utils/index.js'
+import { pinInlineDiscriminatorValues } from './discriminator.js'
 
 function isInlineSchema(value: unknown): value is Schema {
   if (!isRecord(value)) return false
@@ -21,6 +22,11 @@ function isInlineSchema(value: unknown): value is Schema {
 export type SchemaReplacementsOptions = {
   readonly slot?: SchemaSlot
   readonly identifiers?: ReadonlyMap<string, string>
+  /**
+   * The document's `components.schemas`: an inline discriminator pins its unmapped members'
+   * own values from them, as a component declaration does.
+   */
+  readonly schemas?: { readonly [k: string]: Schema }
 }
 
 function slotAt(path: readonly string[], fallback?: SchemaSlot) {
@@ -52,7 +58,9 @@ function makeEntries(
   const wrap = (expr: string) =>
     adapter.wrapSchema ? adapter.wrapSchema(expr, slotAt(path, options?.slot)) : expr
   if (path.at(-1) === 'schema') {
-    if (isInlineSchema(v)) return [[v, wrap(adapter.toExpression(v))]]
+    if (isInlineSchema(v)) {
+      return [[v, wrap(adapter.toExpression(pinInlineDiscriminatorValues(v, options?.schemas)))]]
+    }
     if (isRecord(v) && typeof v.$ref === 'string') {
       const varName = makeSchemaVarName(v.$ref, options?.identifiers)
       if (varName) return [[v, wrap(varName)]]
