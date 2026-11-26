@@ -10,6 +10,7 @@ import {
 } from '../../guard/index.js'
 import { bigintValueLiteral } from '../../helper/bigint.js'
 import {
+  additionalBesideCombinator,
   enumWithoutWrappedNull,
   constraintMessage,
   constraintPredicate,
@@ -199,6 +200,9 @@ function node(
   isZod: boolean,
   options: EmitOptions | undefined,
 ) {
+  // `additionalProperties` beside a combinator holds the keys the node itself leaves.
+  const split = additionalBesideCombinator(schema, options?.definitions)
+  if (split !== undefined) return node(split, rootName, isZod, options)
   const isStringWireParam = isStringWireLocation(options?.paramIn)
   const isWireCoerced = isStringWireParam && schema['x-coerce'] !== false
   const codeExtOpts: CodeExtensionOptions =

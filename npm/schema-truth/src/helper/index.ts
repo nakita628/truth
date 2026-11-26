@@ -1,3 +1,4 @@
+export * from './additional-beside.js'
 export * from './all-of.js'
 export * from './arktype-wrap.js'
 export * from './bigint.js'

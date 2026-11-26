@@ -51,6 +51,7 @@ import { Account } from '../write-only-password/output.ts'
 import { Shadowed as UnevaluatedShadowed } from '../unevaluated-shadowed/output.ts'
 import { OwnKeys as DependentOwnKeys } from '../dependent-own-keys/output.ts'
 import { KeyChecks } from '../object-key-keywords/output.ts'
+import { Closed } from '../additional-beside-allof/output.ts'
 
 const issues = (result: unknown) => {
   if (!(result instanceof type.errors)) {
@@ -1168,6 +1169,18 @@ describe('object-key-keywords (#131)', () => {
   })
 
   it.each([{"counted": {"a": 1}}, {"loose": {"x": 1, "y": 2}}, {"dep": {"a": 1}}, {"open": "text"}, {"open": 5}, {"strings": {}}, {"strings": {"a": 1}}, {"letters": {"abc": 1}}, {"letters": {"1": "x"}}])('rejects %j', (value) => {
+    expect(passes(value)).toBe(false)
+  })
+})
+
+describe('additional-beside-allof (#138)', () => {
+  const passes = (value) => !(Closed(value) instanceof type.errors)
+  // ArkType carries no default, so the defaulted key stays required.
+  it.each([{"box": {}, "filled": {}}, {"box": {"a": "x", "b": "y"}, "filled": {}}, {"either": "x", "filled": {}}, {"either": {"a": 1}, "filled": {}}])('accepts %j', (value) => {
+    expect(passes(value)).toBe(true)
+  })
+
+  it.each([{"box": {"c": 1}, "filled": {}}, {"box": {"a": "x", "c": 1}, "filled": {}}, {"either": {"c": 1}, "filled": {}}, {"filled": {"c": 1}}])('rejects %j', (value) => {
     expect(passes(value)).toBe(false)
   })
 })
