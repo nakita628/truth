@@ -1,5 +1,11 @@
 # schema-truth
 
+## 0.14.2
+
+### Patch Changes
+
+- [#163](https://github.com/nakita628/truth/pull/163) [`d2551fb`](https://github.com/nakita628/truth/commit/d2551fb27a99752ac52f913f2053fb76f3509885) Thanks [@nakita628](https://github.com/nakita628)! - TypeBox: `Type.Integer` and `Type.Number` now carry the range of an `int32`, `uint32`, `float` or `float32` format as `minimum` / `maximum`, so they reject what the other targets reject. Where the schema's own bound on a side is looser, the format's bound replaces it, and an out-of-range value reports `x-error-message` rather than that bound's message. `Value.Create` now starts such a field at the format's minimum when the schema sets no lower bound of its own.
+
 ## 0.14.1
 
 ### Patch Changes
